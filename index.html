@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
 
@@ -15,168 +16,183 @@
 
 <body>
 
-    <!-- ================================
-         HEADER
-    ================================= -->
+    <!-- ================= HEADER ================= -->
 
-    <header class="site-header">
+    <header class="top-header">
 
-        <div class="header-container">
+        <div class="brand">
 
-            <div class="brand">
+            <img
+                src="https://pub-b3e2d39712e84119875e84c5ec5f5c09.r2.dev/Logo/IMG_20250802_154923.jpg"
+                alt="Sunningdale University Logo"
+                class="logo"
+            >
 
-                <img
-                    src="https://pub-b3e2d39712e84119875e84c5ec5f5c09.r2.dev/Logo/IMG_20250802_154923.jpg"
-                    alt="Sunningdale University Logo"
-                    class="brand-logo"
-                >
+            <div class="brand-text">
 
-                <div class="brand-text">
-                    <h1>E-Campus</h1>
-                    <p>Sunningdale University</p>
-                </div>
+                <h1>E-Campus</h1>
+
+                <p>Sunningdale University</p>
 
             </div>
 
-
-            <button
-                id="menuBtn"
-                class="menu-btn"
-                type="button"
-                aria-label="Open menu"
-            >
-                ☰
-            </button>
-
         </div>
+
+
+        <button
+            id="menuBtn"
+            class="menu-button"
+            type="button"
+            aria-label="Open menu"
+        >
+            ☰
+        </button>
 
     </header>
 
 
-    <!-- ================================
-         MAIN CONTENT
-    ================================= -->
+    <!-- ================= HERO ================= -->
 
-    <main>
+    <section class="hero">
 
-        <section class="portal-section">
+        <div class="hero-content">
 
-            <div class="section-heading">
+            <div class="welcome-badge">
+                ECAMPUS PORTALS
+            </div>
 
-                <p class="eyebrow">
-                    ECAMPUS PORTALS
+            <h2>
+                Choose Your <span>Portal</span>
+            </h2>
+
+            <p>
+                Access the Sunningdale University
+                E-Campus system for students,
+                lecturers and administrators.
+            </p>
+
+        </div>
+
+    </section>
+
+
+    <!-- ================= PORTALS ================= -->
+
+    <section class="portals">
+
+        <div class="section-heading">
+
+            <span>
+                ECAMPUS PORTALS
+            </span>
+
+            <h2>
+                Choose Your Portal
+            </h2>
+
+            <p>
+                Select the portal you want to access.
+            </p>
+
+        </div>
+
+
+        <div class="portal-grid">
+
+
+            <!-- STUDENT -->
+
+            <div class="portal-card">
+
+                <div class="portal-icon">
+                    🎓
+                </div>
+
+                <h3>
+                    Student Portal
+                </h3>
+
+                <p>
+                    Access courses, assignments,
+                    examinations, results and
+                    your student profile.
                 </p>
 
-                <h2>
-                    Choose Your Portal
-                </h2>
+                <button
+                    id="studentLoginButton"
+                    class="portal-button"
+                    type="button"
+                >
+                    Student Login
+                </button>
 
             </div>
 
 
-            <div class="portal-grid">
+            <!-- LECTURER -->
 
+            <div class="portal-card">
 
-                <!-- ================================
-                     STUDENT PORTAL
-                ================================= -->
-
-                <div class="portal-card">
-
-                    <div class="portal-icon">
-                        🎓
-                    </div>
-
-                    <h3>
-                        Student Portal
-                    </h3>
-
-                    <p>
-                        Access courses, assignments, examinations,
-                        results and your student profile.
-                    </p>
-
-                    <button
-                        id="studentLoginButton"
-                        class="portal-button"
-                        type="button"
-                    >
-                        Student Login
-                    </button>
-
+                <div class="portal-icon">
+                    👨‍🏫
                 </div>
 
+                <h3>
+                    Lecturer Portal
+                </h3>
 
-                <!-- ================================
-                     LECTURER PORTAL
-                ================================= -->
+                <p>
+                    Manage courses, students,
+                    assignments, examinations
+                    and academic activities.
+                </p>
 
-                <div class="portal-card">
-
-                    <div class="portal-icon">
-                        👨‍🏫
-                    </div>
-
-                    <h3>
-                        Lecturer Portal
-                    </h3>
-
-                    <p>
-                        Manage courses, students, assignments,
-                        examinations and academic activities.
-                    </p>
-
-                    <button
-                        id="lecturerLoginButton"
-                        class="portal-button"
-                        type="button"
-                    >
-                        Lecturer Login
-                    </button>
-
-                </div>
-
-
-                <!-- ================================
-                     ADMIN PORTAL
-                ================================= -->
-
-                <div class="portal-card">
-
-                    <div class="portal-icon">
-                        🛡️
-                    </div>
-
-                    <h3>
-                        Administration Portal
-                    </h3>
-
-                    <p>
-                        Manage students, lecturers, courses,
-                        enrollments and the university system.
-                    </p>
-
-                    <button
-                        id="adminLoginButton"
-                        class="portal-button"
-                        type="button"
-                    >
-                        Admin Login
-                    </button>
-
-                </div>
-
+                <button
+                    id="lecturerLoginButton"
+                    class="portal-button"
+                    type="button"
+                >
+                    Lecturer Login
+                </button>
 
             </div>
 
-        </section>
 
-    </main>
+            <!-- ADMIN -->
+
+            <div class="portal-card">
+
+                <div class="portal-icon">
+                    🛡️
+                </div>
+
+                <h3>
+                    Administration Portal
+                </h3>
+
+                <p>
+                    Manage students, lecturers,
+                    courses, enrollments and
+                    the university system.
+                </p>
+
+                <button
+                    id="adminLoginButton"
+                    class="portal-button"
+                    type="button"
+                >
+                    Admin Login
+                </button>
+
+            </div>
 
 
-    <!-- ================================
-         FOOTER
-    ================================= -->
+        </div>
+
+    </section>
+
+
+    <!-- ================= FOOTER ================= -->
 
     <footer class="footer">
 
@@ -234,10 +250,7 @@
     </footer>
 
 
-    <!-- ================================
-         JAVASCRIPT
-         LOAD EACH FILE ONLY ONCE
-    ================================= -->
+    <!-- ================= JAVASCRIPT ================= -->
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
@@ -246,4 +259,5 @@
     <script src="app.js"></script>
 
 </body>
+
 </html>
