@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Student Dashboard | E-Campus</title>
+
+    <link rel="stylesheet" href="../style.css">
+</head>
+
+<body>
+
+    <!-- ================= HEADER ================= -->
+
+    <header class="top-header">
+
+        <div class="brand">
+
+            <img
+                src="https://pub-b3e2d39712e84119875e84c5ec5f5c09.r2.dev/Logo/IMG-20260816-WA0050(1).jpg"
+                alt="Sunningdale University Logo"
+                class="logo"
+            >
+
+            <div class="brand-text">
+                <h1>E-Campus</h1>
+                <p>Student Portal</p>
+            </div>
+
+        </div>
+
+
+        <div class="student-header">
+
+            <span id="studentName">
+                Student
+            </span>
+
+            <button
+                id="logoutButton"
+                class="secondary-button"
+            >
+                Logout
+            </button>
+
+        </div>
+
+    </header>
+
+
+    <!-- ================= DASHBOARD ================= -->
+
+    <main class="student-dashboard">
+
+        <!-- Welcome -->
+
+        <section class="dashboard-welcome">
+
+            <div>
+
+                <span class="welcome-badge">
+                    STUDENT DASHBOARD
+                </span>
+
+                <h2>
+                    Welcome back,
+                    <span id="welcomeName">
+                        Student
+                    </span>
+                </h2>
+
+                <p>
+                    Continue your learning journey and
+                    stay up to date with your academic progress.
+                </p>
+
+            </div>
+
+        </section>
+
+
+        <!-- ================= STATISTICS ================= -->
+
+        <section class="dashboard-stats">
+
+            <div class="dashboard-stat-card">
+
+                <div class="stat-icon">
+                    📚
+                </div>
+
+                <div>
+                    <span>Courses</span>
+                    <strong id="courseCount">
+                        0
+                    </strong>
+                </div>
+
+            </div>
+
+
+            <div class="dashboard-stat-card">
+
+                <div class="stat-icon">
+                    📝
+                </div>
+
+                <div>
+                    <span>Assignments</span>
+                    <strong id="assignmentCount">
+                        0
+                    </strong>
+                </div>
+
+            </div>
+
+
+            <div class="dashboard-stat-card">
+
+                <div class="stat-icon">
+                    🎯
+                </div>
+
+                <div>
+                    <span>Assessments</span>
+                    <strong id="assessmentCount">
+                        0
+                    </strong>
+                </div>
+
+            </div>
+
+
+            <div class="dashboard-stat-card">
+
+                <div class="stat-icon">
+                    📊
+                </div>
+
+                <div>
+                    <span>Progress</span>
+                    <strong id="progressValue">
+                        0%
+                    </strong>
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <!-- ================= MAIN GRID ================= -->
+
+        <section class="dashboard-grid">
+
+
+            <!-- MY COURSES -->
+
+            <div class="dashboard-panel">
+
+                <div class="panel-header">
+
+                    <div>
+
+                        <span class="panel-label">
+                            LEARNING
+                        </span>
+
+                        <h3>
+                            My Courses
+                        </h3>
+
+                    </div>
+
+                    <button
+                        class="panel-action"
+                        id="viewCoursesButton"
+                    >
+                        View All
+                    </button>
+
+                </div>
+
+
+                <div
+                    id="coursesContainer"
+                    class="dashboard-list"
+                >
+
+                    <div class="empty-state">
+
+                        <div>
+                            📚
+                        </div>
+
+                        <p>
+                            Your courses will appear here.
+                        </p>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <!-- ASSIGNMENTS -->
+
+            <div class="dashboard-panel">
+
+                <div class="panel-header">
+
+                    <div>
+
+                        <span class="panel-label">
+                            TASKS
+                        </span>
+
+                        <h3>
+                            Pending Assignments
+                        </h3>
+
+                    </div>
+
+                    <button
+                        class="panel-action"
+                        id="viewAssignmentsButton"
+                    >
+                        View All
+                    </button>
+
+                </div>
+
+
+                <div
+                    id="assignmentsContainer"
+                    class="dashboard-list"
+                >
+
+                    <div class="empty-state">
+
+                        <div>
+                            📝
+                        </div>
+
+                        <p>
+                            No pending assignments.
+                        </p>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <!-- ACADEMIC PROGRESS -->
+
+            <div class="dashboard-panel progress-panel">
+
+                <div class="panel-header">
+
+                    <div>
+
+                        <span class="panel-label">
+                            PERFORMANCE
+                        </span>
+
+                        <h3>
+                            Academic Progress
+                        </h3>
+
+                    </div>
+
+                </div>
+
+
+                <div class="progress-container">
+
+                    <div class="progress-circle">
+
+                        <span id="progressCircleValue">
+                            0%
+                        </span>
+
+                    </div>
+
+
+                    <div class="progress-information">
+
+                        <h4>
+                            Overall Progress
+                        </h4>
+
+                        <p>
+                            Your academic progress will be
+                            calculated from your courses,
+                            assessments and completed activities.
+                        </p>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <!-- UPCOMING ACTIVITIES -->
+
+            <div class="dashboard-panel">
+
+                <div class="panel-header">
+
+                    <div>
+
+                        <span class="panel-label">
+                            SCHEDULE
+                        </span>
+
+                        <h3>
+                            Upcoming Activities
+                        </h3>
+
+                    </div>
+
+                </div>
+
+
+                <div
+                    id="activitiesContainer"
+                    class="dashboard-list"
+                >
+
+                    <div class="empty-state">
+
+                        <div>
+                            📅
+                        </div>
+
+                        <p>
+                            No upcoming activities.
+                        </p>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+        </section>
+
+
+        <!-- ================= QUICK ACTIONS ================= -->
+
+        <section class="quick-actions">
+
+            <div class="section-heading">
+
+                <span>
+                    QUICK ACCESS
+                </span>
+
+                <h2>
+                    What would you like to do?
+                </h2>
+
+            </div>
+
+
+            <div class="quick-action-grid">
+
+                <button
+                    class="quick-action"
+                    data-action="courses"
+                >
+
+                    <span>📚</span>
+
+                    <strong>
+                        My Courses
+                    </strong>
+
+                    <small>
+                        Continue learning
+                    </small>
+
+                </button>
+
+
+                <button
+                    class="quick-action"
+                    data-action="assignments"
+                >
+
+                    <span>📝</span>
+
+                    <strong>
+                        Assignments
+                    </strong>
+
+                    <small>
+                        View and submit work
+                    </small>
+
+                </button>
+
+
+                <button
+                    class="quick-action"
+                    data-action="results"
+                >
+
+                    <span>📊</span>
+
+                    <strong>
+                        Results
+                    </strong>
+
+                    <small>
+                        View academic results
+                    </small>
+
+                </button>
+
+
+                <button
+                    class="quick-action"
+                    data-action="profile"
+                >
+
+                    <span>👤</span>
+
+                    <strong>
+                        My Profile
+                    </strong>
+
+                    <small>
+                        Manage your profile
+                    </small>
+
+                </button>
+
+
+                <button
+                    class="quick-action ai-action"
+                    data-action="ai-tutor"
+                >
+
+                    <span>🤖</span>
+
+                    <strong>
+                        AI Learning Assistant
+                    </strong>
+
+                    <small>
+                        Get intelligent learning support
+                    </small>
+
+                </button>
+
+            </div>
+
+        </section>
+
+
+    </main>
+
+
+    <!-- ================= FOOTER ================= -->
+
+    <footer class="footer">
+
+        <div class="copyright">
+
+            © 2026 Sunningdale University E-Campus.
+            All rights reserved.
+
+        </div>
+
+    </footer>
+
+
+    <!-- ================= JAVASCRIPT ================= -->
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <script src="../supabase-config.js"></script>
+
+    <script src="../app.js"></script>
+
+
+</body>
+
+</html> 
