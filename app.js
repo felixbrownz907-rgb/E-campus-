@@ -879,5 +879,272 @@ document.addEventListener("DOMContentLoaded", () => {
     console.log(
         "Authentication and Supabase integration will be connected in the next stage."
     );
+   /* =====================================================
+   STUDENT DASHBOARD
+   ===================================================== */
+
+async function loadStudentDashboard() {
+
+    const studentName =
+        document.getElementById("studentName");
+
+    const welcomeName =
+        document.getElementById("welcomeName");
+
+    if (!studentName && !welcomeName) {
+        return;
+    }
+
+    try {
+
+        const {
+            data: {
+                user
+            },
+            error: authError
+        } = await supabaseClient.auth.getUser();
+
+        if (authError || !user) {
+
+            console.log(
+                "No authenticated student found."
+            );
+
+            return;
+        }
+
+
+        const {
+            data: profile,
+            error: profileError
+        } =
+            await supabaseClient
+                .from("user_profiles")
+                .select(
+                    "first_name, middle_name, last_name, profile_photo_url, status"
+                )
+                .eq("id", user.id)
+                .single();
+
+
+        if (profileError) {
+
+            console.error(
+                "Unable to load student profile:",
+                profileError
+            );
+
+            return;
+        }
+
+
+        const fullName = [
+            profile.first_name,
+            profile.middle_name,
+            profile.last_name
+        ]
+        .filter(Boolean)
+        .join(" ");
+
+
+        if (studentName) {
+            studentName.textContent =
+                fullName || "Student";
+        }
+
+
+        if (welcomeName) {
+            welcomeName.textContent =
+                profile.first_name || "Student";
+        }
+
+
+        await loadStudentStatistics(user.id);
+
+    } catch (error) {
+
+        console.error(
+            "Student dashboard error:",
+            error
+        );
+
+    }
+}
+
+
+/* =====================================================
+   STUDENT STATISTICS
+   ===================================================== */
+
+async function loadStudentStatistics(userId) {
+
+    const courseCount =
+        document.getElementById(
+            "courseCount"
+        );
+
+    const assignmentCount =
+        document.getElementById(
+            "assignmentCount"
+        );
+
+    const assessmentCount =
+        document.getElementById(
+            "assessmentCount"
+        );
+
+
+    /*
+     * We are intentionally starting with safe
+     * database queries.
+     *
+     * Course/enrollment relationships will be
+     * connected in the next stage.
+     */
+
+
+    if (courseCount) {
+        courseCount.textContent = "0";
+    }
+
+
+    if (assignmentCount) {
+        assignmentCount.textContent = "0";
+    }
+
+
+    if (assessmentCount) {
+        assessmentCount.textContent = "0";
+    }
+
+
+    console.log(
+        "Student dashboard initialized for:",
+        userId
+    );
+}
+
+
+/* =====================================================
+   STUDENT DASHBOARD BUTTONS
+   ===================================================== */
+
+document.addEventListener(
+    "click",
+    (event) => {
+
+        const button =
+            event.target.closest(
+                "[data-action]"
+            );
+
+
+        if (!button) {
+            return;
+        }
+
+
+        const action =
+            button.getAttribute(
+                "data-action"
+            );
+
+
+        switch (action) {
+
+            case "courses":
+
+                window.location.href =
+                    "student-courses.html";
+
+                break;
+
+
+            case "assignments":
+
+                window.location.href =
+                    "student-assignments.html";
+
+                break;
+
+
+            case "results":
+
+                window.location.href =
+                    "student-results.html";
+
+                break;
+
+
+            case "profile":
+
+                window.location.href =
+                    "student-profile.html";
+
+                break;
+
+
+            case "ai-tutor":
+
+                window.location.href =
+                    "ai-tutor.html";
+
+                break;
+
+        }
+
+    }
+);
+
+
+/* =====================================================
+   STUDENT LOGOUT
+   ===================================================== */
+
+const logoutButton =
+    document.getElementById(
+        "logoutButton"
+    );
+
+
+if (logoutButton) {
+
+    logoutButton.addEventListener(
+        "click",
+        async () => {
+
+            const {
+                error
+            } =
+                await supabaseClient
+                    .auth
+                    .signOut();
+
+
+            if (error) {
+
+                console.error(
+                    "Logout failed:",
+                    error
+                );
+
+                return;
+            }
+
+
+            window.location.href =
+                "../index.html";
+
+        }
+    );
+
+}
+
+
+/* =====================================================
+   START STUDENT DASHBOARD
+   ===================================================== */
+
+loadStudentDashboard();
 
 });
