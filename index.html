@@ -16,23 +16,29 @@
 
 <body>
 
-    <!-- ================= HEADER ================= -->
+    <!-- =====================================================
+         HEADER
+    ====================================================== -->
 
     <header class="top-header">
 
         <div class="brand">
 
             <img
-                src="https://pub-b3e2d39712e84119875e84c5ec5f5c09.r2.dev/Logo/IMG_20250802_154923.jpg"
+                src="https://pub-b3e2d39712e84119875e84c5ec5f5c09.r2.dev/Logo/IMG-20260816-WA0050(1).jpg"
                 alt="Sunningdale University Logo"
                 class="logo"
             >
 
             <div class="brand-text">
 
-                <h1>E-Campus</h1>
+                <h1>
+                    E-Campus
+                </h1>
 
-                <p>Sunningdale University</p>
+                <p>
+                    Sunningdale University
+                </p>
 
             </div>
 
@@ -51,32 +57,172 @@
     </header>
 
 
-    <!-- ================= HERO ================= -->
+    <!-- =====================================================
+         HERO SECTION
+    ====================================================== -->
 
     <section class="hero">
 
         <div class="hero-content">
 
             <div class="welcome-badge">
-                ECAMPUS PORTALS
+                SUNNINGDALE UNIVERSITY E-CAMPUS
             </div>
 
             <h2>
-                Choose Your <span>Portal</span>
+                Welcome to
+                <span>E-Campus</span>
             </h2>
 
             <p>
-                Access the Sunningdale University
-                E-Campus system for students,
-                lecturers and administrators.
+                A modern digital learning environment
+                connecting students, lecturers and
+                university administration in one place.
             </p>
+
+
+            <div class="hero-buttons">
+
+                <a
+                    href="pages/student-login.html"
+                    class="primary-button"
+                >
+                    Student Login
+                </a>
+
+                <a
+                    href="pages/lecturer-login.html"
+                    class="secondary-button"
+                >
+                    Lecturer Login
+                </a>
+
+            </div>
 
         </div>
 
     </section>
 
 
-    <!-- ================= PORTALS ================= -->
+    <!-- =====================================================
+         FEATURES
+    ====================================================== -->
+
+    <section class="features">
+
+        <div class="section-heading">
+
+            <span>
+                E-CAMPUS FEATURES
+            </span>
+
+            <h2>
+                Everything You Need
+            </h2>
+
+            <p>
+                Access essential academic services
+                through one modern platform.
+            </p>
+
+        </div>
+
+
+        <div class="feature-grid">
+
+
+            <!-- FEATURE 1 -->
+
+            <div class="feature-card">
+
+                <div class="feature-icon">
+                    🎓
+                </div>
+
+                <h3>
+                    Student Learning
+                </h3>
+
+                <p>
+                    Access your registered courses,
+                    learning materials, assignments,
+                    assessments and academic progress.
+                </p>
+
+            </div>
+
+
+            <!-- FEATURE 2 -->
+
+            <div class="feature-card">
+
+                <div class="feature-icon">
+                    📚
+                </div>
+
+                <h3>
+                    Course Management
+                </h3>
+
+                <p>
+                    Organize courses, modules,
+                    academic content and learning
+                    activities in one system.
+                </p>
+
+            </div>
+
+
+            <!-- FEATURE 3 -->
+
+            <div class="feature-card">
+
+                <div class="feature-icon">
+                    📝
+                </div>
+
+                <h3>
+                    Assignments & Results
+                </h3>
+
+                <p>
+                    Submit assignments, complete
+                    assessments and follow your
+                    academic results.
+                </p>
+
+            </div>
+
+
+            <!-- FEATURE 4 -->
+
+            <div class="feature-card">
+
+                <div class="feature-icon">
+                    🤖
+                </div>
+
+                <h3>
+                    AI-Enhanced Learning
+                </h3>
+
+                <p>
+                    Experience modern learning
+                    supported by artificial intelligence
+                    and digital technologies.
+                </p>
+
+            </div>
+
+
+        </div>
+
+    </section>
+
+
+    <!-- =====================================================
+         PORTALS
+    ====================================================== -->
 
     <section class="portals">
 
@@ -91,7 +237,8 @@
             </h2>
 
             <p>
-                Select the portal you want to access.
+                Select the portal that matches
+                your role at the university.
             </p>
 
         </div>
@@ -100,7 +247,9 @@
         <div class="portal-grid">
 
 
-            <!-- STUDENT -->
+            <!-- =================================================
+                 STUDENT PORTAL
+            ================================================== -->
 
             <div class="portal-card">
 
@@ -113,23 +262,24 @@
                 </h3>
 
                 <p>
-                    Access courses, assignments,
-                    examinations, results and
-                    your student profile.
+                    Access your courses, assignments,
+                    examinations, results, profile
+                    and learning resources.
                 </p>
 
-                <button
-                    id="studentLoginButton"
+                <a
+                    href="pages/student-login.html"
                     class="portal-button"
-                    type="button"
                 >
                     Student Login
-                </button>
+                </a>
 
             </div>
 
 
-            <!-- LECTURER -->
+            <!-- =================================================
+                 LECTURER PORTAL
+            ================================================== -->
 
             <div class="portal-card">
 
@@ -143,22 +293,23 @@
 
                 <p>
                     Manage courses, students,
-                    assignments, examinations
+                    assignments, assessments
                     and academic activities.
                 </p>
 
-                <button
-                    id="lecturerLoginButton"
+                <a
+                    href="pages/lecturer-login.html"
                     class="portal-button"
-                    type="button"
                 >
                     Lecturer Login
-                </button>
+                </a>
 
             </div>
 
 
-            <!-- ADMIN -->
+            <!-- =================================================
+                 ADMINISTRATION PORTAL
+            ================================================== -->
 
             <div class="portal-card">
 
@@ -173,16 +324,15 @@
                 <p>
                     Manage students, lecturers,
                     courses, enrollments and
-                    the university system.
+                    university operations.
                 </p>
 
-                <button
-                    id="adminLoginButton"
+                <a
+                    href="pages/admin-login.html"
                     class="portal-button"
-                    type="button"
                 >
                     Admin Login
-                </button>
+                </a>
 
             </div>
 
@@ -192,14 +342,16 @@
     </section>
 
 
-    <!-- ================= FOOTER ================= -->
+    <!-- =====================================================
+         FOOTER
+    ====================================================== -->
 
     <footer class="footer">
 
         <div class="footer-brand">
 
             <img
-                src="https://pub-b3e2d39712e84119875e84c5ec5f5c09.r2.dev/Logo/IMG_20250802_154923.jpg"
+                src="https://pub-b3e2d39712e84119875e84c5ec5f5c09.r2.dev/Logo/IMG-20260816-WA0050(1).jpg"
                 alt="Sunningdale University Logo"
                 class="footer-logo"
             >
@@ -250,7 +402,10 @@
     </footer>
 
 
-    <!-- ================= JAVASCRIPT ================= -->
+    <!-- =====================================================
+         SUPABASE + APPLICATION
+         LOADED ONCE
+    ====================================================== -->
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
