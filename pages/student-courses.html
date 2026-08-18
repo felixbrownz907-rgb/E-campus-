@@ -1,0 +1,792 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>My Courses | E-Campus</title>
+
+    <link rel="stylesheet" href="../style.css">
+</head>
+
+<body>
+
+    <!-- HEADER -->
+    <header class="top-header">
+
+        <div class="brand">
+
+            <img
+                src="https://pub-b3e2d39712e84119875e84c5ec5f5c09.r2.dev/Logo/IMG-20260816-WA0050(1).jpg"
+                alt="Sunningdale University Logo"
+                class="logo"
+            >
+
+            <div class="brand-text">
+                <h1>E-Campus</h1>
+                <p>My Courses</p>
+            </div>
+
+        </div>
+
+        <div class="student-header">
+
+            <span id="studentName">
+                Student
+            </span>
+
+            <button
+                id="backButton"
+                class="secondary-button"
+            >
+                Dashboard
+            </button>
+
+        </div>
+
+    </header>
+
+
+    <!-- MAIN -->
+    <main class="student-dashboard">
+
+        <!-- PAGE INTRO -->
+        <section class="dashboard-welcome">
+
+            <div>
+
+                <span class="welcome-badge">
+                    MY LEARNING
+                </span>
+
+                <h2>
+                    My Courses
+                </h2>
+
+                <p>
+                    View your registered courses and continue
+                    your learning journey.
+                </p>
+
+            </div>
+
+        </section>
+
+
+        <!-- COURSE SUMMARY -->
+        <section class="dashboard-stats">
+
+            <div class="dashboard-stat-card">
+
+                <div class="stat-icon">
+                    📚
+                </div>
+
+                <div>
+                    <span>Registered Courses</span>
+
+                    <strong id="totalCourses">
+                        0
+                    </strong>
+                </div>
+
+            </div>
+
+
+            <div class="dashboard-stat-card">
+
+                <div class="stat-icon">
+                    📖
+                </div>
+
+                <div>
+                    <span>Modules</span>
+
+                    <strong id="totalModules">
+                        0
+                    </strong>
+                </div>
+
+            </div>
+
+
+            <div class="dashboard-stat-card">
+
+                <div class="stat-icon">
+                    ✅
+                </div>
+
+                <div>
+                    <span>Completed</span>
+
+                    <strong id="completedCourses">
+                        0
+                    </strong>
+                </div>
+
+            </div>
+
+
+            <div class="dashboard-stat-card">
+
+                <div class="stat-icon">
+                    📊
+                </div>
+
+                <div>
+                    <span>Overall Progress</span>
+
+                    <strong id="overallProgress">
+                        0%
+                    </strong>
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <!-- SEARCH -->
+        <section class="dashboard-panel">
+
+            <div class="panel-header">
+
+                <div>
+
+                    <span class="panel-label">
+                        LEARNING
+                    </span>
+
+                    <h3>
+                        Your Courses
+                    </h3>
+
+                </div>
+
+                <input
+                    type="search"
+                    id="courseSearch"
+                    class="search-input"
+                    placeholder="Search courses..."
+                >
+
+            </div>
+
+
+            <!-- COURSES -->
+            <div
+                id="coursesContainer"
+                class="dashboard-list"
+            >
+
+                <div class="empty-state">
+
+                    <div>
+                        📚
+                    </div>
+
+                    <p>
+                        Loading your courses...
+                    </p>
+
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <!-- COURSE DETAILS -->
+        <section
+            id="courseDetails"
+            class="dashboard-panel"
+            style="display:none;"
+        >
+
+            <div class="panel-header">
+
+                <div>
+
+                    <span class="panel-label">
+                        COURSE
+                    </span>
+
+                    <h3 id="selectedCourseName">
+                        Course
+                    </h3>
+
+                </div>
+
+                <button
+                    id="closeCourse"
+                    class="secondary-button"
+                >
+                    Close
+                </button>
+
+            </div>
+
+
+            <div id="modulesContainer">
+
+                <div class="empty-state">
+
+                    <p>
+                        Select a course to view its modules.
+                    </p>
+
+                </div>
+
+            </div>
+
+        </section>
+
+    </main>
+
+
+    <!-- FOOTER -->
+    <footer class="footer">
+
+        <div class="copyright">
+
+            © 2026 Sunningdale University E-Campus.
+            All rights reserved.
+
+        </div>
+
+    </footer>
+
+
+    <!-- SUPABASE -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <script src="../supabase-config.js"></script>
+
+
+    <!-- PAGE SCRIPT -->
+    <script>
+
+        let currentCourses = [];
+
+
+        /* ==========================================
+           GET CURRENT USER
+           ========================================== */
+
+        async function getCurrentStudent() {
+
+            const {
+                data: {
+                    user
+                },
+                error
+            } =
+                await supabaseClient
+                    .auth
+                    .getUser();
+
+
+            if (error || !user) {
+
+                window.location.href =
+                    "../index.html";
+
+                return null;
+
+            }
+
+
+            return user;
+
+        }
+
+
+        /* ==========================================
+           LOAD STUDENT PROFILE
+           ========================================== */
+
+        async function loadStudentProfile() {
+
+            const user =
+                await getCurrentStudent();
+
+
+            if (!user) {
+                return;
+            }
+
+
+            const {
+                data: profile,
+                error
+            } =
+                await supabaseClient
+                    .from("user_profiles")
+                    .select(
+                        "first_name, middle_name, last_name"
+                    )
+                    .eq("id", user.id)
+                    .single();
+
+
+            if (error) {
+
+                console.error(
+                    "Profile error:",
+                    error
+                );
+
+                return;
+
+            }
+
+
+            const fullName = [
+
+                profile.first_name,
+
+                profile.middle_name,
+
+                profile.last_name
+
+            ]
+            .filter(Boolean)
+            .join(" ");
+
+
+            const nameElement =
+                document.getElementById(
+                    "studentName"
+                );
+
+
+            if (nameElement) {
+
+                nameElement.textContent =
+                    fullName || "Student";
+
+            }
+
+        }
+
+
+        /* ==========================================
+           LOAD COURSES
+           ========================================== */
+
+        async function loadCourses() {
+
+            const user =
+                await getCurrentStudent();
+
+
+            if (!user) {
+                return;
+            }
+
+
+            const container =
+                document.getElementById(
+                    "coursesContainer"
+                );
+
+
+            container.innerHTML = `
+                <div class="empty-state">
+                    <div>⏳</div>
+                    <p>Loading your courses...</p>
+                </div>
+            `;
+
+
+            /*
+             * We are preparing the course page
+             * for the existing E-Campus database.
+             *
+             * The exact enrollment relationship will
+             * be connected after we verify the current
+             * enrollments table structure.
+             */
+
+
+            const {
+                data: enrollments,
+                error
+            } =
+                await supabaseClient
+                    .from("enrollments")
+                    .select("*")
+                    .eq(
+                        "student_id",
+                        user.id
+                    );
+
+
+            if (error) {
+
+                console.error(
+                    "Course loading error:",
+                    error
+                );
+
+
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div>📚</div>
+                        <p>
+                            Your courses will appear here
+                            once your enrolments are available.
+                        </p>
+                    </div>
+                `;
+
+
+                return;
+
+            }
+
+
+            currentCourses =
+                enrollments || [];
+
+
+            document.getElementById(
+                "totalCourses"
+            ).textContent =
+                currentCourses.length;
+
+
+            renderCourses(
+                currentCourses
+            );
+
+        }
+
+
+        /* ==========================================
+           DISPLAY COURSES
+           ========================================== */
+
+        function renderCourses(courses) {
+
+            const container =
+                document.getElementById(
+                    "coursesContainer"
+                );
+
+
+            if (!courses.length) {
+
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div>📚</div>
+                        <p>
+                            You currently have no
+                            registered courses.
+                        </p>
+                    </div>
+                `;
+
+                return;
+
+            }
+
+
+            container.innerHTML = "";
+
+
+            courses.forEach(
+                (enrollment, index) => {
+
+                    const courseCard =
+                        document.createElement(
+                            "div"
+                        );
+
+
+                    courseCard.className =
+                        "course-card";
+
+
+                    const courseName =
+                        enrollment.course_name ||
+                        enrollment.name ||
+                        `Course ${index + 1}`;
+
+
+                    const status =
+                        enrollment.status ||
+                        "active";
+
+
+                    courseCard.innerHTML = `
+
+                        <div class="course-icon">
+                            📚
+                        </div>
+
+                        <div class="course-content">
+
+                            <h4>
+                                ${escapeHtml(
+                                    courseName
+                                )}
+                            </h4>
+
+                            <p>
+                                Status:
+                                ${escapeHtml(
+                                    status
+                                )}
+                            </p>
+
+                        </div>
+
+                        <button
+                            class="secondary-button"
+                            onclick="openCourse(${index})"
+                        >
+                            Open Course
+                        </button>
+
+                    `;
+
+
+                    container.appendChild(
+                        courseCard
+                    );
+
+                }
+            );
+
+        }
+
+
+        /* ==========================================
+           OPEN COURSE
+           ========================================== */
+
+        window.openCourse =
+            function(index) {
+
+                const course =
+                    currentCourses[index];
+
+
+                if (!course) {
+                    return;
+                }
+
+
+                const details =
+                    document.getElementById(
+                        "courseDetails"
+                    );
+
+
+                const courseName =
+                    document.getElementById(
+                        "selectedCourseName"
+                    );
+
+
+                courseName.textContent =
+                    course.course_name ||
+                    course.name ||
+                    "Course";
+
+
+                details.style.display =
+                    "block";
+
+
+                details.scrollIntoView({
+                    behavior: "smooth"
+                });
+
+
+                loadModules(
+                    course
+                );
+
+            };
+
+
+        /* ==========================================
+           LOAD MODULES
+           ========================================== */
+
+        async function loadModules(course) {
+
+            const container =
+                document.getElementById(
+                    "modulesContainer"
+                );
+
+
+            container.innerHTML = `
+                <div class="empty-state">
+                    <div>⏳</div>
+                    <p>Loading modules...</p>
+                </div>
+            `;
+
+
+            /*
+             * Modules will be connected to the
+             * selected course after the exact
+             * course/module relationship is verified.
+             */
+
+
+            container.innerHTML = `
+                <div class="empty-state">
+                    <div>📖</div>
+                    <p>
+                        Course modules will appear here.
+                    </p>
+                </div>
+            `;
+
+        }
+
+
+        /* ==========================================
+           SEARCH COURSES
+           ========================================== */
+
+        const searchInput =
+            document.getElementById(
+                "courseSearch"
+            );
+
+
+        if (searchInput) {
+
+            searchInput.addEventListener(
+                "input",
+                () => {
+
+                    const search =
+                        searchInput.value
+                            .toLowerCase()
+                            .trim();
+
+
+                    const filtered =
+                        currentCourses.filter(
+                            (course) => {
+
+                                const name =
+                                    (
+                                        course.course_name ||
+                                        course.name ||
+                                        ""
+                                    )
+                                    .toLowerCase();
+
+
+                                return name.includes(
+                                    search
+                                );
+
+                            }
+                        );
+
+
+                    renderCourses(
+                        filtered
+                    );
+
+                }
+            );
+
+        }
+
+
+        /* ==========================================
+           DASHBOARD BUTTON
+           ========================================== */
+
+        document
+            .getElementById("backButton")
+            .addEventListener(
+                "click",
+                () => {
+
+                    window.location.href =
+                        "student-dashboard.html";
+
+                }
+            );
+
+
+        /* ==========================================
+           CLOSE COURSE DETAILS
+           ========================================== */
+
+        document
+            .getElementById("closeCourse")
+            .addEventListener(
+                "click",
+                () => {
+
+                    document.getElementById(
+                        "courseDetails"
+                    ).style.display =
+                        "none";
+
+                }
+            );
+
+
+        /* ==========================================
+           HTML SAFETY
+           ========================================== */
+
+        function escapeHtml(value) {
+
+            return String(value)
+
+                .replace(
+                    /&/g,
+                    "&amp;"
+                )
+
+                .replace(
+                    /</g,
+                    "&lt;"
+                )
+
+                .replace(
+                    />/g,
+                    "&gt;"
+                )
+
+                .replace(
+                    /"/g,
+                    "&quot;"
+                )
+
+                .replace(
+                    /'/g,
+                    "&#039;"
+                );
+
+        }
+
+
+        /* ==========================================
+           INITIALIZE
+           ========================================== */
+
+        loadStudentProfile();
+
+        loadCourses();
+
+    </script>
+
+</body>
+
+</html>
