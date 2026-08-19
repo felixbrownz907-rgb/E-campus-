@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard | E-Campus</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+            background: #f4f6f9;
+            color: #172033;
+        }
+
+        .header {
+            background: #111827;
+            color: white;
+            padding: 18px 25px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .logo {
+            width: 58px;
+            height: 58px;
+            object-fit: contain;
+            background: white;
+            border-radius: 8px;
+        }
+
+        .brand h1 {
+            font-size: 24px;
+        }
+
+        .brand p {
+            color: #d4af37;
+            margin-top: 4px;
+        }
+
+        .logout {
+            border: none;
+            background: #d4af37;
+            color: #111827;
+            padding: 11px 18px;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 30px auto;
+            padding: 0 20px;
+        }
+
+        .welcome {
+            margin-bottom: 25px;
+        }
+
+        .welcome h2 {
+            font-size: 30px;
+            margin-bottom: 7px;
+        }
+
+        .welcome p {
+            color: #6b7280;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 18px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 22px;
+            border-radius: 14px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.07);
+        }
+
+        .stat-card .icon {
+            font-size: 30px;
+            margin-bottom: 12px;
+        }
+
+        .stat-card h3 {
+            font-size: 28px;
+            margin-bottom: 5px;
+        }
+
+        .stat-card p {
+            color: #6b7280;
+        }
+
+        .section-title {
+            margin-bottom: 18px;
+            font-size: 22px;
+        }
+
+        .management-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+        }
+
+        .management-card {
+            background: white;
+            border-radius: 14px;
+            padding: 25px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.07);
+        }
+
+        .management-card .icon {
+            font-size: 38px;
+            margin-bottom: 15px;
+        }
+
+        .management-card h3 {
+            margin-bottom: 8px;
+        }
+
+        .management-card p {
+            color: #6b7280;
+            line-height: 1.5;
+            margin-bottom: 18px;
+        }
+
+        .management-card a {
+            display: inline-block;
+            text-decoration: none;
+            background: #d4af37;
+            color: #111827;
+            padding: 11px 16px;
+            border-radius: 8px;
+            font-weight: bold;
+        }
+
+        .management-card a:hover {
+            background: #c29d24;
+        }
+
+        .message {
+            display: none;
+            padding: 14px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .message.error {
+            display: block;
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        @media (max-width: 900px) {
+            .stats {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .management-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 600px) {
+            .header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 15px;
+            }
+
+            .stats,
+            .management-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <header class="header">
+
+        <div class="brand">
+
+            <img
+                src="https://pub-b3e2d39712e84119875e84c5ec5f5c09.r2.dev/Logo/IMG-20260816-WA0050(1).jpg"
+                alt="Sunningdale University Logo"
+                class="logo"
+            >
+
+            <div>
+                <h1>E-Campus Administration</h1>
+                <p>Sunningdale University</p>
+            </div>
+
+        </div>
+
+        <button id="logoutButton" class="logout">
+            Logout
+        </button>
+
+    </header>
+
+
+    <main class="container">
+
+        <section class="welcome">
+
+            <h2>Admin Dashboard</h2>
+
+            <p>
+                Manage the academic and administrative
+                operations of Sunningdale University.
+            </p>
+
+        </section>
+
+
+        <div id="message" class="message"></div>
+
+
+        <!-- STATISTICS -->
+
+        <section class="stats">
+
+            <div class="stat-card">
+                <div class="icon">🎓</div>
+                <h3 id="programmeCount">0</h3>
+                <p>Programmes</p>
+            </div>
+
+            <div class="stat-card">
+                <div class="icon">📚</div>
+                <h3 id="courseCount">0</h3>
+                <p>Courses</p>
+            </div>
+
+            <div class="stat-card">
+                <div class="icon">👨‍🎓</div>
+                <h3 id="studentCount">0</h3>
+                <p>Students</p>
+            </div>
+
+            <div class="stat-card">
+                <div class="icon">👨‍🏫</div>
+                <h3 id="lecturerCount">0</h3>
+                <p>Lecturers</p>
+            </div>
+
+        </section>
+
+
+        <!-- MANAGEMENT -->
+
+        <h2 class="section-title">
+            Academic Management
+        </h2>
+
+        <section class="management-grid">
+
+
+            <div class="management-card">
+
+                <div class="icon">🎓</div>
+
+                <h3>Programmes</h3>
+
+                <p>
+                    Create and manage university
+                    academic programmes.
+                </p>
+
+                <a href="admin-programmes.html">
+                    Manage Programmes
+                </a>
+
+            </div>
+
+
+            <div class="management-card">
+
+                <div class="icon">📚</div>
+
+                <h3>Courses</h3>
+
+                <p>
+                    Create courses and manage
+                    course information.
+                </p>
+
+                <a href="#">
+                    Manage Courses
+                </a>
+
+            </div>
+
+
+            <div class="management-card">
+
+                <div class="icon">📖</div>
+
+                <h3>Course Modules</h3>
+
+                <p>
+                    Manage modules and learning
+                    content for courses.
+                </p>
+
+                <a href="#">
+                    Manage Modules
+                </a>
+
+            </div>
+
+
+            <div class="management-card">
+
+                <div class="icon">👨‍🎓</div>
+
+                <h3>Students</h3>
+
+                <p>
+                    Manage student profiles and
+                    academic information.
+                </p>
+
+                <a href="#">
+                    Manage Students
+                </a>
+
+            </div>
+
+
+            <div class="management-card">
+
+                <div class="icon">👨‍🏫</div>
+
+                <h3>Lecturers</h3>
+
+                <p>
+                    Manage lecturers and their
+                    academic assignments.
+                </p>
+
+                <a href="#">
+                    Manage Lecturers
+                </a>
+
+            </div>
+
+
+            <div class="management-card">
+
+                <div class="icon">🔗</div>
+
+                <h3>Enrolments</h3>
+
+                <p>
+                    Enrol students into courses
+                    and academic terms.
+                </p>
+
+                <a href="#">
+                    Manage Enrolments
+                </a>
+
+            </div>
+
+
+            <div class="management-card">
+
+                <div class="icon">📅</div>
+
+                <h3>Academic Terms</h3>
+
+                <p>
+                    Manage academic years,
+                    semesters and registration periods.
+                </p>
+
+                <a href="#">
+                    Manage Terms
+                </a>
+
+            </div>
+
+
+            <div class="management-card">
+
+                <div class="icon">🏫</div>
+
+                <h3>Campuses</h3>
+
+                <p>
+                    Manage university campuses
+                    and their information.
+                </p>
+
+                <a href="#">
+                    Manage Campuses
+                </a>
+
+            </div>
+
+
+            <div class="management-card">
+
+                <div class="icon">🏢</div>
+
+                <h3>Departments</h3>
+
+                <p>
+                    Manage academic departments
+                    and department information.
+                </p>
+
+                <a href="#">
+                    Manage Departments
+                </a>
+
+            </div>
+
+        </section>
+
+    </main>
+
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <script src="../supabase-config.js"></script>
+
+    <script>
+
+        async function loadCount(table, elementId) {
+
+            const {
+                count,
+                error
+            } = await supabaseClient
+                .from(table)
+                .select("*", {
+                    count: "exact",
+                    head: true
+                });
+
+            if (!error) {
+                document.getElementById(elementId).textContent =
+                    count || 0;
+            }
+        }
+
+
+        async function loadDashboard() {
+
+            await Promise.all([
+
+                loadCount(
+                    "programmes",
+                    "programmeCount"
+                ),
+
+                loadCount(
+                    "courses",
+                    "courseCount"
+                ),
+
+                loadCount(
+                    "student_profiles",
+                    "studentCount"
+                ),
+
+                loadCount(
+                    "lecturer_profiles",
+                    "lecturerCount"
+                )
+
+            ]);
+
+        }
+
+
+        document
+            .getElementById("logoutButton")
+            .addEventListener(
+                "click",
+                async function () {
+
+                    await supabaseClient.auth.signOut();
+
+                    window.location.href =
+                        "../index.html";
+                }
+            );
+
+
+        loadDashboard();
+
+    </script>
+
+</body>
+</html>
