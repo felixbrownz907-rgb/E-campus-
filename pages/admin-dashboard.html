@@ -3,9 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
     <title>Admin Dashboard | E-Campus</title>
 
     <style>
+
         * {
             box-sizing: border-box;
             margin: 0;
@@ -18,10 +20,13 @@
             color: #172033;
         }
 
+        /* ================= HEADER ================= */
+
         .header {
             background: #111827;
             color: white;
             padding: 18px 25px;
+
             display: flex;
             align-items: center;
             justify-content: space-between;
@@ -60,6 +65,12 @@
             cursor: pointer;
         }
 
+        .logout:hover {
+            background: #c29d24;
+        }
+
+        /* ================= CONTAINER ================= */
+
         .container {
             max-width: 1200px;
             margin: 30px auto;
@@ -79,18 +90,43 @@
             color: #6b7280;
         }
 
+        /* ================= MESSAGE ================= */
+
+        .message {
+            display: none;
+            padding: 14px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .message.error {
+            display: block;
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .message.success {
+            display: block;
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        /* ================= STATISTICS ================= */
+
         .stats {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
             gap: 18px;
-            margin-bottom: 30px;
+            margin-bottom: 35px;
         }
 
         .stat-card {
             background: white;
             padding: 22px;
             border-radius: 14px;
-            box-shadow: 0 5px 20px rgba(0,0,0,0.07);
+
+            box-shadow:
+                0 5px 20px rgba(0,0,0,0.07);
         }
 
         .stat-card .icon {
@@ -107,6 +143,8 @@
             color: #6b7280;
         }
 
+        /* ================= MANAGEMENT ================= */
+
         .section-title {
             margin-bottom: 18px;
             font-size: 22px;
@@ -122,7 +160,9 @@
             background: white;
             border-radius: 14px;
             padding: 25px;
-            box-shadow: 0 5px 20px rgba(0,0,0,0.07);
+
+            box-shadow:
+                0 5px 20px rgba(0,0,0,0.07);
         }
 
         .management-card .icon {
@@ -143,10 +183,13 @@
         .management-card a {
             display: inline-block;
             text-decoration: none;
+
             background: #d4af37;
             color: #111827;
+
             padding: 11px 16px;
             border-radius: 8px;
+
             font-weight: bold;
         }
 
@@ -154,20 +197,10 @@
             background: #c29d24;
         }
 
-        .message {
-            display: none;
-            padding: 14px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-        }
-
-        .message.error {
-            display: block;
-            background: #fee2e2;
-            color: #991b1b;
-        }
+        /* ================= MOBILE ================= */
 
         @media (max-width: 900px) {
+
             .stats {
                 grid-template-columns: repeat(2, 1fr);
             }
@@ -175,9 +208,11 @@
             .management-grid {
                 grid-template-columns: repeat(2, 1fr);
             }
+
         }
 
         @media (max-width: 600px) {
+
             .header {
                 flex-direction: column;
                 align-items: flex-start;
@@ -188,11 +223,21 @@
             .management-grid {
                 grid-template-columns: 1fr;
             }
+
+            .welcome h2 {
+                font-size: 25px;
+            }
+
         }
+
     </style>
+
 </head>
 
+
 <body>
+
+    <!-- ================= HEADER ================= -->
 
     <header class="header">
 
@@ -205,24 +250,42 @@
             >
 
             <div>
-                <h1>E-Campus Administration</h1>
-                <p>Sunningdale University</p>
+
+                <h1>
+                    E-Campus Administration
+                </h1>
+
+                <p>
+                    Sunningdale University
+                </p>
+
             </div>
 
         </div>
 
-        <button id="logoutButton" class="logout">
+
+        <button
+            id="logoutButton"
+            class="logout"
+        >
             Logout
         </button>
 
     </header>
 
 
+    <!-- ================= MAIN ================= -->
+
     <main class="container">
+
+
+        <!-- WELCOME -->
 
         <section class="welcome">
 
-            <h2>Admin Dashboard</h2>
+            <h2>
+                Admin Dashboard
+            </h2>
 
             <p>
                 Manage the academic and administrative
@@ -232,54 +295,117 @@
         </section>
 
 
-        <div id="message" class="message"></div>
+        <div
+            id="message"
+            class="message"
+        ></div>
 
 
-        <!-- STATISTICS -->
+        <!-- ================= STATISTICS ================= -->
 
         <section class="stats">
 
-            <div class="stat-card">
-                <div class="icon">🎓</div>
-                <h3 id="programmeCount">0</h3>
-                <p>Programmes</p>
-            </div>
+
+            <!-- PROGRAMMES -->
 
             <div class="stat-card">
-                <div class="icon">📚</div>
-                <h3 id="courseCount">0</h3>
-                <p>Courses</p>
+
+                <div class="icon">
+                    🎓
+                </div>
+
+                <h3 id="programmeCount">
+                    0
+                </h3>
+
+                <p>
+                    Programmes
+                </p>
+
             </div>
 
-            <div class="stat-card">
-                <div class="icon">👨‍🎓</div>
-                <h3 id="studentCount">0</h3>
-                <p>Students</p>
-            </div>
+
+            <!-- COURSES -->
 
             <div class="stat-card">
-                <div class="icon">👨‍🏫</div>
-                <h3 id="lecturerCount">0</h3>
-                <p>Lecturers</p>
+
+                <div class="icon">
+                    📚
+                </div>
+
+                <h3 id="courseCount">
+                    0
+                </h3>
+
+                <p>
+                    Courses
+                </p>
+
             </div>
+
+
+            <!-- STUDENTS -->
+
+            <div class="stat-card">
+
+                <div class="icon">
+                    👨‍🎓
+                </div>
+
+                <h3 id="studentCount">
+                    0
+                </h3>
+
+                <p>
+                    Students
+                </p>
+
+            </div>
+
+
+            <!-- LECTURERS -->
+
+            <div class="stat-card">
+
+                <div class="icon">
+                    👨‍🏫
+                </div>
+
+                <h3 id="lecturerCount">
+                    0
+                </h3>
+
+                <p>
+                    Lecturers
+                </p>
+
+            </div>
+
 
         </section>
 
 
-        <!-- MANAGEMENT -->
+        <!-- ================= MANAGEMENT ================= -->
 
         <h2 class="section-title">
             Academic Management
         </h2>
 
+
         <section class="management-grid">
 
 
+            <!-- PROGRAMMES -->
+
             <div class="management-card">
 
-                <div class="icon">🎓</div>
+                <div class="icon">
+                    🎓
+                </div>
 
-                <h3>Programmes</h3>
+                <h3>
+                    Programmes
+                </h3>
 
                 <p>
                     Create and manage university
@@ -293,178 +419,268 @@
             </div>
 
 
+            <!-- COURSES -->
+
             <div class="management-card">
 
-                <div class="icon">📚</div>
+                <div class="icon">
+                    📚
+                </div>
 
-                <h3>Courses</h3>
+                <h3>
+                    Courses
+                </h3>
 
                 <p>
-                    Create courses and manage
-                    course information.
+                    Create and manage courses,
+                    course codes, credits and status.
                 </p>
 
-                <a href="#">
+                <a href="admin-courses.html">
                     Manage Courses
                 </a>
 
             </div>
 
 
+            <!-- COURSE MODULES -->
+
             <div class="management-card">
 
-                <div class="icon">📖</div>
+                <div class="icon">
+                    📖
+                </div>
 
-                <h3>Course Modules</h3>
+                <h3>
+                    Course Modules
+                </h3>
 
                 <p>
-                    Manage modules and learning
-                    content for courses.
+                    Add modules, learning objectives,
+                    descriptions and estimated hours.
                 </p>
 
-                <a href="#">
+                <a href="admin-modules.html">
                     Manage Modules
                 </a>
 
             </div>
 
 
+            <!-- STUDENTS -->
+
             <div class="management-card">
 
-                <div class="icon">👨‍🎓</div>
+                <div class="icon">
+                    👨‍🎓
+                </div>
 
-                <h3>Students</h3>
+                <h3>
+                    Students
+                </h3>
 
                 <p>
                     Manage student profiles and
                     academic information.
                 </p>
 
-                <a href="#">
+                <a href="admin-students.html">
                     Manage Students
                 </a>
 
             </div>
 
 
+            <!-- LECTURERS -->
+
             <div class="management-card">
 
-                <div class="icon">👨‍🏫</div>
+                <div class="icon">
+                    👨‍🏫
+                </div>
 
-                <h3>Lecturers</h3>
+                <h3>
+                    Lecturers
+                </h3>
 
                 <p>
-                    Manage lecturers and their
-                    academic assignments.
+                    Manage lecturers, departments,
+                    qualifications and assignments.
                 </p>
 
-                <a href="#">
+                <a href="admin-lecturers.html">
                     Manage Lecturers
                 </a>
 
             </div>
 
 
+            <!-- ENROLLMENTS -->
+
             <div class="management-card">
 
-                <div class="icon">🔗</div>
+                <div class="icon">
+                    🔗
+                </div>
 
-                <h3>Enrolments</h3>
+                <h3>
+                    Enrolments
+                </h3>
 
                 <p>
                     Enrol students into courses
                     and academic terms.
                 </p>
 
-                <a href="#">
+                <a href="admin-enrollments.html">
                     Manage Enrolments
                 </a>
 
             </div>
 
 
+            <!-- ACADEMIC TERMS -->
+
             <div class="management-card">
 
-                <div class="icon">📅</div>
+                <div class="icon">
+                    📅
+                </div>
 
-                <h3>Academic Terms</h3>
+                <h3>
+                    Academic Terms
+                </h3>
 
                 <p>
                     Manage academic years,
                     semesters and registration periods.
                 </p>
 
-                <a href="#">
+                <a href="admin-terms.html">
                     Manage Terms
                 </a>
 
             </div>
 
 
+            <!-- CAMPUSES -->
+
             <div class="management-card">
 
-                <div class="icon">🏫</div>
+                <div class="icon">
+                    🏫
+                </div>
 
-                <h3>Campuses</h3>
+                <h3>
+                    Campuses
+                </h3>
 
                 <p>
-                    Manage university campuses
-                    and their information.
+                    Manage university campuses,
+                    addresses and contact details.
                 </p>
 
-                <a href="#">
+                <a href="admin-campuses.html">
                     Manage Campuses
                 </a>
 
             </div>
 
 
+            <!-- DEPARTMENTS -->
+
             <div class="management-card">
 
-                <div class="icon">🏢</div>
+                <div class="icon">
+                    🏢
+                </div>
 
-                <h3>Departments</h3>
+                <h3>
+                    Departments
+                </h3>
 
                 <p>
                     Manage academic departments
                     and department information.
                 </p>
 
-                <a href="#">
+                <a href="admin-departments.html">
                     Manage Departments
                 </a>
 
             </div>
+
 
         </section>
 
     </main>
 
 
+    <!-- ================= SUPABASE ================= -->
+
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
     <script src="../supabase-config.js"></script>
 
+
+    <!-- ================= DASHBOARD JAVASCRIPT ================= -->
+
     <script>
 
-        async function loadCount(table, elementId) {
 
-            const {
-                count,
-                error
-            } = await supabaseClient
-                .from(table)
-                .select("*", {
-                    count: "exact",
-                    head: true
-                });
+        /*
+         * LOAD TABLE COUNT
+         */
 
-            if (!error) {
-                document.getElementById(elementId).textContent =
-                    count || 0;
+        async function loadCount(
+            table,
+            elementId
+        ) {
+
+            try {
+
+                const result =
+                    await supabaseClient
+                        .from(table)
+                        .select("*", {
+                            count: "exact",
+                            head: true
+                        });
+
+
+                if (result.error) {
+
+                    console.error(
+                        "Error loading " + table,
+                        result.error
+                    );
+
+                    return;
+
+                }
+
+
+                document
+                    .getElementById(elementId)
+                    .textContent =
+                    result.count || 0;
+
+
+            } catch (error) {
+
+                console.error(
+                    "Unexpected error:",
+                    error
+                );
+
             }
+
         }
 
+
+        /*
+         * LOAD DASHBOARD
+         */
 
         async function loadDashboard() {
 
@@ -495,21 +711,44 @@
         }
 
 
+        /*
+         * LOGOUT
+         */
+
         document
             .getElementById("logoutButton")
             .addEventListener(
                 "click",
                 async function () {
 
-                    await supabaseClient.auth.signOut();
+                    try {
+
+                        await supabaseClient
+                            .auth
+                            .signOut();
+
+                    } catch (error) {
+
+                        console.error(
+                            "Logout error:",
+                            error
+                        );
+
+                    }
 
                     window.location.href =
                         "../index.html";
+
                 }
             );
 
 
+        /*
+         * START DASHBOARD
+         */
+
         loadDashboard();
+
 
     </script>
 
