@@ -1019,9 +1019,11 @@ document
 
             resetForm();
 
+
             await loadModules();
 
-        });
+        }
+    );
 
 
 /* ================= EDIT MODULE ================= */
@@ -1031,7 +1033,16 @@ async function editModule(id) {
     const { data, error } =
         await supabaseClient
             .from("course_modules")
-            .select("*")
+            .select(`
+                id,
+                course_id,
+                module_number,
+                title,
+                description,
+                learning_objectives,
+                estimated_hours,
+                status
+            `)
             .eq("id", id)
             .single();
 
@@ -1041,76 +1052,55 @@ async function editModule(id) {
         console.error(error);
 
         showMessage(
-            "Unable to load module for editing.",
+            "Unable to load module: " +
+            error.message,
             "error"
         );
 
         return;
-
     }
 
 
-    editingModuleId =
-        data.id;
+    editingModuleId = data.id;
 
 
-    document
-        .getElementById("course")
-        .value =
+    document.getElementById("course").value =
         data.course_id;
 
 
-    document
-        .getElementById("moduleNumber")
-        .value =
+    document.getElementById("moduleNumber").value =
         data.module_number;
 
 
-    document
-        .getElementById("title")
-        .value =
+    document.getElementById("title").value =
         data.title;
 
 
-    document
-        .getElementById("description")
-        .value =
-        data.description || "";
-
-
-    document
-        .getElementById("learningObjectives")
-        .value =
-        data.learning_objectives || "";
-
-
-    document
-        .getElementById("estimatedHours")
-        .value =
+    document.getElementById("estimatedHours").value =
         data.estimated_hours ?? "";
 
 
-    document
-        .getElementById("status")
-        .value =
+    document.getElementById("status").value =
         data.status;
 
 
-    document
-        .getElementById("formTitle")
-        .textContent =
+    document.getElementById("description").value =
+        data.description ?? "";
+
+
+    document.getElementById("learningObjectives").value =
+        data.learning_objectives ?? "";
+
+
+    document.getElementById("formTitle").textContent =
         "Edit Module";
 
 
-    document
-        .getElementById("submitButton")
-        .textContent =
+    document.getElementById("submitButton").textContent =
         "Update Module";
 
 
-    document
-        .getElementById("cancelButton")
-        .style.display =
+    document.getElementById("cancelButton").style.display =
         "block";
 
 
@@ -1133,7 +1123,9 @@ async function deleteModule(id) {
 
 
     if (!confirmed) {
+
         return;
+
     }
 
 
@@ -1149,12 +1141,12 @@ async function deleteModule(id) {
         console.error(error);
 
         showMessage(
+            "Unable to delete module: " +
             error.message,
             "error"
         );
 
         return;
-
     }
 
 
@@ -1169,45 +1161,7 @@ async function deleteModule(id) {
 }
 
 
-/* ================= RESET FORM ================= */
-
-function resetForm() {
-
-    editingModuleId = null;
-
-
-    document
-        .getElementById("moduleForm")
-        .reset();
-
-
-    document
-        .getElementById("status")
-        .value =
-        "active";
-
-
-    document
-        .getElementById("formTitle")
-        .textContent =
-        "Add New Module";
-
-
-    document
-        .getElementById("submitButton")
-        .textContent =
-        "Add Module";
-
-
-    document
-        .getElementById("cancelButton")
-        .style.display =
-        "none";
-
-}
-
-
-/* ================= CANCEL EDIT ================= */
+/* ================= CANCEL EDITING ================= */
 
 document
     .getElementById("cancelButton")
@@ -1221,21 +1175,39 @@ document
     );
 
 
-/* ================= START ================= */
+/* ================= RESET FORM ================= */
 
-async function startPage() {
+function resetForm() {
 
-    await loadCourses();
+    editingModuleId = null;
 
-    await loadModules();
+
+    document
+        .getElementById("moduleForm")
+        .reset();
+
+
+    document.getElementById("formTitle").textContent =
+        "Add New Module";
+
+
+    document.getElementById("submitButton").textContent =
+        "Add Module";
+
+
+    document.getElementById("cancelButton").style.display =
+        "none";
 
 }
 
 
-startPage();
+/* ================= INITIAL LOAD ================= */
+
+loadCourses();
+
+loadModules();
 
 </script>
-
 
 </body>
 
