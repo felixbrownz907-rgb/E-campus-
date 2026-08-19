@@ -1,0 +1,815 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Programme Management | E-Campus</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+            background: #f4f6f9;
+            color: #172033;
+        }
+
+        .header {
+            background: #111827;
+            color: white;
+            padding: 18px 25px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 15px;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .logo {
+            width: 58px;
+            height: 58px;
+            object-fit: contain;
+            background: white;
+            border-radius: 8px;
+        }
+
+        .brand h1 {
+            font-size: 24px;
+        }
+
+        .brand p {
+            color: #d4af37;
+            margin-top: 4px;
+            font-size: 14px;
+        }
+
+        .back-button {
+            text-decoration: none;
+            color: #111827;
+            background: #d4af37;
+            padding: 11px 18px;
+            border-radius: 8px;
+            font-weight: bold;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 1200px;
+            margin: 30px auto;
+            padding: 0 20px;
+        }
+
+        .page-title {
+            margin-bottom: 25px;
+        }
+
+        .page-title h2 {
+            font-size: 30px;
+            margin-bottom: 7px;
+        }
+
+        .page-title p {
+            color: #6b7280;
+        }
+
+        .layout {
+            display: grid;
+            grid-template-columns: 380px 1fr;
+            gap: 25px;
+            align-items: start;
+        }
+
+        .card {
+            background: white;
+            border-radius: 14px;
+            padding: 25px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.07);
+        }
+
+        .card h3 {
+            margin-bottom: 20px;
+            font-size: 21px;
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 7px;
+            font-weight: bold;
+            font-size: 14px;
+        }
+
+        input,
+        textarea,
+        select {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            font-size: 15px;
+            outline: none;
+            background: white;
+        }
+
+        textarea {
+            min-height: 100px;
+            resize: vertical;
+        }
+
+        input:focus,
+        textarea:focus,
+        select:focus {
+            border-color: #d4af37;
+            box-shadow: 0 0 0 3px rgba(212,175,55,0.12);
+        }
+
+        .save-button {
+            width: 100%;
+            border: none;
+            padding: 13px;
+            border-radius: 8px;
+            background: #d4af37;
+            color: #111827;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .save-button:hover {
+            background: #c29d24;
+        }
+
+        .save-button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .message {
+            display: none;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            line-height: 1.4;
+            font-size: 14px;
+        }
+
+        .message.success {
+            display: block;
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .message.error {
+            display: block;
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .table-wrapper {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 650px;
+        }
+
+        th,
+        td {
+            padding: 13px 10px;
+            border-bottom: 1px solid #e5e7eb;
+            text-align: left;
+            font-size: 14px;
+        }
+
+        th {
+            background: #f9fafb;
+            font-weight: bold;
+        }
+
+        .status {
+            display: inline-block;
+            padding: 5px 9px;
+            border-radius: 20px;
+            background: #dcfce7;
+            color: #166534;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        .empty {
+            text-align: center;
+            color: #6b7280;
+            padding: 30px;
+        }
+
+        .loading {
+            text-align: center;
+            color: #6b7280;
+            padding: 25px;
+        }
+
+        @media (max-width: 850px) {
+            .layout {
+                grid-template-columns: 1fr;
+            }
+
+            .header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <header class="header">
+
+        <div class="brand">
+
+            <img
+                src="https://pub-b3e2d39712e84119875e84c5ec5f5c09.r2.dev/Logo/IMG-20260816-WA0050(1).jpg"
+                alt="Sunningdale University Logo"
+                class="logo"
+            >
+
+            <div>
+                <h1>E-Campus Administration</h1>
+                <p>Sunningdale University</p>
+            </div>
+
+        </div>
+
+        <a href="admin-dashboard.html" class="back-button">
+            ← Admin Dashboard
+        </a>
+
+    </header>
+
+
+    <main class="container">
+
+        <div class="page-title">
+
+            <h2>Programme Management</h2>
+
+            <p>
+                Create and manage academic programmes offered by the university.
+            </p>
+
+        </div>
+
+
+        <div class="layout">
+
+            <!-- ADD PROGRAMME -->
+
+            <section class="card">
+
+                <h3>Add New Programme</h3>
+
+                <div id="message" class="message"></div>
+
+                <form id="programmeForm">
+
+                    <div class="form-group">
+
+                        <label for="name">
+                            Programme Name
+                        </label>
+
+                        <input
+                            type="text"
+                            id="name"
+                            placeholder="e.g. Bachelor of Information Technology"
+                            required
+                        >
+
+                    </div>
+
+
+                    <div class="form-group">
+
+                        <label for="code">
+                            Programme Code
+                        </label>
+
+                        <input
+                            type="text"
+                            id="code"
+                            placeholder="e.g. BIT"
+                            required
+                        >
+
+                    </div>
+
+
+                    <div class="form-group">
+
+                        <label for="qualification_type">
+                            Qualification Type
+                        </label>
+
+                        <select id="qualification_type" required>
+
+                            <option value="">
+                                Select qualification
+                            </option>
+
+                            <option value="Certificate">
+                                Certificate
+                            </option>
+
+                            <option value="Diploma">
+                                Diploma
+                            </option>
+
+                            <option value="Bachelor Degree">
+                                Bachelor Degree
+                            </option>
+
+                            <option value="Master Degree">
+                                Master Degree
+                            </option>
+
+                            <option value="PhD">
+                                PhD
+                            </option>
+
+                        </select>
+
+                    </div>
+
+
+                    <div class="form-group">
+
+                        <label for="duration_value">
+                            Duration
+                        </label>
+
+                        <input
+                            type="number"
+                            id="duration_value"
+                            min="1"
+                            placeholder="e.g. 3"
+                            required
+                        >
+
+                    </div>
+
+
+                    <div class="form-group">
+
+                        <label for="duration_unit">
+                            Duration Unit
+                        </label>
+
+                        <select id="duration_unit" required>
+
+                            <option value="">
+                                Select unit
+                            </option>
+
+                            <option value="Years">
+                                Years
+                            </option>
+
+                            <option value="Months">
+                                Months
+                            </option>
+
+                            <option value="Semesters">
+                                Semesters
+                            </option>
+
+                            <option value="Terms">
+                                Terms
+                            </option>
+
+                        </select>
+
+                    </div>
+
+
+                    <div class="form-group">
+
+                        <label for="total_credits">
+                            Total Credits
+                        </label>
+
+                        <input
+                            type="number"
+                            id="total_credits"
+                            min="0"
+                            step="0.5"
+                            placeholder="e.g. 120"
+                        >
+
+                    </div>
+
+
+                    <div class="form-group">
+
+                        <label for="description">
+                            Description
+                        </label>
+
+                        <textarea
+                            id="description"
+                            placeholder="Describe the programme..."
+                        ></textarea>
+
+                    </div>
+
+
+                    <div class="form-group">
+
+                        <label for="status">
+                            Status
+                        </label>
+
+                        <select id="status" required>
+
+                            <option value="ACTIVE">
+                                ACTIVE
+                            </option>
+
+                            <option value="INACTIVE">
+                                INACTIVE
+                            </option>
+
+                            <option value="DRAFT">
+                                DRAFT
+                            </option>
+
+                        </select>
+
+                    </div>
+
+
+                    <button
+                        type="submit"
+                        id="saveButton"
+                        class="save-button"
+                    >
+                        Add Programme
+                    </button>
+
+                </form>
+
+            </section>
+
+
+            <!-- PROGRAMMES LIST -->
+
+            <section class="card">
+
+                <h3>Existing Programmes</h3>
+
+                <div class="table-wrapper">
+
+                    <table>
+
+                        <thead>
+
+                            <tr>
+                                <th>Code</th>
+                                <th>Programme</th>
+                                <th>Qualification</th>
+                                <th>Duration</th>
+                                <th>Credits</th>
+                                <th>Status</th>
+                            </tr>
+
+                        </thead>
+
+                        <tbody id="programmesTable">
+
+                            <tr>
+                                <td colspan="6" class="loading">
+                                    Loading programmes...
+                                </td>
+                            </tr>
+
+                        </tbody>
+
+                    </table>
+
+                </div>
+
+            </section>
+
+        </div>
+
+    </main>
+
+
+    <!-- SUPABASE -->
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <script src="../supabase-config.js"></script>
+
+
+    <script>
+
+        const form =
+            document.getElementById("programmeForm");
+
+        const message =
+            document.getElementById("message");
+
+        const saveButton =
+            document.getElementById("saveButton");
+
+        const programmesTable =
+            document.getElementById("programmesTable");
+
+
+        function showMessage(text, type) {
+
+            message.textContent = text;
+
+            message.className =
+                "message " + type;
+
+        }
+
+
+        async function loadProgrammes() {
+
+            programmesTable.innerHTML = `
+                <tr>
+                    <td colspan="6" class="loading">
+                        Loading programmes...
+                    </td>
+                </tr>
+            `;
+
+            const {
+                data,
+                error
+            } = await supabaseClient
+                .from("programmes")
+                .select(`
+                    id,
+                    name,
+                    code,
+                    qualification_type,
+                    duration_value,
+                    duration_unit,
+                    total_credits,
+                    status
+                `)
+                .order("created_at", {
+                    ascending: false
+                });
+
+
+            if (error) {
+
+                console.error(error);
+
+                programmesTable.innerHTML = `
+                    <tr>
+                        <td colspan="6" class="empty">
+                            Unable to load programmes.
+                        </td>
+                    </tr>
+                `;
+
+                return;
+            }
+
+
+            if (!data || data.length === 0) {
+
+                programmesTable.innerHTML = `
+                    <tr>
+                        <td colspan="6" class="empty">
+                            No programmes have been created yet.
+                        </td>
+                    </tr>
+                `;
+
+                return;
+            }
+
+
+            programmesTable.innerHTML =
+                data.map(programme => `
+
+                    <tr>
+
+                        <td>
+                            <strong>
+                                ${escapeHtml(programme.code || "")}
+                            </strong>
+                        </td>
+
+                        <td>
+                            ${escapeHtml(programme.name || "")}
+                        </td>
+
+                        <td>
+                            ${escapeHtml(
+                                programme.qualification_type || ""
+                            )}
+                        </td>
+
+                        <td>
+                            ${escapeHtml(
+                                programme.duration_value || ""
+                            )}
+                            ${escapeHtml(
+                                programme.duration_unit || ""
+                            )}
+                        </td>
+
+                        <td>
+                            ${escapeHtml(
+                                programme.total_credits || "-"
+                            )}
+                        </td>
+
+                        <td>
+                            <span class="status">
+                                ${escapeHtml(
+                                    programme.status || ""
+                                )}
+                            </span>
+                        </td>
+
+                    </tr>
+
+                `).join("");
+
+        }
+
+
+        form.addEventListener(
+            "submit",
+            async function(event) {
+
+                event.preventDefault();
+
+
+                saveButton.disabled = true;
+
+                saveButton.textContent =
+                    "Saving...";
+
+
+                const programme = {
+
+                    name:
+                        document
+                            .getElementById("name")
+                            .value
+                            .trim(),
+
+                    code:
+                        document
+                            .getElementById("code")
+                            .value
+                            .trim()
+                            .toUpperCase(),
+
+                    qualification_type:
+                        document
+                            .getElementById(
+                                "qualification_type"
+                            )
+                            .value,
+
+                    duration_value:
+                        Number(
+                            document
+                                .getElementById(
+                                    "duration_value"
+                                )
+                                .value
+                        ),
+
+                    duration_unit:
+                        document
+                            .getElementById(
+                                "duration_unit"
+                            )
+                            .value,
+
+                    total_credits:
+                        document
+                            .getElementById(
+                                "total_credits"
+                            )
+                            .value
+                            ? Number(
+                                document
+                                    .getElementById(
+                                        "total_credits"
+                                    )
+                                    .value
+                            )
+                            : null,
+
+                    description:
+                        document
+                            .getElementById(
+                                "description"
+                            )
+                            .value
+                            .trim() || null,
+
+                    status:
+                        document
+                            .getElementById(
+                                "status"
+                            )
+                            .value
+
+                };
+
+
+                const {
+                    error
+                } = await supabaseClient
+                    .from("programmes")
+                    .insert([programme]);
+
+
+                if (error) {
+
+                    console.error(error);
+
+                    showMessage(
+                        error.message,
+                        "error"
+                    );
+
+                    saveButton.disabled = false;
+
+                    saveButton.textContent =
+                        "Add Programme";
+
+                    return;
+                }
+
+
+                showMessage(
+                    "Programme created successfully.",
+                    "success"
+                );
+
+
+                form.reset();
+
+                document.getElementById("status").value =
+                    "ACTIVE";
+
+
+                await loadProgrammes();
+
+
+                saveButton.disabled = false;
+
+                saveButton.textContent =
+                    "Add Programme";
+
+            }
+        );
+
+
+        function escapeHtml(value) {
+
+            return String(value)
+                .replaceAll("&", "&amp;")
+                .replaceAll("<", "&lt;")
+                .replaceAll(">", "&gt;")
+                .replaceAll('"', "&quot;")
+                .replaceAll("'", "&#039;");
+
+        }
+
+
+        loadProgrammes();
+
+    </script>
+
+</body>
+</html>
