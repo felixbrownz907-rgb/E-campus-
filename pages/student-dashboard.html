@@ -2,496 +2,610 @@
 <html lang="en">
 
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Student Dashboard | E-Campus</title>
 
-    <title>Student Dashboard | E-Campus</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
 
-    <link rel="stylesheet" href="../style.css">
+body {
+    font-family: Arial, Helvetica, sans-serif;
+    background: #f4f6f9;
+    color: #172033;
+}
+
+.header {
+    background: #111827;
+    color: white;
+    padding: 18px 25px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.brand { display: flex; align-items: center; gap: 14px; }
+.logo { width: 55px; height: 55px; object-fit: contain; background: white; border-radius: 8px; }
+.brand h1 { font-size: 22px; }
+.brand p { color: #d4af37; margin-top: 3px; font-size: 13px; }
+
+.header-actions { display: flex; gap: 10px; }
+
+.header-button {
+    background: #d4af37;
+    color: #111827;
+    border: none;
+    text-decoration: none;
+    padding: 10px 16px;
+    border-radius: 8px;
+    font-weight: bold;
+    font-size: 13px;
+    cursor: pointer;
+}
+
+.container { max-width: 1300px; margin: 25px auto; padding: 0 20px; }
+
+.welcome-card {
+    background: linear-gradient(135deg, #111827, #1f2937);
+    color: white;
+    padding: 25px;
+    border-radius: 14px;
+    margin-bottom: 20px;
+}
+
+.welcome-card h2 { font-size: 24px; margin-bottom: 6px; }
+.welcome-card p { color: #d4af37; font-size: 14px; }
+
+.stat-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 14px;
+    margin-bottom: 20px;
+}
+
+.stat-card {
+    background: white;
+    border-radius: 12px;
+    padding: 18px;
+    text-align: center;
+    box-shadow: 0 3px 12px rgba(0,0,0,0.06);
+}
+
+.stat-card .value { font-size: 26px; font-weight: bold; color: #111827; }
+.stat-card .label { font-size: 12px; color: #6b7280; margin-top: 4px; }
+
+.card {
+    background: white;
+    padding: 22px;
+    border-radius: 14px;
+    margin-bottom: 20px;
+    box-shadow: 0 3px 12px rgba(0,0,0,0.06);
+}
+
+.card h3 { font-size: 19px; margin-bottom: 16px; }
+
+.course-item {
+    padding: 15px;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    margin-bottom: 12px;
+}
+
+.course-item h4 { font-size: 16px; margin-bottom: 8px; }
+
+.progress-bar-bg {
+    background: #e5e7eb;
+    border-radius: 20px;
+    height: 10px;
+    overflow: hidden;
+    margin: 8px 0;
+}
+
+.progress-bar-fill {
+    background: #d4af37;
+    height: 100%;
+}
+
+.course-meta { font-size: 12px; color: #6b7280; margin-bottom: 10px; }
+
+.small-button {
+    display: inline-block;
+    background: #111827;
+    color: white;
+    text-decoration: none;
+    padding: 8px 14px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: bold;
+    border: none;
+    cursor: pointer;
+}
+
+.quick-actions {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 10px;
+}
+
+.quick-action {
+    background: #f4f6f9;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    padding: 14px;
+    text-align: center;
+    text-decoration: none;
+    color: #172033;
+    font-size: 13px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.deadline-item, .activity-item, .announcement-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 0;
+    border-bottom: 1px solid #e5e7eb;
+    font-size: 14px;
+}
+
+.deadline-item:last-child, .activity-item:last-child, .announcement-item:last-child { border-bottom: none; }
+
+.badge {
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: bold;
+}
+
+.badge.urgent { background: #fee2e2; color: #991b1b; }
+.badge.upcoming { background: #fef3c7; color: #92400e; }
+.badge.scheduled { background: #dcfce7; color: #166534; }
+
+.perf-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 10px 0;
+    border-bottom: 1px solid #e5e7eb;
+    font-size: 14px;
+}
+
+.perf-row:last-child { border-bottom: none; }
+.perf-row .value { font-weight: bold; color: #111827; }
+
+.structure-tree { font-size: 14px; }
+.module-block { margin-bottom: 14px; }
+.module-block h5 { margin-bottom: 6px; color: #111827; }
+.lesson-line { padding: 6px 0 6px 18px; color: #374151; }
+
+.services-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 10px;
+}
+
+.service-link {
+    background: #f4f6f9;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    padding: 16px;
+    text-align: center;
+    text-decoration: none;
+    color: #172033;
+    font-weight: bold;
+    font-size: 13px;
+}
+
+.ai-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 10px;
+}
+
+.ai-card {
+    background: linear-gradient(135deg, #1f2937, #111827);
+    color: white;
+    border-radius: 10px;
+    padding: 16px;
+    text-align: center;
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: bold;
+}
+
+.ai-card span { color: #d4af37; display: block; margin-top: 4px; font-size: 11px; }
+
+.empty-note { color: #9ca3af; font-size: 14px; padding: 10px 0; }
+
+@media (max-width: 800px) {
+    .stat-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+</style>
 </head>
+
 
 <body>
 
-    <!-- ================= HEADER ================= -->
-
-    <header class="top-header">
-
-        <div class="brand">
-
-            <img
-                src="https://pub-b3e2d39712e84119875e84c5ec5f5c09.r2.dev/Logo/IMG-20260816-WA0050(1).jpg"
-                alt="Sunningdale University Logo"
-                class="logo"
-            >
-
-            <div class="brand-text">
-                <h1>E-Campus</h1>
-                <p>Student Portal</p>
-            </div>
-
+<header class="header">
+    <div class="brand">
+        <img src="https://pub-b3e2d39712e84119875e84c5ec5f5c09.r2.dev/Logo/IMG-20260816-WA0050(1).jpg" alt="Sunningdale University Logo" class="logo">
+        <div>
+            <h1>E-Campus</h1>
+            <p>Sunningdale University</p>
         </div>
+    </div>
+    <div class="header-actions">
+        <a href="student-profile.html" class="header-button">👤 Profile</a>
+        <button id="logoutButton" class="header-button">🚪 Logout</button>
+    </div>
+</header>
 
 
-        <div class="student-header">
+<main class="container">
 
-            <span id="studentName">
-                Student
-            </span>
+    <section class="welcome-card">
+        <h2 id="welcomeName">Welcome back, Student</h2>
+        <p id="studentMeta">Loading your details...</p>
+    </section>
 
-            <button
-                id="logoutButton"
-                class="secondary-button"
-            >
-                Logout
-            </button>
+    <div class="stat-grid">
+        <div class="stat-card"><div class="value" id="statCourses">0</div><div class="label">📚 Courses</div></div>
+        <div class="stat-card"><div class="value" id="statModules">0</div><div class="label">📖 Modules</div></div>
+        <div class="stat-card"><div class="value" id="statAssignments">0</div><div class="label">📝 Assignments</div></div>
+        <div class="stat-card"><div class="value" id="statQuizzes">0</div><div class="label">🎯 Quizzes</div></div>
+    </div>
 
+    <div class="stat-grid">
+        <div class="stat-card"><div class="value" id="statProgress">0%</div><div class="label">📊 Progress</div></div>
+        <div class="stat-card"><div class="value" id="statAverage">0%</div><div class="label">🏆 Average</div></div>
+        <div class="stat-card"><div class="value" id="statDeadlines">0</div><div class="label">⏰ Deadlines</div></div>
+        <div class="stat-card"><div class="value" id="statCompletedLessons">0</div><div class="label">🔥 Lessons Done</div></div>
+    </div>
+
+
+    <section class="card">
+        <h3>My Learning</h3>
+        <div id="myLearningList"><p class="empty-note">Loading...</p></div>
+    </section>
+
+
+    <section class="card">
+        <h3>Today's Learning</h3>
+        <div class="quick-actions">
+            <a href="student-courses.html" class="quick-action">▶ Continue Learning</a>
+            <a href="student-assignments.html" class="quick-action">📝 Complete Assignment</a>
+            <a href="student-quizzes.html" class="quick-action">🎯 Take Quiz</a>
+            <a href="student-courses.html" class="quick-action">📖 Review Module</a>
         </div>
+    </section>
 
-    </header>
 
+    <section class="card">
+        <h3>Upcoming Deadlines</h3>
+        <div id="deadlinesList"><p class="empty-note">Loading...</p></div>
+    </section>
 
-    <!-- ================= DASHBOARD ================= -->
 
-    <main class="student-dashboard">
+    <section class="card">
+        <h3>Recent Activity</h3>
+        <div id="activityList"><p class="empty-note">Loading...</p></div>
+    </section>
 
-        <!-- Welcome -->
 
-        <section class="dashboard-welcome">
+    <section class="card">
+        <h3>Academic Performance</h3>
+        <div class="perf-row"><span>Overall Progress</span><span class="value" id="perfProgress">0%</span></div>
+        <div class="perf-row"><span>Assignment Average</span><span class="value" id="perfAssignment">0%</span></div>
+        <div class="perf-row"><span>Quiz Average</span><span class="value" id="perfQuiz">0%</span></div>
+        <div class="perf-row"><span>Course Average</span><span class="value" id="perfCourse">0%</span></div>
+    </section>
 
-            <div>
 
-                <span class="welcome-badge">
-                    STUDENT DASHBOARD
-                </span>
+    <section class="card">
+        <h3>My Courses</h3>
+        <div id="myCoursesList"><p class="empty-note">Loading...</p></div>
+    </section>
 
-                <h2>
-                    Welcome back,
-                    <span id="welcomeName">
-                        Student
-                    </span>
-                </h2>
 
-                <p>
-                    Continue your learning journey and
-                    stay up to date with your academic progress.
-                </p>
+    <section class="card">
+        <h3>Course Structure</h3>
+        <div id="courseStructureSelector" style="margin-bottom:14px;"></div>
+        <div id="courseStructure" class="structure-tree"><p class="empty-note">Select a course above.</p></div>
+    </section>
 
-            </div>
 
-        </section>
+    <section class="card">
+        <h3>Assignments Center</h3>
+        <div class="perf-row"><span>📋 Available</span><span class="value" id="assignAvailable">0</span></div>
+        <div class="perf-row"><span>📤 Submitted</span><span class="value" id="assignSubmitted">0</span></div>
+        <div class="perf-row"><span>✅ Graded</span><span class="value" id="assignGraded">0</span></div>
+        <div class="perf-row"><span>🔴 Overdue</span><span class="value" id="assignOverdue">0</span></div>
+        <a href="student-assignments.html" class="small-button" style="margin-top:14px; display:inline-block;">View All Assignments</a>
+    </section>
 
 
-        <!-- ================= STATISTICS ================= -->
+    <section class="card">
+        <h3>Quiz Center</h3>
+        <div class="perf-row"><span>🎯 Available Quizzes</span><span class="value" id="quizAvailable">0</span></div>
+        <div class="perf-row"><span>📊 Previous Attempts</span><span class="value" id="quizAttempts">0</span></div>
+        <div class="perf-row"><span>🏆 Average Score</span><span class="value" id="quizAvg">0%</span></div>
+        <a href="student-quizzes.html" class="small-button" style="margin-top:14px; display:inline-block;">View All Quizzes</a>
+    </section>
 
-        <section class="dashboard-stats">
 
-            <div class="dashboard-stat-card">
+    <section class="card">
+        <h3>Announcements</h3>
+        <div id="announcementsList"><p class="empty-note">No announcements yet.</p></div>
+    </section>
 
-                <div class="stat-icon">
-                    📚
-                </div>
 
-                <div>
-                    <span>Courses</span>
-                    <strong id="courseCount">
-                        0
-                    </strong>
-                </div>
-
-            </div>
-
-
-            <div class="dashboard-stat-card">
-
-                <div class="stat-icon">
-                    📝
-                </div>
-
-                <div>
-                    <span>Assignments</span>
-                    <strong id="assignmentCount">
-                        0
-                    </strong>
-                </div>
-
-            </div>
-
-
-            <div class="dashboard-stat-card">
-
-                <div class="stat-icon">
-                    🎯
-                </div>
-
-                <div>
-                    <span>Assessments</span>
-                    <strong id="assessmentCount">
-                        0
-                    </strong>
-                </div>
-
-            </div>
-
-
-            <div class="dashboard-stat-card">
-
-                <div class="stat-icon">
-                    📊
-                </div>
-
-                <div>
-                    <span>Progress</span>
-                    <strong id="progressValue">
-                        0%
-                    </strong>
-                </div>
-
-            </div>
-
-        </section>
-
-
-        <!-- ================= MAIN GRID ================= -->
-
-        <section class="dashboard-grid">
-
-
-            <!-- MY COURSES -->
-
-            <div class="dashboard-panel">
-
-                <div class="panel-header">
-
-                    <div>
-
-                        <span class="panel-label">
-                            LEARNING
-                        </span>
-
-                        <h3>
-                            My Courses
-                        </h3>
-
-                    </div>
-
-                    <button
-                        class="panel-action"
-                        id="viewCoursesButton"
-                    >
-                        View All
-                    </button>
-
-                </div>
-
-
-                <div
-                    id="coursesContainer"
-                    class="dashboard-list"
-                >
-
-                    <div class="empty-state">
-
-                        <div>
-                            📚
-                        </div>
-
-                        <p>
-                            Your courses will appear here.
-                        </p>
-
-                    </div>
-
-                </div>
-
-            </div>
-
-
-            <!-- ASSIGNMENTS -->
-
-            <div class="dashboard-panel">
-
-                <div class="panel-header">
-
-                    <div>
-
-                        <span class="panel-label">
-                            TASKS
-                        </span>
-
-                        <h3>
-                            Pending Assignments
-                        </h3>
-
-                    </div>
-
-                    <button
-                        class="panel-action"
-                        id="viewAssignmentsButton"
-                    >
-                        View All
-                    </button>
-
-                </div>
-
-
-                <div
-                    id="assignmentsContainer"
-                    class="dashboard-list"
-                >
-
-                    <div class="empty-state">
-
-                        <div>
-                            📝
-                        </div>
-
-                        <p>
-                            No pending assignments.
-                        </p>
-
-                    </div>
-
-                </div>
-
-            </div>
-
-
-            <!-- ACADEMIC PROGRESS -->
-
-            <div class="dashboard-panel progress-panel">
-
-                <div class="panel-header">
-
-                    <div>
-
-                        <span class="panel-label">
-                            PERFORMANCE
-                        </span>
-
-                        <h3>
-                            Academic Progress
-                        </h3>
-
-                    </div>
-
-                </div>
-
-
-                <div class="progress-container">
-
-                    <div class="progress-circle">
-
-                        <span id="progressCircleValue">
-                            0%
-                        </span>
-
-                    </div>
-
-
-                    <div class="progress-information">
-
-                        <h4>
-                            Overall Progress
-                        </h4>
-
-                        <p>
-                            Your academic progress will be
-                            calculated from your courses,
-                            assessments and completed activities.
-                        </p>
-
-                    </div>
-
-                </div>
-
-            </div>
-
-
-            <!-- UPCOMING ACTIVITIES -->
-
-            <div class="dashboard-panel">
-
-                <div class="panel-header">
-
-                    <div>
-
-                        <span class="panel-label">
-                            SCHEDULE
-                        </span>
-
-                        <h3>
-                            Upcoming Activities
-                        </h3>
-
-                    </div>
-
-                </div>
-
-
-                <div
-                    id="activitiesContainer"
-                    class="dashboard-list"
-                >
-
-                    <div class="empty-state">
-
-                        <div>
-                            📅
-                        </div>
-
-                        <p>
-                            No upcoming activities.
-                        </p>
-
-                    </div>
-
-                </div>
-
-            </div>
-
-
-        </section>
-
-
-        <!-- ================= QUICK ACTIONS ================= -->
-
-        <section class="quick-actions">
-
-            <div class="section-heading">
-
-                <span>
-                    QUICK ACCESS
-                </span>
-
-                <h2>
-                    What would you like to do?
-                </h2>
-
-            </div>
-
-
-            <div class="quick-action-grid">
-
-                <button
-                    class="quick-action"
-                    data-action="courses"
-                >
-
-                    <span>📚</span>
-
-                    <strong>
-                        My Courses
-                    </strong>
-
-                    <small>
-                        Continue learning
-                    </small>
-
-                </button>
-
-
-                <button
-                    class="quick-action"
-                    data-action="assignments"
-                >
-
-                    <span>📝</span>
-
-                    <strong>
-                        Assignments
-                    </strong>
-
-                    <small>
-                        View and submit work
-                    </small>
-
-                </button>
-
-
-                <button
-                    class="quick-action"
-                    data-action="results"
-                >
-
-                    <span>📊</span>
-
-                    <strong>
-                        Results
-                    </strong>
-
-                    <small>
-                        View academic results
-                    </small>
-
-                </button>
-
-
-                <button
-                    class="quick-action"
-                    data-action="profile"
-                >
-
-                    <span>👤</span>
-
-                    <strong>
-                        My Profile
-                    </strong>
-
-                    <small>
-                        Manage your profile
-                    </small>
-
-                </button>
-
-
-                <button
-                    class="quick-action ai-action"
-                    data-action="ai-tutor"
-                >
-
-                    <span>🤖</span>
-
-                    <strong>
-                        AI Learning Assistant
-                    </strong>
-
-                    <small>
-                        Get intelligent learning support
-                    </small>
-
-                </button>
-
-            </div>
-
-        </section>
-
-
-    </main>
-
-
-    <!-- ================= FOOTER ================= -->
-
-    <footer class="footer">
-
-        <div class="copyright">
-
-            © 2026 Sunningdale University E-Campus.
-            All rights reserved.
-
+    <section class="card">
+        <h3>Student Services</h3>
+        <div class="services-grid">
+            <a href="student-profile.html" class="service-link">👤 My Profile</a>
+            <a href="#" class="service-link">📄 Academic Records</a>
+            <a href="#" class="service-link">🎓 Certificates</a>
+            <a href="#" class="service-link">💳 Fees & Payments</a>
+            <a href="#" class="service-link">📅 Academic Calendar</a>
+            <a href="#" class="service-link">📢 Support / Help Desk</a>
         </div>
-
-    </footer>
-
-
-    <!-- ================= JAVASCRIPT ================= -->
-
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
-    <script src="../supabase-config.js"></script>
-
-    <script src="../app.js"></script>
+    </section>
 
 
-</body>
+    <section class="card">
+        <h3>AI Learning Hub</h3>
+        <div class="ai-grid">
+            <a href="ai-tutor.html" class="ai-card">🤖 AI Study Assistant<span>Coming soon</span></a>
+            <a href="ai-tutor.html" class="ai-card">🧠 AI Tutor<span>Coming soon</span></a>
+            <a href="ai-tutor.html" class="ai-card">📝 AI Study Planner<span>Coming soon</span></a>
+            <a href="ai-tutor.html" class="ai-card">📊 AI Performance Insights<span>Coming soon</span></a>
+        </div>
+    </section>
 
-</html> 
+
+</main>
+
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../supabase-config.js"></script>
+
+
+<script>
+
+function escapeHtml(value) {
+    return String(value ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+}
+
+function average(numbers) {
+    const valid = numbers.filter(n => n !== null && n !== undefined && !isNaN(n));
+    if (valid.length === 0) return 0;
+    return Math.round(valid.reduce((a, b) => a + Number(b), 0) / valid.length);
+}
+
+
+async function startDashboard() {
+
+    const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
+
+    if (authError || !user) {
+        window.location.href = "student-login.html";
+        return;
+    }
+
+    // ===== STUDENT PROFILE =====
+
+    const { data: studentProfile, error: profileError } =
+        await supabaseClient
+            .from("student_profiles")
+            .select(`
+                id, student_number, admission_status, rating,
+                user_profiles ( first_name, last_name ),
+                programmes ( name, code ),
+                academic_levels ( name )
+            `)
+            .eq("user_id", user.id)
+            .single();
+
+    if (profileError || !studentProfile) {
+        document.getElementById("studentMeta").textContent = "Unable to load your student profile.";
+        return;
+    }
+
+    const firstName = studentProfile.user_profiles?.first_name || "Student";
+    const lastName = studentProfile.user_profiles?.last_name || "";
+    const programmeName = studentProfile.programmes?.name || "No programme assigned";
+    const levelName = studentProfile.academic_levels?.name || "Not set";
+    const status = studentProfile.admission_status || "active";
+
+    document.getElementById("welcomeName").textContent = `Welcome back, ${firstName} ${lastName}`;
+    document.getElementById("studentMeta").textContent =
+        `${studentProfile.student_number} • ${programmeName} • ${levelName} • Status: ${status}`;
+
+
+    // ===== ENROLLMENTS =====
+
+    const { data: enrollments } =
+        await supabaseClient
+            .from("enrollments")
+            .select(`
+                id, status, final_score, final_grade,
+                courses ( id, code, name, credits )
+            `)
+            .eq("student_id", studentProfile.id);
+
+    const enrolledCourses = (enrollments || []).map(e => e.courses).filter(Boolean);
+    const courseIds = enrolledCourses.map(c => c.id);
+
+    document.getElementById("statCourses").textContent = enrolledCourses.length;
+
+
+    // ===== MODULES =====
+
+    let modules = [];
+    if (courseIds.length > 0) {
+        const { data } = await supabaseClient
+            .from("course_modules")
+            .select("id, course_id, module_number, title")
+            .in("course_id", courseIds)
+            .order("module_number");
+        modules = data || [];
+    }
+
+    document.getElementById("statModules").textContent = modules.length;
+    const moduleIds = modules.map(m => m.id);
+
+
+    // ===== LESSONS =====
+
+    let lessons = [];
+    if (moduleIds.length > 0) {
+        const { data } = await supabaseClient
+            .from("lessons")
+            .select("id, module_id, lesson_number, title")
+            .in("module_id", moduleIds)
+            .order("lesson_number");
+        lessons = data || [];
+    }
+
+    const lessonIds = lessons.map(l => l.id);
+
+
+    // ===== LESSON PROGRESS =====
+
+    let progressRows = [];
+    if (lessonIds.length > 0) {
+        const { data } = await supabaseClient
+            .from("lesson_progress")
+            .select("lesson_id, status, completed_at")
+            .eq("student_id", user.id)
+            .in("lesson_id", lessonIds);
+        progressRows = data || [];
+    }
+
+    const completedLessonIds = new Set(
+        progressRows.filter(p => p.status === "completed").map(p => p.lesson_id)
+    );
+
+    const overallProgress = lessons.length > 0
+        ? Math.round((completedLessonIds.size / lessons.length) * 100)
+        : 0;
+
+    document.getElementById("statProgress").textContent = overallProgress + "%";
+    document.getElementById("perfProgress").textContent = overallProgress + "%";
+    document.getElementById("statCompletedLessons").textContent = completedLessonIds.size;
+
+
+    // ===== ASSIGNMENTS + SUBMISSIONS =====
+
+    let assignments = [];
+    if (moduleIds.length > 0) {
+        const { data } = await supabaseClient
+            .from("assignments")
+            .select("id, module_id, title, due_date, max_score")
+            .in("module_id", moduleIds);
+        assignments = data || [];
+    }
+
+    document.getElementById("statAssignments").textContent = assignments.length;
+    const assignmentIds = assignments.map(a => a.id);
+
+    let submissions = [];
+    if (assignmentIds.length > 0) {
+        const { data } = await supabaseClient
+            .from("submissions")
+            .select("id, assignment_id, score, status, submitted_at")
+            .eq("student_id", user.id)
+            .in("assignment_id", assignmentIds);
+        submissions = data || [];
+    }
+
+    const submittedAssignmentIds = new Set(submissions.map(s => s.assignment_id));
+    const gradedSubmissions = submissions.filter(s => s.score !== null);
+    const now = new Date();
+    const overdueAssignments = assignments.filter(a =>
+        a.due_date && new Date(a.due_date) < now && !submittedAssignmentIds.has(a.id)
+    );
+
+    document.getElementById("assignAvailable").textContent = assignments.length;
+    document.getElementById("assignSubmitted").textContent = submissions.length;
+    document.getElementById("assignGraded").textContent = gradedSubmissions.length;
+    document.getElementById("assignOverdue").textContent = overdueAssignments.length;
+
+    const assignmentAverage = average(gradedSubmissions.map(s => s.score));
+    document.getElementById("perfAssignment").textContent = assignmentAverage + "%";
+
+
+    // ===== QUIZZES + ATTEMPTS =====
+
+    let quizzes = [];
+    if (moduleIds.length > 0) {
+        const { data } = await supabaseClient
+            .from("quizzes")
+            .select("id, module_id, title, due_date, max_score")
+            .in("module_id", moduleIds);
+        quizzes = data || [];
+    }
+
+    document.getElementById("statQuizzes").textContent = quizzes.length;
+    const quizIds = quizzes.map(q => q.id);
+
+    let quizAttempts = [];
+    if (quizIds.length > 0) {
+        const { data } = await supabaseClient
+            .from("quiz_attempts")
+            .select("id, quiz_id, score, submitted_at")
+            .eq("student_id", user.id)
+            .in("quiz_id", quizIds);
+        quizAttempts = data || [];
+    }
+
+    document.getElementById("quizAvailable").textContent = quizzes.length;
+    document.getElementById("quizAttempts").textContent = quizAttempts.length;
+
+    const quizAverage = average(quizAttempts.map(a => a.score));
+    document.getElementById("quizAvg").textContent = quizAverage + "%";
+    document.getElementById("perfQuiz").textContent = quizAverage + "%";
+
+
+    // ===== COURSE AVERAGE (from enrollments.final_score) =====
+
+    const courseAverage = average((enrollments || []).map(e => e.final_score));
+    document.getElementById("perfCourse").textContent = courseAverage + "%";
+
+    const overallAverage = average([assignmentAverage, quizAverage, courseAverage].filter(v => v > 0));
+    document.getElementById("statAverage").textContent = overallAverage + "%";
+
+
+    // ===== UPCOMING DEADLINES =====
+
+    const sevenDaysOut = new Date();
+    sevenDaysOut.setDate(sevenDaysOut.getDate() + 7);
+
+    const upcomingItems = [
+        ...assignments.filter(a => a.due_date && new Date(a.due_date) >= now && new Date(a.due_date) <= sevenDaysOut)
+            .map(a => ({ type: "📝 Assignment", title: a.title, due: a.due_date })),
+        ...quizzes.filter(q => q.due_date && new Date(q.due_date) >= now && new Date(q.due_date) <= sevenDaysOut)
+            .map(q => ({ type: "🎯 Quiz", title: q.title, due: q.due_date }))
+    ].sort((a, b) => new Date(a.due) - new Date(b.due));
+
+    document.getElementById("statDeadlines").textContent = upcomingItems.length;
+
+    const deadlinesList = document.getElementById("deadlinesList");
+    if (upcomingItems.length === 0) {
+        deadlinesList.innerHTML = `<p class="empty-note">No upcoming deadlines in the next 7 days.</p>`;
+    } else {
+        deadlinesList.innerHTML = upcomingItems.map(item => {
+            const daysLeft = Math.ceil((new Date(item.due) - now) / (1000 * 60 * 60 * 24));
+            const urgency = daysLeft <= 2 ? "urgent" : daysLeft <= 5 ? "upcoming" : "scheduled";
+            const label = daysLeft <= 2 ? "Urgent" : daysLeft <= 5 ? "Upcoming" : "Scheduled";
+            return `
+                <div class="deadline-item">
+                    <span>${ite
