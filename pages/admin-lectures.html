@@ -1,327 +1,185 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Lecture Management | E-Campus</title>
+<title>Lecturer Management | E-Campus</title>
 
 <style>
-*{
-    box-sizing:border-box;
-    margin:0;
-    padding:0;
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+    font-family: Arial, Helvetica, sans-serif;
+    background: #f4f6f9;
+    color: #172033;
 }
 
-body{
-    font-family:Arial,Helvetica,sans-serif;
-    background:#f4f6f9;
-    color:#172033;
+.header {
+    background: #111827;
+    color: white;
+    padding: 18px 25px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
 }
 
-.header{
-    background:#111827;
-    color:white;
-    padding:18px 25px;
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
+.brand { display: flex; align-items: center; gap: 14px; }
+.logo { width: 58px; height: 58px; object-fit: contain; background: white; border-radius: 8px; }
+.brand h1 { font-size: 24px; }
+.brand p { color: #d4af37; margin-top: 4px; }
+
+.back-button {
+    background: #d4af37;
+    color: #111827;
+    text-decoration: none;
+    padding: 11px 18px;
+    border-radius: 8px;
+    font-weight: bold;
 }
 
-.brand{
-    display:flex;
-    align-items:center;
-    gap:14px;
+.container { max-width: 1300px; margin: 30px auto; padding: 0 20px; }
+
+.page-title { margin-bottom: 25px; }
+.page-title h2 { font-size: 30px; margin-bottom: 7px; }
+.page-title p { color: #6b7280; }
+
+.message {
+    padding: 14px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    display: none;
 }
 
-.logo{
-    width:58px;
-    height:58px;
-    object-fit:contain;
-    background:white;
-    border-radius:8px;
+.message.success { display: block; background: #dcfce7; color: #166534; }
+.message.error { display: block; background: #fee2e2; color: #991b1b; }
+
+.credentials-box {
+    display: none;
+    padding: 16px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    background: #fef9e7;
+    border: 1px solid #d4af37;
 }
 
-.brand h1{
-    font-size:24px;
+.credentials-box strong { display: block; margin-bottom: 6px; }
+.credentials-box p { font-family: monospace; font-size: 15px; margin-top: 4px; }
+
+.card {
+    background: white;
+    padding: 25px;
+    border-radius: 14px;
+    margin-bottom: 25px;
+    box-shadow: 0 5px 20px rgba(0,0,0,0.07);
 }
 
-.brand p{
-    color:#d4af37;
-    margin-top:4px;
+.card h3 { margin-bottom: 20px; font-size: 22px; }
+
+.form-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 18px;
 }
 
-.back-button{
-    background:#d4af37;
-    color:#111827;
-    text-decoration:none;
-    padding:11px 18px;
-    border-radius:8px;
-    font-weight:bold;
+.form-group { display: flex; flex-direction: column; }
+.form-group.full { grid-column: 1 / -1; }
+
+label { font-weight: bold; margin-bottom: 7px; }
+
+input, select, textarea {
+    width: 100%;
+    padding: 13px;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    font-size: 15px;
 }
 
-.container{
-    max-width:1250px;
-    margin:30px auto;
-    padding:0 20px;
+input:focus, select:focus, textarea:focus {
+    outline: none;
+    border-color: #d4af37;
 }
 
-.page-title{
-    margin-bottom:25px;
+.submit-button {
+    margin-top: 20px;
+    background: #d4af37;
+    color: #111827;
+    border: none;
+    padding: 13px 20px;
+    border-radius: 8px;
+    font-weight: bold;
+    cursor: pointer;
+    width: 100%;
 }
 
-.page-title h2{
-    font-size:30px;
-    margin-bottom:7px;
+.submit-button:hover { background: #c29d24; }
+.submit-button:disabled { opacity: 0.6; cursor: not-allowed; }
+
+.search-bar { margin-bottom: 18px; }
+
+.table-container { overflow-x: auto; }
+
+table { width: 100%; border-collapse: collapse; }
+
+th, td {
+    padding: 12px;
+    text-align: left;
+    border-bottom: 1px solid #e5e7eb;
+    font-size: 14px;
 }
 
-.page-title p{
-    color:#6b7280;
+th { background: #111827; color: white; }
+tr:hover { background: #f9fafb; }
+
+.status-badge {
+    display: inline-block;
+    padding: 5px 10px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: bold;
 }
 
-.message{
-    padding:14px;
-    border-radius:8px;
-    margin-bottom:20px;
-    display:none;
+.status-badge.active { background: #dcfce7; color: #166534; }
+.status-badge.suspended { background: #fee2e2; color: #991b1b; }
+
+.action-button {
+    border: none;
+    padding: 7px 11px;
+    border-radius: 6px;
+    font-weight: bold;
+    cursor: pointer;
+    margin-right: 5px;
+    font-size: 13px;
 }
 
-.message.success{
-    display:block;
-    background:#dcfce7;
-    color:#166534;
+.suspend-button { background: #fee2e2; color: #991b1b; }
+.reactivate-button { background: #dcfce7; color: #166534; }
+
+@media (max-width: 700px) {
+    .header { flex-direction: column; align-items: flex-start; gap: 15px; }
+    .form-grid { grid-template-columns: 1fr; }
+    .form-group.full { grid-column: auto; }
+    th, td { white-space: nowrap; }
 }
 
-.message.error{
-    display:block;
-    background:#fee2e2;
-    color:#991b1b;
-}
-
-.card{
-    background:white;
-    padding:25px;
-    border-radius:14px;
-    margin-bottom:25px;
-    box-shadow:0 5px 20px rgba(0,0,0,.07);
-}
-
-.card h3{
-    margin-bottom:20px;
-    font-size:22px;
-}
-
-.form-grid{
-    display:grid;
-    grid-template-columns:repeat(2,1fr);
-    gap:18px;
-}
-
-.form-group{
-    display:flex;
-    flex-direction:column;
-}
-
-.form-group.full{
-    grid-column:1/-1;
-}
-
-label{
-    font-weight:bold;
-    margin-bottom:7px;
-}
-
-input,
-select,
-textarea{
-    width:100%;
-    padding:13px;
-    border:1px solid #d1d5db;
-    border-radius:8px;
-    font-size:15px;
-}
-
-textarea{
-    min-height:120px;
-    resize:vertical;
-}
-
-.content-area{
-    min-height:260px;
-}
-
-input:focus,
-select:focus,
-textarea:focus{
-    outline:none;
-    border-color:#d4af37;
-}
-
-.submit-button,
-.cancel-button{
-    margin-top:20px;
-    width:100%;
-    border:none;
-    padding:13px 20px;
-    border-radius:8px;
-    font-weight:bold;
-    cursor:pointer;
-}
-
-.submit-button{
-    background:#d4af37;
-    color:#111827;
-}
-
-.submit-button:hover{
-    background:#c29d24;
-}
-
-.cancel-button{
-    background:#6b7280;
-    color:white;
-    display:none;
-}
-
-.cancel-button:hover{
-    background:#4b5563;
-}
-
-.table-container{
-    overflow-x:auto;
-}
-
-table{
-    width:100%;
-    border-collapse:collapse;
-}
-
-th,
-td{
-    padding:14px;
-    text-align:left;
-    border-bottom:1px solid #e5e7eb;
-}
-
-th{
-    background:#111827;
-    color:white;
-}
-
-tr:hover{
-    background:#f9fafb;
-}
-
-.status{
-    display:inline-block;
-    padding:5px 10px;
-    border-radius:20px;
-    font-size:12px;
-    font-weight:bold;
-}
-
-.status.published{
-    background:#dcfce7;
-    color:#166534;
-}
-
-.status.draft{
-    background:#fef3c7;
-    color:#92400e;
-}
-
-.action-button{
-    border:none;
-    padding:8px 12px;
-    border-radius:6px;
-    font-weight:bold;
-    cursor:pointer;
-    margin-right:5px;
-}
-
-.edit-button{
-    background:#e5e7eb;
-    color:#111827;
-}
-
-.delete-button{
-    background:#fee2e2;
-    color:#991b1b;
-}
-
-.edit-button:hover{
-    background:#d1d5db;
-}
-
-.delete-button:hover{
-    background:#fecaca;
-}
-
-.empty{
-    text-align:center;
-    padding:25px;
-    color:#6b7280;
-}
-
-@media(max-width:700px){
-
-    .header{
-        flex-direction:column;
-        align-items:flex-start;
-        gap:15px;
-    }
-
-    .form-grid{
-        grid-template-columns:1fr;
-    }
-
-    .form-group.full{
-        grid-column:auto;
-    }
-
-    .page-title h2{
-        font-size:25px;
-    }
-
-    th,
-    td{
-        white-space:nowrap;
-    }
-}
 </style>
 </head>
 
+
 <body>
+
 
 <header class="header">
 
     <div class="brand">
-
-        <img
-            src="https://pub-b3e2d39712e84119875e84c5ec5f5c09.r2.dev/Logo/IMG-20260816-WA0050(1).jpg"
-            alt="Sunningdale University Logo"
-            class="logo"
-        >
-
+        <img src="https://pub-b3e2d39712e84119875e84c5ec5f5c09.r2.dev/Logo/IMG-20260816-WA0050(1).jpg" alt="Sunningdale University Logo" class="logo">
         <div>
-
-            <h1>
-                E-Campus Administration
-            </h1>
-
-            <p>
-                Sunningdale University
-            </p>
-
+            <h1>E-Campus Administration</h1>
+            <p>Sunningdale University</p>
         </div>
-
     </div>
 
-    <a
-        href="admin-dashboard.html"
-        class="back-button"
-    >
-        ← Admin Dashboard
-    </a>
+    <a href="admin-dashboard.html" class="back-button">← Admin Dashboard</a>
 
 </header>
 
@@ -329,295 +187,119 @@ tr:hover{
 <main class="container">
 
     <section class="page-title">
-
-        <h2>
-            Lecture Management
-        </h2>
-
-        <p>
-            Create and manage lectures within course modules.
-        </p>
-
+        <h2>Lecturer Management</h2>
+        <p>Add lecturers, manage departments, qualifications and assignments.</p>
     </section>
 
+    <div id="message" class="message"></div>
 
-    <div
-        id="message"
-        class="message"
-    ></div>
+    <div id="credentialsBox" class="credentials-box">
+        <strong>Account created — share these credentials with the lecturer now, they won't be shown again:</strong>
+        <p id="credentialsText"></p>
+    </div>
 
-
-    <!-- ================= ADD / EDIT LECTURE ================= -->
 
     <section class="card">
 
-        <h3 id="formTitle">
-            Add New Lecture
-        </h3>
+        <h3>Add New Lecturer</h3>
 
+        <p style="color:#6b7280; margin-bottom:18px; font-size:14px;">
+            Employee number and password are generated automatically once you submit this form.
+        </p>
 
-        <form id="lectureForm">
+        <form id="lecturerForm">
 
             <div class="form-grid">
 
+                <div class="form-group">
+                    <label for="firstName">First Name</label>
+                    <input type="text" id="firstName" required>
+                </div>
 
-                <!-- COURSE -->
+                <div class="form-group">
+                    <label for="lastName">Last Name</label>
+                    <input type="text" id="lastName" required>
+                </div>
 
-                <div class="form-group full">
+                <div class="form-group">
+                    <label for="middleName">Middle Name</label>
+                    <input type="text" id="middleName">
+                </div>
 
-                    <label for="course">
-                        Course
-                    </label>
+                <div class="form-group">
+                    <label for="email">Email Address</label>
+                    <input type="email" id="email" required>
+                </div>
 
-                    <select
-                        id="course"
-                        required
-                    >
+                <div class="form-group">
+                    <label for="phone">Phone</label>
+                    <input type="text" id="phone">
+                </div>
 
-                        <option value="">
-                            Loading courses...
-                        </option>
+                <div class="form-group">
+                    <label for="dateOfBirth">Date of Birth</label>
+                    <input type="date" id="dateOfBirth">
+                </div>
 
+                <div class="form-group">
+                    <label for="gender">Gender</label>
+                    <select id="gender">
+                        <option value="">Select</option>
+                        <option value="male">Male</option>
+                        <option value="female">Female</option>
                     </select>
-
                 </div>
 
-
-                <!-- MODULE -->
-
-                <div class="form-group full">
-
-                    <label for="module">
-                        Module
-                    </label>
-
-                    <select
-                        id="module"
-                        required
-                        disabled
-                    >
-
-                        <option value="">
-                            Select course first
-                        </option>
-
+                <div class="form-group">
+                    <label for="department">Department</label>
+                    <select id="department" required>
+                        <option value="">Select department</option>
                     </select>
-
                 </div>
 
-
-                <!-- LESSON / LECTURE NUMBER -->
-
                 <div class="form-group">
-
-                    <label for="lectureNumber">
-                        Lecture Number
-                    </label>
-
-                    <input
-                        type="number"
-                        id="lectureNumber"
-                        min="1"
-                        placeholder="e.g. 1"
-                        required
-                    >
-
-                </div>
-
-
-                <!-- TITLE -->
-
-                <div class="form-group">
-
-                    <label for="title">
-                        Lecture Title
-                    </label>
-
-                    <input
-                        type="text"
-                        id="title"
-                        placeholder="e.g. Introduction to Computer Systems"
-                        required
-                    >
-
-                </div>
-
-
-                <!-- ESTIMATED HOURS -->
-
-                <div class="form-group">
-
-                    <label for="estimatedHours">
-                        Estimated Hours
-                    </label>
-
-                    <input
-                        type="number"
-                        id="estimatedHours"
-                        min="0"
-                        step="0.5"
-                        placeholder="e.g. 2"
-                    >
-
-                </div>
-
-
-                <!-- STATUS -->
-
-                <div class="form-group">
-
-                    <label for="status">
-                        Status
-                    </label>
-
-                    <select id="status">
-
-                        <option value="draft">
-                            DRAFT
-                        </option>
-
-                        <option value="published">
-                            PUBLISHED
-                        </option>
-
+                    <label for="employmentType">Employment Type</label>
+                    <select id="employmentType">
+                        <option value="full-time">Full-Time</option>
+                        <option value="part-time">Part-Time</option>
+                        <option value="visiting">Visiting</option>
                     </select>
-
                 </div>
-
-
-                <!-- DESCRIPTION -->
-
-                <div class="form-group full">
-
-                    <label for="description">
-                        Lecture Description
-                    </label>
-
-                    <textarea
-                        id="description"
-                        placeholder="Describe this lecture..."
-                    ></textarea>
-
-                </div>
-
-
-                <!-- LEARNING OBJECTIVES -->
-
-                <div class="form-group full">
-
-                    <label for="learningObjectives">
-                        Learning Objectives
-                    </label>
-
-                    <textarea
-                        id="learningObjectives"
-                        placeholder="Enter what students should be able to do after this lecture..."
-                    ></textarea>
-
-                </div>
-
-
-                <!-- CONTENT -->
-
-                <div class="form-group full">
-
-                    <label for="content">
-                        Lecture Content
-                    </label>
-
-                    <textarea
-                        id="content"
-                        class="content-area"
-                        placeholder="Write the complete lecture notes/content here..."
-                    ></textarea>
-
-                </div>
-
-
-                <!-- VIDEO -->
 
                 <div class="form-group">
-
-                    <label for="videoUrl">
-                        Video URL
-                    </label>
-
-                    <input
-                        type="url"
-                        id="videoUrl"
-                        placeholder="https://..."
-                    >
-
+                    <label for="qualification">Qualification</label>
+                    <input type="text" id="qualification" placeholder="e.g. PhD in Computer Science">
                 </div>
 
-
-                <!-- MATERIAL -->
+                <div class="form-group full">
+                    <label for="specialization">Specialization</label>
+                    <input type="text" id="specialization" placeholder="e.g. Software Engineering, Networking">
+                </div>
 
                 <div class="form-group">
-
-                    <label for="materialUrl">
-                        PDF / Learning Material URL
-                    </label>
-
-                    <input
-                        type="url"
-                        id="materialUrl"
-                        placeholder="https://..."
-                    >
-
+                    <label for="hireDate">Hire Date</label>
+                    <input type="date" id="hireDate">
                 </div>
-
-
-                <!-- PRACTICAL -->
 
                 <div class="form-group full">
-
-                    <label for="practicalActivity">
-                        Practical Activity
-                    </label>
-
-                    <textarea
-                        id="practicalActivity"
-                        placeholder="Enter the practical activity for students..."
-                    ></textarea>
-
+                    <label for="address">Address</label>
+                    <input type="text" id="address">
                 </div>
 
-
-                <!-- ASSIGNMENT -->
-
-                <div class="form-group full">
-
-                    <label for="assignment">
-                        Assignment
-                    </label>
-
-                    <textarea
-                        id="assignment"
-                        placeholder="Enter the assignment for this lecture..."
-                    ></textarea>
-
+                <div class="form-group">
+                    <label for="city">City</label>
+                    <input type="text" id="city">
                 </div>
 
+                <div class="form-group">
+                    <label for="country">Country</label>
+                    <input type="text" id="country" value="Zambia">
+                </div>
 
             </div>
 
-
-            <button
-                type="submit"
-                class="submit-button"
-                id="submitButton"
-            >
-                Add Lecture
-            </button>
-
-
-            <button
-                type="button"
-                class="cancel-button"
-                id="cancelButton"
-            >
-                Cancel Editing
+            <button type="submit" class="submit-button" id="submitButton">
+                Create Lecturer Account
             </button>
 
         </form>
@@ -625,66 +307,32 @@ tr:hover{
     </section>
 
 
-    <!-- ================= EXISTING LECTURES ================= -->
-
     <section class="card">
 
-        <h3>
-            Existing Lectures
-        </h3>
+        <h3>Existing Lecturers</h3>
 
+        <div class="search-bar">
+            <input type="text" id="searchInput" placeholder="Search by name, email, or employee number...">
+        </div>
 
         <div class="table-container">
 
             <table>
 
                 <thead>
-
                     <tr>
-
-                        <th>
-                            #
-                        </th>
-
-                        <th>
-                            Course
-                        </th>
-
-                        <th>
-                            Module
-                        </th>
-
-                        <th>
-                            Lecture
-                        </th>
-
-                        <th>
-                            Hours
-                        </th>
-
-                        <th>
-                            Status
-                        </th>
-
-                        <th>
-                            Actions
-                        </th>
-
+                        <th>Employee #</th>
+                        <th>Name</th>
+                        <th>Email</th>
+                        <th>Department</th>
+                        <th>Specialization</th>
+                        <th>Status</th>
+                        <th>Actions</th>
                     </tr>
-
                 </thead>
 
-
-                <tbody id="lectureTableBody">
-
-                    <tr>
-
-                        <td colspan="7">
-                            Loading lectures...
-                        </td>
-
-                    </tr>
-
+                <tbody id="lecturerTableBody">
+                    <tr><td colspan="7">Loading lecturers...</td></tr>
                 </tbody>
 
             </table>
@@ -696,383 +344,259 @@ tr:hover{
 </main>
 
 
-<!-- ================= SUPABASE ================= -->
-
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
 <script src="../supabase-config.js"></script>
 
 
 <script>
 
-let editingLectureId = null;
+const message = document.getElementById("message");
+let allLecturers = [];
 
-const message =
-    document.getElementById("message");
-
-
-/* ================= MESSAGE ================= */
 
 function showMessage(text, type) {
-
     message.textContent = text;
-
-    message.className =
-        "message " + type;
-
+    message.className = "message " + type;
 }
 
 
-/* ================= LOAD COURSES ================= */
+function escapeHtml(value) {
+    return String(value ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+}
 
-async function loadCourses() {
 
-    const select =
-        document.getElementById("course");
+function generatePassword() {
+    const digits = Math.floor(1000 + Math.random() * 9000);
+    const letters = "ABCDEFGHJKLMNPQRSTUVWXYZ";
+    const l1 = letters[Math.floor(Math.random() * letters.length)];
+    const l2 = letters[Math.floor(Math.random() * letters.length)];
+    return `Sun${digits}${l1}${l2}`;
+}
 
+
+/* ================= LOAD DEPARTMENTS ================= */
+
+async function loadDepartments() {
+
+    const select = document.getElementById("department");
 
     const { data, error } =
         await supabaseClient
-            .from("courses")
-            .select("id,code,name")
-            .order("code");
-
+            .from("departments")
+            .select("id, name, code")
+            .order("name");
 
     if (error) {
-
         console.error(error);
-
-        select.innerHTML = `
-            <option value="">
-                Unable to load courses
-            </option>
-        `;
-
-        showMessage(
-            "Unable to load courses: " +
-            error.message,
-            "error"
-        );
-
         return;
     }
 
-
-    select.innerHTML = `
-        <option value="">
-            Select course
-        </option>
-    `;
-
-
-    data.forEach(course => {
-
-        const option =
-            document.createElement("option");
-
-        option.value =
-            course.id;
-
-        option.textContent =
-            `${course.code} — ${course.name}`;
-
+    data.forEach(dept => {
+        const option = document.createElement("option");
+        option.value = dept.id;
+        option.textContent = dept.name;
         select.appendChild(option);
-
     });
 
 }
 
 
-/* ================= LOAD MODULES ================= */
+/* ================= CREATE LECTURER ================= */
 
-async function loadModules(courseId) {
+document.getElementById("lecturerForm").addEventListener("submit", async function(event) {
 
-    const select =
-        document.getElementById("module");
+    event.preventDefault();
 
+    const submitButton = document.getElementById("submitButton");
+    submitButton.disabled = true;
+    submitButton.textContent = "Creating account...";
 
-    select.disabled = true;
+    const email = document.getElementById("email").value.trim();
+    const generatedPassword = generatePassword();
 
+    try {
 
-    if (!courseId) {
-
-        select.innerHTML = `
-            <option value="">
-                Select course first
-            </option>
-        `;
-
-        return;
-    }
-
-
-    select.innerHTML = `
-        <option value="">
-            Loading modules...
-        </option>
-    `;
-
-
-    const { data, error } =
-        await supabaseClient
-            .from("course_modules")
-            .select(
-                "id,module_number,title"
-            )
-            .eq(
-                "course_id",
-                courseId
-            )
-            .order(
-                "module_number"
+        const secondaryClient =
+            window.supabase.createClient(
+                SUPABASE_URL,
+                SUPABASE_ANON_KEY,
+                { auth: { persistSession: false } }
             );
 
+        const { data: signUpData, error: signUpError } =
+            await secondaryClient.auth.signUp({
+                email: email,
+                password: generatedPassword
+            });
 
-    if (error) {
-
-        console.error(error);
-
-        select.innerHTML = `
-            <option value="">
-                Unable to load modules
-            </option>
-        `;
-
-        showMessage(
-            "Unable to load modules: " +
-            error.message,
-            "error"
-        );
-
-        return;
-    }
-
-
-    select.innerHTML = `
-        <option value="">
-            Select module
-        </option>
-    `;
-
-
-    if (!data || data.length === 0) {
-
-        select.innerHTML = `
-            <option value="">
-                No modules found
-            </option>
-        `;
-
-        return;
-    }
-
-
-    data.forEach(module => {
-
-        const option =
-            document.createElement("option");
-
-        option.value =
-            module.id;
-
-        option.textContent =
-            `Module ${module.module_number} — ${module.title}`;
-
-        select.appendChild(option);
-
-    });
-
-
-    select.disabled = false;
-
-}
-
-
-/* ================= COURSE CHANGE ================= */
-
-document
-    .getElementById("course")
-    .addEventListener(
-        "change",
-        function() {
-
-            loadModules(
-                this.value
-            );
-
+        if (signUpError) {
+            showMessage("Error creating account: " + signUpError.message, "error");
+            submitButton.disabled = false;
+            submitButton.textContent = "Create Lecturer Account";
+            return;
         }
-    );
+
+        const newUserId = signUpData.user.id;
+
+        const { error: profileError } =
+            await supabaseClient.from("user_profiles").insert({
+                id: newUserId,
+                first_name: document.getElementById("firstName").value.trim(),
+                middle_name: document.getElementById("middleName").value.trim() || null,
+                last_name: document.getElementById("lastName").value.trim(),
+                email: email,
+                phone: document.getElementById("phone").value.trim() || null,
+                gender: document.getElementById("gender").value || null,
+                date_of_birth: document.getElementById("dateOfBirth").value || null,
+                address: document.getElementById("address").value.trim() || null,
+                city: document.getElementById("city").value.trim() || null,
+                country: document.getElementById("country").value.trim() || "Zambia",
+                status: "active"
+            });
+
+        if (profileError) {
+            showMessage("Account created, but profile failed: " + profileError.message, "error");
+            submitButton.disabled = false;
+            submitButton.textContent = "Create Lecturer Account";
+            return;
+        }
+
+        const { data: lecturerRow, error: lecturerError } =
+            await supabaseClient.from("lecturer_profiles").insert({
+                user_id: newUserId,
+                department_id: document.getElementById("department").value || null,
+                employment_type: document.getElementById("employmentType").value,
+                specialization: document.getElementById("specialization").value.trim() || null,
+                qualification: document.getElementById("qualification").value.trim() || null,
+                hire_date: document.getElementById("hireDate").value || null,
+                status: "active"
+            })
+            .select("employee_number")
+            .single();
+
+        if (lecturerError) {
+            showMessage("Profile created, but lecturer record failed: " + lecturerError.message, "error");
+            submitButton.disabled = false;
+            submitButton.textContent = "Create Lecturer Account";
+            return;
+        }
+
+        const { data: roleRow } =
+            await supabaseClient
+                .from("roles")
+                .select("id")
+                .eq("name", "LECTURER")
+                .single();
+
+        if (roleRow) {
+            await supabaseClient.from("user_roles").insert({
+                user_id: newUserId,
+                role_id: roleRow.id
+            });
+        }
+
+        document.getElementById("credentialsBox").style.display = "block";
+        document.getElementById("credentialsText").textContent =
+            `Employee Number: ${lecturerRow.employee_number}  |  Email: ${email}  |  Password: ${generatedPassword}`;
+
+        showMessage("Lecturer account created successfully.", "success");
+
+        document.getElementById("lecturerForm").reset();
+        document.getElementById("country").value = "Zambia";
+
+        await loadLecturers();
+
+    } catch (err) {
+
+        console.error(err);
+        showMessage("Unexpected error: " + err.message, "error");
+
+    } finally {
+
+        submitButton.disabled = false;
+        submitButton.textContent = "Create Lecturer Account";
+
+    }
+
+});
 
 
-/* ================= LOAD LECTURES ================= */
+/* ================= LOAD LECTURERS ================= */
 
-async function loadLectures() {
+async function loadLecturers() {
 
-    const tbody =
-        document.getElementById(
-            "lectureTableBody"
-        );
-
+    const tbody = document.getElementById("lecturerTableBody");
 
     const { data, error } =
         await supabaseClient
-            .from("lessons")
+            .from("lecturer_profiles")
             .select(`
                 id,
-                module_id,
-                lesson_number,
-                title,
-                description,
-                learning_objectives,
-                content,
-                estimated_hours,
+                employee_number,
                 status,
-                course_modules (
-                    module_number,
-                    title,
-                    course_id,
-                    courses (
-                        code,
-                        name
-                    )
-                )
+                specialization,
+                user_profiles ( first_name, last_name, email ),
+                departments ( name )
             `)
-            .order(
-                "module_id"
-            )
-            .order(
-                "lesson_number"
-            );
-
+            .order("employee_number");
 
     if (error) {
-
         console.error(error);
-
-        tbody.innerHTML = `
-            <tr>
-                <td colspan="7">
-                    Unable to load lectures.
-                </td>
-            </tr>
-        `;
-
-        showMessage(
-            "Unable to load lectures: " +
-            error.message,
-            "error"
-        );
-
+        tbody.innerHTML = `<tr><td colspan="7">Unable to load lecturers: ${escapeHtml(error.message)}</td></tr>`;
         return;
     }
 
+    allLecturers = data || [];
+    renderLecturers(allLecturers);
 
-    if (!data || data.length === 0) {
+}
 
-        tbody.innerHTML = `
-            <tr>
-                <td colspan="7">
-                    No lectures have been created yet.
-                </td>
-            </tr>
-        `;
 
+function renderLecturers(list) {
+
+    const tbody = document.getElementById("lecturerTableBody");
+
+    if (!list || list.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="7">No lecturers found.</td></tr>`;
         return;
     }
-
 
     tbody.innerHTML = "";
 
+    list.forEach(lecturer => {
 
-    data.forEach(lecture => {
+        const profile = lecturer.user_profiles;
+        const department = lecturer.departments;
+        const status = lecturer.status || "active";
 
-        const module =
-            lecture.course_modules;
-
-        const course =
-            module
-            ? module.courses
-            : null;
-
-
-        const row =
-            document.createElement("tr");
-
+        const row = document.createElement("tr");
 
         row.innerHTML = `
 
+            <td>${escapeHtml(lecturer.employee_number)}</td>
+            <td>${profile ? escapeHtml(profile.first_name + " " + profile.last_name) : "-"}</td>
+            <td>${profile ? escapeHtml(profile.email || "-") : "-"}</td>
+            <td>${department ? escapeHtml(department.name) : "-"}</td>
+            <td>${escapeHtml(lecturer.specialization || "-")}</td>
+
             <td>
-                ${lecture.lesson_number}
+                <span class="status-badge ${status}">${escapeHtml(status)}</span>
             </td>
 
             <td>
                 ${
-                    course
-                    ? escapeHtml(
-                        course.code +
-                        " — " +
-                        course.name
-                    )
-                    : "-"
+                    status === "suspended"
+                    ? `<button class="action-button reactivate-button" onclick="toggleStatus('${lecturer.id}', 'active')">Reactivate</button>`
+                    : `<button class="action-button suspend-button" onclick="toggleStatus('${lecturer.id}', 'suspended')">Suspend</button>`
                 }
-            </td>
-
-            <td>
-                ${
-                    module
-                    ? escapeHtml(
-                        "Module " +
-                        module.module_number +
-                        " — " +
-                        module.title
-                    )
-                    : "-"
-                }
-            </td>
-
-            <td>
-                ${escapeHtml(lecture.title)}
-            </td>
-
-            <td>
-                ${lecture.estimated_hours ?? "-"}
-            </td>
-
-            <td>
-
-                <span
-                    class="status ${
-                        lecture.status ===
-                        "published"
-                        ? "published"
-                        : "draft"
-                    }"
-                >
-                    ${escapeHtml(lecture.status)}
-                </span>
-
-            </td>
-
-            <td>
-
-                <button
-                    class="action-button edit-button"
-                    onclick="editLecture('${lecture.id}')"
-                >
-                    Edit
-                </button>
-
-                <button
-                    class="action-button delete-button"
-                    onclick="deleteLecture('${lecture.id}')"
-                >
-                    Delete
-                </button>
-
             </td>
 
         `;
-
 
         tbody.appendChild(row);
 
@@ -1081,448 +605,62 @@ async function loadLectures() {
 }
 
 
-/* ================= ESCAPE HTML ================= */
-
-function escapeHtml(value) {
-
-    return String(value ?? "")
-        .replace(/&/g,"&amp;")
-        .replace(/</g,"&lt;")
-        .replace(/>/g,"&gt;")
-        .replace(/"/g,"&quot;")
-        .replace(/'/g,"&#039;");
-
-}
-
-
-/* ================= ADD / UPDATE ================= */
-
-document
-    .getElementById("lectureForm")
-    .addEventListener(
-        "submit",
-        async function(event) {
-
-            event.preventDefault();
-
-
-            const module_id =
-                document
-                    .getElementById("module")
-                    .value;
-
-
-            const lesson_number =
-                Number(
-                    document
-                        .getElementById(
-                            "lectureNumber"
-                        )
-                        .value
-                );
-
-
-            const title =
-                document
-                    .getElementById("title")
-                    .value
-                    .trim();
-
-
-            const description =
-                document
-                    .getElementById(
-                        "description"
-                    )
-                    .value
-                    .trim();
-
-
-            const learning_objectives =
-                document
-                    .getElementById(
-                        "learningObjectives"
-                    )
-                    .value
-                    .trim();
-
-
-            const content =
-                document
-                    .getElementById("content")
-                    .value
-                    .trim();
-
-
-            const estimatedHoursValue =
-                document
-                    .getElementById(
-                        "estimatedHours"
-                    )
-                    .value;
-
-
-            const estimated_hours =
-                estimatedHoursValue === ""
-                ? null
-                : Number(
-                    estimatedHoursValue
-                );
-
-
-            const status =
-                document
-                    .getElementById("status")
-                    .value;
-
-
-            const lectureData = {
-
-                module_id,
-
-                lesson_number,
-
-                title,
-
-                description:
-                    description || null,
-
-                learning_objectives:
-                    learning_objectives || null,
-
-                content:
-                    content || null,
-
-                estimated_hours,
-
-                status
-
-            };
-
-
-            let error;
-
-
-            /* ================= UPDATE ================= */
-
-            if (editingLectureId) {
-
-                const result =
-                    await supabaseClient
-                        .from("lessons")
-                        .update(
-                            lectureData
-                        )
-                        .eq(
-                            "id",
-                            editingLectureId
-                        );
-
-
-                error =
-                    result.error;
-
-            }
-
-
-            /* ================= INSERT ================= */
-
-            else {
-
-                const result =
-                    await supabaseClient
-                        .from("lessons")
-                        .insert(
-                            lectureData
-                        );
-
-
-                error =
-                    result.error;
-
-            }
-
-
-            if (error) {
-
-                console.error(error);
-
-                showMessage(
-                    error.message,
-                    "error"
-                );
-
-                return;
-
-            }
-
-
-            showMessage(
-                editingLectureId
-                ? "Lecture updated successfully."
-                : "Lecture created successfully.",
-                "success"
-            );
-
-
-            resetForm();
-
-            await loadLectures();
-
-        }
-    );
-
-
-/* ================= EDIT LECTURE ================= */
-
-async function editLecture(id) {
-
-    const { data, error } =
-        await supabaseClient
-            .from("lessons")
-            .select("*")
-            .eq("id", id)
-            .single();
-
-
-    if (error) {
-
-        showMessage(
-            error.message,
-            "error"
-        );
-
-        return;
-
-    }
-
-
-    editingLectureId =
-        data.id;
-
-
-    document.getElementById(
-        "formTitle"
-    ).textContent =
-        "Edit Lecture";
-
-
-    document.getElementById(
-        "submitButton"
-    ).textContent =
-        "Update Lecture";
-
-
-    document.getElementById(
-        "cancelButton"
-    ).style.display =
-        "block";
-
-
-    const { data: moduleData } =
-        await supabaseClient
-            .from("course_modules")
-            .select(
-                "course_id"
-            )
-            .eq(
-                "id",
-                data.module_id
-            )
-            .single();
-
-
-    if (moduleData) {
-
-        document.getElementById(
-            "course"
-        ).value =
-            moduleData.course_id;
-
-
-        await loadModules(
-            moduleData.course_id
-        );
-
-    }
-
-
-    document.getElementById(
-        "module"
-    ).value =
-        data.module_id;
-
-
-    document.getElementById(
-        "lectureNumber"
-    ).value =
-        data.lesson_number;
-
-
-    document.getElementById(
-        "title"
-    ).value =
-        data.title;
-
-
-    document.getElementById(
-        "description"
-    ).value =
-        data.description || "";
-
-
-    document.getElementById(
-        "learningObjectives"
-    ).value =
-        data.learning_objectives || "";
-
-
-    document.getElementById(
-        "content"
-    ).value =
-        data.content || "";
-
-
-    document.getElementById(
-        "estimatedHours"
-    ).value =
-        data.estimated_hours ?? "";
-
-
-    document.getElementById(
-        "status"
-    ).value =
-        data.status;
-
-
-    window.scrollTo({
-        top:0,
-        behavior:"smooth"
-    });
-
-}
-
-
-/* ================= DELETE ================= */
-
-async function deleteLecture(id) {
-
-    const confirmed =
-        confirm(
-            "Are you sure you want to delete this lecture?"
-        );
-
-
-    if (!confirmed) {
-        return;
-    }
-
+async function toggleStatus(lecturerId, newStatus) {
 
     const { error } =
         await supabaseClient
-            .from("lessons")
-            .delete()
-            .eq(
-                "id",
-                id
-            );
-
+            .from("lecturer_profiles")
+            .update({ status: newStatus })
+            .eq("id", lecturerId);
 
     if (error) {
-
-        console.error(error);
-
-        showMessage(
-            "Unable to delete lecture: " +
-            error.message,
-            "error"
-        );
-
+        showMessage("Unable to update status: " + error.message, "error");
         return;
-
     }
 
-
     showMessage(
-        "Lecture deleted successfully.",
+        newStatus === "suspended" ? "Lecturer suspended." : "Lecturer reactivated.",
         "success"
     );
 
-
-    await loadLectures();
-
-}
-
-
-/* ================= RESET FORM ================= */
-
-function resetForm() {
-
-    editingLectureId =
-        null;
-
-
-    document.getElementById(
-        "lectureForm"
-    ).reset();
-
-
-    document.getElementById(
-        "module"
-    ).innerHTML = `
-        <option value="">
-            Select course first
-        </option>
-    `;
-
-
-    document.getElementById(
-        "module"
-    ).disabled =
-        true;
-
-
-    document.getElementById(
-        "formTitle"
-    ).textContent =
-        "Add New Lecture";
-
-
-    document.getElementById(
-        "submitButton"
-    ).textContent =
-        "Add Lecture";
-
-
-    document.getElementById(
-        "cancelButton"
-    ).style.display =
-        "none";
+    await loadLecturers();
 
 }
 
 
-/* ================= CANCEL ================= */
+/* ================= SEARCH ================= */
 
-document
-    .getElementById("cancelButton")
-    .addEventListener(
-        "click",
-        function() {
+document.getElementById("searchInput").addEventListener("input", function() {
 
-            resetForm();
+    const term = this.value.toLowerCase().trim();
 
-        }
-    );
+    const filtered = allLecturers.filter(lecturer => {
+
+        const profile = lecturer.user_profiles;
+        const name = profile ? `${profile.first_name} ${profile.last_name}`.toLowerCase() : "";
+        const email = profile?.email?.toLowerCase() || "";
+        const number = lecturer.employee_number?.toLowerCase() || "";
+
+        return name.includes(term) || email.includes(term) || number.includes(term);
+
+    });
+
+    renderLecturers(filtered);
+
+});
 
 
-/* ================= START ================= */
+/* ================= INIT ================= */
 
-loadCourses();
+async function startPage() {
+    await loadDepartments();
+    await loadLecturers();
+}
 
-loadLectures();
+startPage();
 
 </script>
 
 </body>
+
 </html>
