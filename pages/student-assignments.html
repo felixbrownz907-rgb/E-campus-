@@ -1,0 +1,715 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Quiz Management | E-Campus</title>
+
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+    font-family: Arial, Helvetica, sans-serif;
+    background: #f4f6f9;
+    color: #172033;
+}
+
+.header {
+    background: #111827;
+    color: white;
+    padding: 18px 25px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.brand { display: flex; align-items: center; gap: 14px; }
+.logo { width: 58px; height: 58px; object-fit: contain; background: white; border-radius: 8px; }
+.brand h1 { font-size: 24px; }
+.brand p { color: #d4af37; margin-top: 4px; }
+
+.back-button {
+    background: #d4af37;
+    color: #111827;
+    text-decoration: none;
+    padding: 11px 18px;
+    border-radius: 8px;
+    font-weight: bold;
+}
+
+.container { max-width: 1250px; margin: 30px auto; padding: 0 20px; }
+
+.page-title { margin-bottom: 25px; }
+.page-title h2 { font-size: 30px; margin-bottom: 7px; }
+.page-title p { color: #6b7280; }
+
+.message {
+    padding: 14px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    display: none;
+}
+
+.message.success { display: block; background: #dcfce7; color: #166534; }
+.message.error { display: block; background: #fee2e2; color: #991b1b; }
+
+.card {
+    background: white;
+    padding: 25px;
+    border-radius: 14px;
+    margin-bottom: 25px;
+    box-shadow: 0 5px 20px rgba(0,0,0,0.07);
+}
+
+.card h3 { margin-bottom: 20px; font-size: 22px; }
+
+.form-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 18px;
+}
+
+.form-group { display: flex; flex-direction: column; }
+.form-group.full { grid-column: 1 / -1; }
+
+label { font-weight: bold; margin-bottom: 7px; }
+
+input, select, textarea {
+    width: 100%;
+    padding: 13px;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    font-size: 15px;
+}
+
+textarea { min-height: 80px; resize: vertical; }
+
+input:focus, select:focus, textarea:focus {
+    outline: none;
+    border-color: #d4af37;
+}
+
+.submit-button {
+    margin-top: 20px;
+    background: #d4af37;
+    color: #111827;
+    border: none;
+    padding: 13px 20px;
+    border-radius: 8px;
+    font-weight: bold;
+    cursor: pointer;
+    width: 100%;
+}
+
+.submit-button:hover { background: #c29d24; }
+
+.small-button {
+    background: #111827;
+    color: white;
+    border: none;
+    padding: 9px 14px;
+    border-radius: 6px;
+    font-weight: bold;
+    cursor: pointer;
+    font-size: 13px;
+}
+
+.table-container { overflow-x: auto; }
+
+table { width: 100%; border-collapse: collapse; }
+
+th, td {
+    padding: 12px;
+    text-align: left;
+    border-bottom: 1px solid #e5e7eb;
+    font-size: 14px;
+}
+
+th { background: #111827; color: white; }
+tr:hover { background: #f9fafb; }
+
+.action-button {
+    border: none;
+    padding: 7px 11px;
+    border-radius: 6px;
+    font-weight: bold;
+    cursor: pointer;
+    margin-right: 5px;
+    font-size: 13px;
+}
+
+.questions-button { background: #e5e7eb; color: #111827; }
+.attempts-button { background: #dcfce7; color: #166534; }
+.delete-button { background: #fee2e2; color: #991b1b; }
+
+.panel {
+    display: none;
+    margin-top: 14px;
+    padding: 16px;
+    background: #f4f6f9;
+    border-radius: 10px;
+}
+
+.question-item {
+    background: white;
+    padding: 14px;
+    border-radius: 8px;
+    margin-bottom: 10px;
+}
+
+.question-item .qtext { font-weight: bold; margin-bottom: 8px; }
+.question-item .qoptions { font-size: 13px; color: #374151; margin-bottom: 4px; }
+.question-item .correct { color: #166534; font-weight: bold; }
+
+.option-row {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 8px;
+    align-items: center;
+}
+
+.option-row input[type="text"] { flex: 1; }
+.option-row input[type="radio"] { width: auto; }
+
+.attempt-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 10px;
+    background: white;
+    border-radius: 8px;
+    margin-bottom: 8px;
+    font-size: 14px;
+}
+
+@media (max-width: 700px) {
+    .header { flex-direction: column; align-items: flex-start; gap: 15px; }
+    .form-grid { grid-template-columns: 1fr; }
+    .form-group.full { grid-column: auto; }
+    th, td { white-space: nowrap; }
+}
+
+</style>
+</head>
+
+
+<body>
+
+
+<header class="header">
+
+    <div class="brand">
+        <img src="https://pub-b3e2d39712e84119875e84c5ec5f5c09.r2.dev/Logo/IMG-20260816-WA0050(1).jpg" alt="Sunningdale University Logo" class="logo">
+        <div>
+            <h1>E-Campus Administration</h1>
+            <p>Sunningdale University</p>
+        </div>
+    </div>
+
+    <a href="admin-dashboard.html" class="back-button">← Admin Dashboard</a>
+
+</header>
+
+
+<main class="container">
+
+    <section class="page-title">
+        <h2>Quiz Management</h2>
+        <p>Create quizzes per module, add questions, and review student attempts.</p>
+    </section>
+
+    <div id="message" class="message"></div>
+
+
+    <section class="card">
+
+        <h3>Add New Quiz</h3>
+
+        <form id="quizForm">
+
+            <div class="form-grid">
+
+                <div class="form-group full">
+                    <label for="course">Course</label>
+                    <select id="course" required>
+                        <option value="">Select course</option>
+                    </select>
+                </div>
+
+                <div class="form-group full">
+                    <label for="module">Module</label>
+                    <select id="module" required disabled>
+                        <option value="">Select course first</option>
+                    </select>
+                </div>
+
+                <div class="form-group full">
+                    <label for="title">Quiz Title</label>
+                    <input type="text" id="title" required placeholder="e.g. Quiz 1 — Networking Basics">
+                </div>
+
+                <div class="form-group">
+                    <label for="dueDate">Due Date</label>
+                    <input type="datetime-local" id="dueDate">
+                </div>
+
+                <div class="form-group">
+                    <label for="maxScore">Max Score</label>
+                    <input type="number" id="maxScore" value="100" min="1">
+                </div>
+
+                <div class="form-group full">
+                    <label for="description">Description / Instructions</label>
+                    <textarea id="description" placeholder="Describe the quiz..."></textarea>
+                </div>
+
+            </div>
+
+            <button type="submit" class="submit-button" id="submitButton">Add Quiz</button>
+
+        </form>
+
+    </section>
+
+
+    <section class="card">
+
+        <h3>Existing Quizzes</h3>
+
+        <div class="table-container">
+
+            <table>
+
+                <thead>
+                    <tr>
+                        <th>Course</th>
+                        <th>Module</th>
+                        <th>Title</th>
+                        <th>Due Date</th>
+                        <th>Questions</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+
+                <tbody id="quizTableBody">
+                    <tr><td colspan="6">Loading quizzes...</td></tr>
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </section>
+
+</main>
+
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../supabase-config.js"></script>
+
+
+<script>
+
+const message = document.getElementById("message");
+
+
+function showMessage(text, type) {
+    message.textContent = text;
+    message.className = "message " + type;
+}
+
+
+function escapeHtml(value) {
+    return String(value ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+}
+
+
+/* ================= LOAD COURSES / MODULES ================= */
+
+async function loadCourses() {
+
+    const select = document.getElementById("course");
+
+    const { data, error } = await supabaseClient.from("courses").select("id, code, name").order("code");
+
+    if (error) {
+        console.error(error);
+        return;
+    }
+
+    data.forEach(c => {
+        const option = document.createElement("option");
+        option.value = c.id;
+        option.textContent = `${c.code} — ${c.name}`;
+        select.appendChild(option);
+    });
+
+}
+
+
+async function loadModulesByCourse(courseId) {
+
+    const select = document.getElementById("module");
+    select.innerHTML = `<option value="">Loading modules...</option>`;
+    select.disabled = true;
+
+    if (!courseId) {
+        select.innerHTML = `<option value="">Select course first</option>`;
+        return;
+    }
+
+    const { data, error } =
+        await supabaseClient
+            .from("course_modules")
+            .select("id, module_number, title")
+            .eq("course_id", courseId)
+            .order("module_number");
+
+    if (error) {
+        console.error(error);
+        select.innerHTML = `<option value="">Unable to load modules</option>`;
+        return;
+    }
+
+    select.innerHTML = `<option value="">Select module</option>`;
+
+    if (!data || data.length === 0) {
+        select.innerHTML = `<option value="">No modules found for this course</option>`;
+        return;
+    }
+
+    data.forEach(m => {
+        const option = document.createElement("option");
+        option.value = m.id;
+        option.textContent = `Module ${m.module_number} — ${m.title}`;
+        select.appendChild(option);
+    });
+
+    select.disabled = false;
+
+}
+
+
+document.getElementById("course").addEventListener("change", function() {
+    loadModulesByCourse(this.value);
+});
+
+
+/* ================= SUBMIT QUIZ FORM ================= */
+
+document.getElementById("quizForm").addEventListener("submit", async function(event) {
+
+    event.preventDefault();
+
+    const quizData = {
+        module_id: document.getElementById("module").value,
+        title: document.getElementById("title").value.trim(),
+        description: document.getElementById("description").value.trim() || null,
+        due_date: document.getElementById("dueDate").value || null,
+        max_score: Number(document.getElementById("maxScore").value) || 100,
+        status: "active"
+    };
+
+    const { error } = await supabaseClient.from("quizzes").insert(quizData);
+
+    if (error) {
+        showMessage(error.message, "error");
+        return;
+    }
+
+    showMessage("Quiz created successfully.", "success");
+    document.getElementById("quizForm").reset();
+    document.getElementById("module").innerHTML = `<option value="">Select course first</option>`;
+    document.getElementById("module").disabled = true;
+
+    await loadQuizzes();
+
+});
+
+
+/* ================= LOAD QUIZZES ================= */
+
+async function loadQuizzes() {
+
+    const tbody = document.getElementById("quizTableBody");
+
+    const { data, error } =
+        await supabaseClient
+            .from("quizzes")
+            .select(`
+                id, title, due_date, module_id,
+                course_modules ( module_number, course_id, courses ( code, name ) )
+            `)
+            .order("due_date");
+
+    if (error) {
+        console.error(error);
+        tbody.innerHTML = `<tr><td colspan="6">Unable to load: ${escapeHtml(error.message)}</td></tr>`;
+        return;
+    }
+
+    if (!data || data.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6">No quizzes created yet.</td></tr>`;
+        return;
+    }
+
+    tbody.innerHTML = "";
+
+    for (const quiz of data) {
+
+        const { count } = await supabaseClient
+            .from("quiz_questions")
+            .select("id", { count: "exact", head: true })
+            .eq("quiz_id", quiz.id);
+
+        const module = quiz.course_modules;
+        const course = module?.courses;
+
+        const row = document.createElement("tr");
+
+        row.innerHTML = `
+            <td>${course ? escapeHtml(course.code) : "-"}</td>
+            <td>${module ? escapeHtml("Module " + module.module_number) : "-"}</td>
+            <td>${escapeHtml(quiz.title)}</td>
+            <td>${quiz.due_date ? new Date(quiz.due_date).toLocaleString() : "-"}</td>
+            <td>${count || 0}</td>
+            <td>
+                <button class="action-button questions-button" onclick="toggleQuestions('${quiz.id}')">Manage Questions</button>
+                <button class="action-button attempts-button" onclick="toggleAttempts('${quiz.id}')">View Attempts</button>
+                <button class="action-button delete-button" onclick="deleteQuiz('${quiz.id}')">Delete</button>
+            </td>
+        `;
+
+        tbody.appendChild(row);
+
+        const panelRow = document.createElement("tr");
+        panelRow.innerHTML = `<td colspan="6"><div class="panel" id="qpanel-${quiz.id}"></div><div class="panel" id="apanel-${quiz.id}"></div></td>`;
+        tbody.appendChild(panelRow);
+
+    }
+
+}
+
+
+/* ================= MANAGE QUESTIONS ================= */
+
+async function toggleQuestions(quizId) {
+
+    const panel = document.getElementById(`qpanel-${quizId}`);
+
+    if (panel.style.display === "block") {
+        panel.style.display = "none";
+        return;
+    }
+
+    panel.style.display = "block";
+    await renderQuestions(quizId);
+
+}
+
+
+async function renderQuestions(quizId) {
+
+    const panel = document.getElementById(`qpanel-${quizId}`);
+
+    const { data, error } =
+        await supabaseClient
+            .from("quiz_questions")
+            .select("*")
+            .eq("quiz_id", quizId)
+            .order("created_at");
+
+    let html = `<h4 style="margin-bottom:12px;">Questions</h4>`;
+
+    if (error) {
+        html += `<p>Unable to load questions.</p>`;
+    } else if (!data || data.length === 0) {
+        html += `<p style="color:#9ca3af; margin-bottom:12px;">No questions added yet.</p>`;
+    } else {
+        data.forEach((q, idx) => {
+            html += `
+                <div class="question-item">
+                    <div class="qtext">${idx + 1}. ${escapeHtml(q.question_text)}</div>
+                    ${(q.options || []).map(opt => `
+                        <div class="qoptions ${opt === q.correct_answer ? "correct" : ""}">
+                            ${opt === q.correct_answer ? "✓" : "○"} ${escapeHtml(opt)}
+                        </div>
+                    `).join("")}
+                    <button class="action-button delete-button" style="margin-top:8px;" onclick="deleteQuestion('${q.id}', '${quizId}')">Delete Question</button>
+                </div>
+            `;
+        });
+    }
+
+    html += `
+        <div style="margin-top:16px; padding-top:16px; border-top:1px solid #e5e7eb;">
+            <h4 style="margin-bottom:10px;">Add Question</h4>
+            <textarea id="newQtext-${quizId}" placeholder="Enter the question text..." style="margin-bottom:10px;"></textarea>
+
+            <div class="option-row"><input type="radio" name="correct-${quizId}" value="0"><input type="text" id="opt0-${quizId}" placeholder="Option A"></div>
+            <div class="option-row"><input type="radio" name="correct-${quizId}" value="1"><input type="text" id="opt1-${quizId}" placeholder="Option B"></div>
+            <div class="option-row"><input type="radio" name="correct-${quizId}" value="2"><input type="text" id="opt2-${quizId}" placeholder="Option C"></div>
+            <div class="option-row"><input type="radio" name="correct-${quizId}" value="3"><input type="text" id="opt3-${quizId}" placeholder="Option D"></div>
+
+            <p style="font-size:12px; color:#6b7280; margin-bottom:10px;">Select the radio button next to the correct answer.</p>
+
+            <button class="small-button" onclick="addQuestion('${quizId}')">Add Question</button>
+        </div>
+    `;
+
+    panel.innerHTML = html;
+
+}
+
+
+async function addQuestion(quizId) {
+
+    const text = document.getElementById(`newQtext-${quizId}`).value.trim();
+    const options = [0, 1, 2, 3].map(i => document.getElementById(`opt${i}-${quizId}`).value.trim()).filter(Boolean);
+
+    const selectedRadio = document.querySelector(`input[name="correct-${quizId}"]:checked`);
+
+    if (!text || options.length < 2 || !selectedRadio) {
+        showMessage("Please enter a question, at least 2 options, and mark the correct answer.", "error");
+        return;
+    }
+
+    const correctIndex = Number(selectedRadio.value);
+    const correctAnswer = document.getElementById(`opt${correctIndex}-${quizId}`).value.trim();
+
+    const { error } =
+        await supabaseClient.from("quiz_questions").insert({
+            quiz_id: quizId,
+            question_text: text,
+            question_type: "multiple_choice",
+            options: options,
+            correct_answer: correctAnswer,
+            points: 1
+        });
+
+    if (error) {
+        showMessage("Unable to add question: " + error.message, "error");
+        return;
+    }
+
+    showMessage("Question added.", "success");
+    await renderQuestions(quizId);
+    await loadQuizzes();
+
+}
+
+
+async function deleteQuestion(questionId, quizId) {
+
+    const confirmed = confirm("Delete this question?");
+    if (!confirmed) return;
+
+    const { error } = await supabaseClient.from("quiz_questions").delete().eq("id", questionId);
+
+    if (error) {
+        showMessage("Unable to delete: " + error.message, "error");
+        return;
+    }
+
+    await renderQuestions(quizId);
+
+}
+
+
+/* ================= VIEW ATTEMPTS ================= */
+
+async function toggleAttempts(quizId) {
+
+    const panel = document.getElementById(`apanel-${quizId}`);
+
+    if (panel.style.display === "block") {
+        panel.style.display = "none";
+        return;
+    }
+
+    panel.style.display = "block";
+    panel.innerHTML = "Loading attempts...";
+
+    const { data, error } =
+        await supabaseClient
+            .from("quiz_attempts")
+            .select("id, score, submitted_at, student_id")
+            .eq("quiz_id", quizId)
+            .order("submitted_at", { ascending: false });
+
+    if (error) {
+        panel.innerHTML = `Unable to load attempts: ${escapeHtml(error.message)}`;
+        return;
+    }
+
+    if (!data || data.length === 0) {
+        panel.innerHTML = `<p style="color:#9ca3af;">No attempts yet.</p>`;
+        return;
+    }
+
+    let html = `<h4 style="margin-bottom:12px;">Attempts</h4>`;
+
+    for (const attempt of data) {
+
+        const { data: profile } =
+            await supabaseClient
+                .from("user_profiles")
+                .select("first_name, last_name")
+                .eq("id", attempt.student_id)
+                .single();
+
+        const name = profile ? `${profile.first_name} ${profile.last_name}` : "Unknown student";
+
+        html += `
+            <div class="attempt-row">
+                <span>${escapeHtml(name)}</span>
+                <span>${new Date(attempt.submitted_at).toLocaleString()}</span>
+                <strong>${attempt.score ?? "-"}%</strong>
+            </div>
+        `;
+
+    }
+
+    panel.innerHTML = html;
+
+}
+
+
+/* ================= DELETE QUIZ ================= */
+
+async function deleteQuiz(id) {
+
+    const confirmed = confirm("Delete this quiz? This will also remove its questions and attempts.");
+    if (!confirmed) return;
+
+    await supabaseClient.from("quiz_questions").delete().eq("quiz_id", id);
+    await supabaseClient.from("quiz_attempts").delete().eq("quiz_id", id);
+    const { error } = await supabaseClient.from("quizzes").delete().eq("id", id);
+
+    if (error) {
+        showMessage("Unable to delete: " + error.message, "error");
+        return;
+    }
+
+    showMessage("Quiz deleted.", "success");
+    await loadQuizzes();
+
+}
+
+
+async function startPage() {
+    await loadCourses();
+    await loadQuizzes();
+}
+
+startPage();
+
+</script>
+
+</body>
+</html>
