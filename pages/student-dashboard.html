@@ -346,7 +346,7 @@ body {
         <h3>Student Services</h3>
         <div class="services-grid">
             <a href="student-profile.html" class="service-link">👤 My Profile</a>
-            <a href="#" class="service-link">📄 Academic Records</a>
+            <a href="student-academic-records.html" class="service-link">📄 Academic Records</a>
             <a href="#" class="service-link">🎓 Certificates</a>
             <a href="#" class="service-link">💳 Fees & Payments</a>
             <a href="#" class="service-link">📅 Academic Calendar</a>
@@ -374,8 +374,7 @@ body {
 
 
 <script>
-
-function escapeHtml(value) {
+                function escapeHtml(value) {
     return String(value ?? "")
         .replace(/&/g, "&amp;")
         .replace(/</g, "&lt;")
@@ -608,4 +607,176 @@ async function startDashboard() {
             const label = daysLeft <= 2 ? "Urgent" : daysLeft <= 5 ? "Upcoming" : "Scheduled";
             return `
                 <div class="deadline-item">
-                    <span>${ite
+                    <span>${item.type} — ${escapeHtml(item.title)}</span>
+                    <span class="badge ${urgency}">${label} • ${new Date(item.due).toLocaleDateString()}</span>
+                </div>
+            `;
+        }).join("");
+    }
+
+
+    // ===== RECENT ACTIVITY =====
+
+    const activityItems = [
+        ...progressRows.filter(p => p.completed_at)
+            .map(p => ({ text: "✅ Completed a lesson", date: p.completed_at })),
+        ...submissions.map(s => ({ text: "📝 Assignment submitted", date: s.submitted_at })),
+        ...quizAttempts.map(q => ({ text: `🎯 Quiz completed — ${q.score ?? "-"}%`, date: q.submitted_at }))
+    ].sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 6);
+
+    const activityList = document.getElementById("activityList");
+    if (activityItems.length === 0) {
+        activityList.innerHTML = `<p class="empty-note">No recent activity yet.</p>`;
+    } else {
+        activityList.innerHTML = activityItems.map(item => `
+            <div class="activity-item">
+                <span>${item.text}</span>
+                <span style="color:#9ca3af; font-size:12px;">${new Date(item.date).toLocaleDateString()}</span>
+            </div>
+        `).join("");
+    }
+
+
+    // ===== MY LEARNING + MY COURSES =====
+
+    const moduleToCourse = {};
+    modules.forEach(m => moduleToCourse[m.id] = m.course_id);
+
+    const lessonsByCourse = {};
+    lessons.forEach(l => {
+        const courseId = moduleToCourse[l.module_id];
+        if (!lessonsByCourse[courseId]) lessonsByCourse[courseId] = [];
+        lessonsByCourse[courseId].push(l);
+    });
+
+    const myLearningList = document.getElementById("myLearningList");
+    const myCoursesList = document.getElementById("myCoursesList");
+    const selector = document.getElementById("courseStructureSelector");
+
+    if (enrolledCourses.length === 0) {
+        myLearningList.innerHTML = `<p class="empty-note">You are not enrolled in any courses yet. Register for courses via your term registration.</p>`;
+        myCoursesList.innerHTML = `<p class="empty-note">No courses yet.</p>`;
+        selector.innerHTML = `<p class="empty-note">No courses available.</p>`;
+    } else {
+
+        let learningHtml = "";
+        let coursesHtml = "";
+        let selectorHtml = `<select id="courseSelect" style="padding:10px; border-radius:8px; border:1px solid #d1d5db; width:100%;">`;
+
+        enrolledCourses.forEach(course => {
+
+            const courseLessons = lessonsByCourse[course.id] || [];
+            const completedCount = courseLessons.filter(l => completedLessonIds.has(l.id)).length;
+            const pct = courseLessons.length > 0 ? Math.round((completedCount / courseLessons.length) * 100) : 0;
+
+            learningHtml += `
+                <div class="course-item">
+                    <h4>📚 ${escapeHtml(course.code)} — ${escapeHtml(course.name)}</h4>
+                    <div class="course-meta">${completedCount} of ${courseLessons.length} lessons completed</div>
+                    <div class="progress-bar-bg"><div class="progress-bar-fill" style="width:${pct}%;"></div></div>
+                    <a href="student-courses.html" class="small-button">Continue Learning</a>
+                </div>
+            `;
+
+            coursesHtml += `
+                <div class="course-item">
+                    <h4>${escapeHtml(course.code)} — ${escapeHtml(course.name)}</h4>
+                    <div class="course-meta">Progress: ${pct}% • ${course.credits || 0} credits</div>
+                    <a href="student-courses.html" class="small-button">Open Course</a>
+                </div>
+            `;
+
+            selectorHtml += `<option value="${course.id}">${escapeHtml(course.code)} — ${escapeHtml(course.name)}</option>`;
+
+        });
+
+        selectorHtml += `</select>`;
+
+        myLearningList.innerHTML = learningHtml;
+        myCoursesList.innerHTML = coursesHtml;
+        selector.innerHTML = selectorHtml;
+
+        document.getElementById("courseSelect").addEventListener("change", function() {
+            renderCourseStructure(this.value);
+        });
+
+        renderCourseStructure(enrolledCourses[0].id);
+
+    }
+
+
+    function renderCourseStructure(courseId) {
+
+        const structureDiv = document.getElementById("courseStructure");
+        const courseModules = modules.filter(m => m.course_id === courseId)
+            .sort((a, b) => a.module_number - b.module_number);
+
+        if (courseModules.length === 0) {
+            structureDiv.innerHTML = `<p class="empty-note">No modules found for this course yet.</p>`;
+            return;
+        }
+
+        let html = "";
+
+        courseModules.forEach(module => {
+
+            const moduleLessons = lessons.filter(l => l.module_id === module.id)
+                .sort((a, b) => a.lesson_number - b.lesson_number);
+
+            html += `<div class="module-block"><h5>Module ${module.module_number} — ${escapeHtml(module.title)}</h5>`;
+
+            if (moduleLessons.length === 0) {
+                html += `<div class="lesson-line empty-note">No lessons added yet.</div>`;
+            } else {
+                moduleLessons.forEach(lesson => {
+                    const icon = completedLessonIds.has(lesson.id) ? "✅" : "⬜";
+                    html += `<div class="lesson-line">${icon} Lesson ${lesson.lesson_number} — ${escapeHtml(lesson.title)}</div>`;
+                });
+            }
+
+            html += `</div>`;
+
+        });
+
+        structureDiv.innerHTML = html;
+
+    }
+
+
+    // ===== ANNOUNCEMENTS =====
+
+    const { data: announcements } =
+        await supabaseClient
+            .from("notifications")
+            .select("id, title, message, created_at")
+            .or(`user_id.eq.${user.id},user_id.is.null`)
+            .order("created_at", { ascending: false })
+            .limit(5);
+
+    const announcementsList = document.getElementById("announcementsList");
+    if (!announcements || announcements.length === 0) {
+        announcementsList.innerHTML = `<p class="empty-note">No announcements yet.</p>`;
+    } else {
+        announcementsList.innerHTML = announcements.map(a => `
+            <div class="announcement-item">
+                <span>📢 ${escapeHtml(a.title)}</span>
+                <span style="color:#9ca3af; font-size:12px;">${new Date(a.created_at).toLocaleDateString()}</span>
+            </div>
+        `).join("");
+    }
+
+}
+
+
+document.getElementById("logoutButton").addEventListener("click", async function() {
+    await supabaseClient.auth.signOut();
+    window.location.href = "../index.html";
+});
+
+
+startDashboard();
+
+</script>
+
+</body>
+</html>
