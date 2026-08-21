@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Enrolment Management | E-Campus</title>
+
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+    font-family: Arial, Helvetica, sans-serif;
+    background: #f4f6f9;
+    color: #172033;
+}
+
+.header {
+    background: #111827;
+    color: white;
+    padding: 18px 25px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.brand { display: flex; align-items: center; gap: 14px; }
+.logo { width: 58px; height: 58px; object-fit: contain; background: white; border-radius: 8px; }
+.brand h1 { font-size: 24px; }
+.brand p { color: #d4af37; margin-top: 4px; }
+
+.back-button {
+    background: #d4af37;
+    color: #111827;
+    text-decoration: none;
+    padding: 11px 18px;
+    border-radius: 8px;
+    font-weight: bold;
+}
+
+.container { max-width: 1300px; margin: 30px auto; padding: 0 20px; }
+
+.page-title { margin-bottom: 25px; }
+.page-title h2 { font-size: 30px; margin-bottom: 7px; }
+.page-title p { color: #6b7280; }
+
+.message {
+    padding: 14px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    display: none;
+}
+
+.message.success { display: block; background: #dcfce7; color: #166534; }
+.message.error { display: block; background: #fee2e2; color: #991b1b; }
+
+.card {
+    background: white;
+    padding: 25px;
+    border-radius: 14px;
+    margin-bottom: 25px;
+    box-shadow: 0 5px 20px rgba(0,0,0,0.07);
+}
+
+.card h3 { margin-bottom: 20px; font-size: 22px; }
+
+.form-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 18px;
+}
+
+.form-group { display: flex; flex-direction: column; }
+.form-group.full { grid-column: 1 / -1; }
+
+label { font-weight: bold; margin-bottom: 7px; }
+
+input, select {
+    width: 100%;
+    padding: 13px;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    font-size: 15px;
+}
+
+input:focus, select:focus {
+    outline: none;
+    border-color: #d4af37;
+}
+
+.submit-button {
+    margin-top: 20px;
+    background: #d4af37;
+    color: #111827;
+    border: none;
+    padding: 13px 20px;
+    border-radius: 8px;
+    font-weight: bold;
+    cursor: pointer;
+    width: 100%;
+}
+
+.submit-button:hover { background: #c29d24; }
+.submit-button:disabled { opacity: 0.6; cursor: not-allowed; }
+
+.filter-bar {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin-bottom: 18px;
+}
+
+.table-container { overflow-x: auto; }
+
+table { width: 100%; border-collapse: collapse; }
+
+th, td {
+    padding: 12px;
+    text-align: left;
+    border-bottom: 1px solid #e5e7eb;
+    font-size: 14px;
+}
+
+th { background: #111827; color: white; }
+tr:hover { background: #f9fafb; }
+
+.status-select {
+    padding: 6px;
+    border-radius: 6px;
+    border: 1px solid #d1d5db;
+    font-size: 13px;
+}
+
+.score-input, .grade-input {
+    width: 65px;
+    padding: 6px;
+    border-radius: 6px;
+    border: 1px solid #d1d5db;
+}
+
+.grade-input { width: 55px; }
+
+.action-button {
+    border: none;
+    padding: 7px 11px;
+    border-radius: 6px;
+    font-weight: bold;
+    cursor: pointer;
+    margin-right: 5px;
+    font-size: 13px;
+}
+
+.save-button { background: #e5e7eb; color: #111827; }
+.delete-button { background: #fee2e2; color: #991b1b; }
+
+@media (max-width: 800px) {
+    .header { flex-direction: column; align-items: flex-start; gap: 15px; }
+    .form-grid, .filter-bar { grid-template-columns: 1fr; }
+    .form-group.full { grid-column: auto; }
+    th, td { white-space: nowrap; }
+}
+
+</style>
+</head>
+
+
+<body>
+
+
+<header class="header">
+
+    <div class="brand">
+        <img src="https://pub-b3e2d39712e84119875e84c5ec5f5c09.r2.dev/Logo/IMG-20260816-WA0050(1).jpg" alt="Sunningdale University Logo" class="logo">
+        <div>
+            <h1>E-Campus Administration</h1>
+            <p>Sunningdale University</p>
+        </div>
+    </div>
+
+    <a href="admin-dashboard.html" class="back-button">← Admin Dashboard</a>
+
+</header>
+
+
+<main class="container">
+
+    <section class="page-title">
+        <h2>Enrolment Management</h2>
+        <p>Enrol students into courses and academic terms, and manage results.</p>
+    </section>
+
+    <div id="message" class="message"></div>
+
+
+    <section class="card">
+
+        <h3>New Enrolment</h3>
+
+        <form id="enrollForm">
+
+            <div class="form-grid">
+
+                <div class="form-group">
+                    <label for="student">Student</label>
+                    <select id="student" required>
+                        <option value="">Select student</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="course">Course</label>
+                    <select id="course" required>
+                        <option value="">Select course</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="term">Academic Term</label>
+                    <select id="term" required>
+                        <option value="">Select term</option>
+                    </select>
+                </div>
+
+            </div>
+
+            <button type="submit" class="submit-button" id="submitButton">
+                Enrol Student
+            </button>
+
+        </form>
+
+    </section>
+
+
+    <section class="card">
+
+        <h3>Existing Enrolments</h3>
+
+        <div class="filter-bar">
+
+            <input type="text" id="searchInput" placeholder="Search by student name or number...">
+
+            <select id="termFilter">
+                <option value="">All terms</option>
+            </select>
+
+            <select id="statusFilter">
+                <option value="">All statuses</option>
+                <option value="enrolled">Enrolled</option>
+                <option value="completed">Completed</option>
+                <option value="dropped">Dropped</option>
+            </select>
+
+        </div>
+
+        <div class="table-container">
+
+            <table>
+
+                <thead>
+                    <tr>
+                        <th>Student</th>
+                        <th>Course</th>
+                        <th>Term</th>
+                        <th>Status</th>
+                        <th>Score</th>
+                        <th>Grade</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+
+                <tbody id="enrollTableBody">
+                    <tr><td colspan="7">Loading enrolments...</td></tr>
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </section>
+
+</main>
+
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../supabase-config.js"></script>
+
+
+<script>
+
+const message = document.getElementById("message");
+let allEnrollments = [];
+
+
+function showMessage(text, type) {
+    message.textContent = text;
+    message.className = "message " + type;
+}
+
+
+function escapeHtml(value) {
+    return String(value ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+}
+
+
+/* ================= LOAD DROPDOWNS ================= */
+
+async function loadStudents() {
+
+    const select = document.getElementById("student");
+
+    const { data, error } =
+        await supabaseClient
+            .from("student_profiles")
+            .select("id, student_number, user_profiles ( first_name, last_name )")
+            .order("student_number");
+
+    if (error) {
+        console.error(error);
+        return;
+    }
+
+    data.forEach(s => {
+        const name = s.user_profiles ? `${s.user_profiles.first_name} ${s.user_profiles.last_name}` : "Unknown";
+        const option = document.createElement("option");
+        option.value = s.id;
+        option.textContent = `${s.student_number} — ${name}`;
+        select.appendChild(option);
+    });
+
+}
+
+
+async function loadCourses() {
+
+    const select = document.getElementById("course");
+
+    const { data, error } =
+        await supabaseClient
+            .from("courses")
+            .select("id, code, name")
+            .order("code");
+
+    if (error) {
+        console.error(error);
+        return;
+    }
+
+    data.forEach(c => {
+        const option = document.createElement("option");
+        option.value = c.id;
+        option.textContent = `${c.code} — ${c.name}`;
+        select.appendChild(option);
+    });
+
+}
+
+
+async function loadTerms() {
+
+    const select = document.getElementById("term");
+    const filterSelect = document.getElementById("termFilter");
+
+    const { data, error } =
+        await supabaseClient
+            .from("academic_terms")
+            .select("id, name")
+            .order("start_date", { ascending: false });
+
+    if (error) {
+        console.error(error);
+        return;
+    }
+
+    data.forEach(t => {
+        const option = document.createElement("option");
+        option.value = t.id;
+        option.textContent = t.name;
+        select.appendChild(option);
+
+        const filterOption = document.createElement("option");
+        filterOption.value = t.id;
+        filterOption.textContent = t.name;
+        filterSelect.appendChild(filterOption);
+    });
+
+}
+
+
+/* ================= CREATE ENROLMENT ================= */
+
+document.getElementById("enrollForm").addEventListener("submit", async function(event) {
+
+    event.preventDefault();
+
+    const submitButton = document.getElementById("submitButton");
+    submitButton.disabled = true;
+    submitButton.textContent = "Enrolling...";
+
+    const { error } =
+        await supabaseClient.from("enrollments").insert({
+            student_id: document.getElementById("student").value,
+            course_id: document.getElementById("course").value,
+            academic_term_id: document.getElementById("term").value,
+            status: "enrolled"
+        });
+
+    submitButton.disabled = false;
+    submitButton.textContent = "Enrol Student";
+
+    if (error) {
+        showMessage("Unable to create enrolment: " + error.message, "error");
+        return;
+    }
+
+    showMessage("Student enrolled successfully.", "success");
+    document.getElementById("enrollForm").reset();
+
+    await loadEnrollments();
+
+});
+
+
+/* ================= LOAD ENROLMENTS ================= */
+
+async function loadEnrollments() {
+
+    const tbody = document.getElementById("enrollTableBody");
+
+    const { data, error } =
+        await supabaseClient
+            .from("enrollments")
+            .select(`
+                id, status, final_grade, final_score,
+                student_profiles ( student_number, user_profiles ( first_name, last_name ) ),
+                courses ( code, name ),
+                academic_terms ( id, name )
+            `)
+            .order("created_at", { ascending: false });
+
+    if (error) {
+        console.error(error);
+        tbody.innerHTML = `<tr><td colspan="7">Unable to load enrolments: ${escapeHtml(error.message)}</td></tr>`;
+        return;
+    }
+
+    allEnrollments = data || [];
+    renderEnrollments(allEnrollments);
+
+}
+
+
+function renderEnrollments(list) {
+
+    const tbody = document.getElementById("enrollTableBody");
+
+    if (!list || list.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="7">No enrolments found.</td></tr>`;
+        return;
+    }
+
+    tbody.innerHTML = "";
+
+    list.forEach(enroll => {
+
+        const student = enroll.student_profiles;
+        const studentName = student?.user_profiles
+            ? `${student.user_profiles.first_name} ${student.user_profiles.last_name}`
+            : "Unknown";
+
+        const row = document.createElement("tr");
+
+        row.innerHTML = `
+
+            <td>${escapeHtml(studentName)}<br><span style="color:#9ca3af; font-size:12px;">${escapeHtml(student?.student_number || "")}</span></td>
+            <td>${enroll.courses ? escapeHtml(enroll.courses.code) : "-"}</td>
+            <td>${enroll.academic_terms ? escapeHtml(enroll.academic_terms.name) : "-"}</td>
+
+            <td>
+                <select class="status-select" id="status-${enroll.id}">
+                    <option value="enrolled" ${enroll.status === "enrolled" ? "selected" : ""}>Enrolled</option>
+                    <option value="completed" ${enroll.status === "completed" ? "selected" : ""}>Completed</option>
+                    <option value="dropped" ${enroll.status === "dropped" ? "selected" : ""}>Dropped</option>
+                </select>
+            </td>
+
+            <td><input type="number" class="score-input" min="0" max="100" value="${enroll.final_score ?? ""}" id="score-${enroll.id}"></td>
+            <td><input type="text" class="grade-input" value="${enroll.final_grade ?? ""}" id="grade-${enroll.id}"></td>
+
+            <td>
+                <button class="action-button save-button" onclick="saveEnrollment('${enroll.id}')">Save</button>
+                <button class="action-button delete-button" onclick="deleteEnrollment('${enroll.id}')">Delete</button>
+            </td>
+
+        `;
+
+        tbody.appendChild(row);
+
+    });
+
+}
+
+
+async function saveEnrollment(id) {
+
+    const status = document.getElementById(`status-${id}`).value;
+    const scoreValue = document.getElementById(`score-${id}`).value;
+    const gradeValue = document.getElementById(`grade-${id}`).value;
+
+    const updates = {
+        status: status,
+        final_score: scoreValue === "" ? null : Number(scoreValue),
+        final_grade: gradeValue.trim() || null
+    };
+
+    if (status === "completed" && !updates.completed_at) {
+        updates.completed_at = new Date().toISOString();
+    }
+
+    const { error } =
+        await supabaseClient
+            .from("enrollments")
+            .update(updates)
+            .eq("id", id);
+
+    if (error) {
+        showMessage("Unable to save: " + error.message, "error");
+        return;
+    }
+
+    showMessage("Enrolment updated.", "success");
+    await loadEnrollments();
+
+}
+
+
+async function deleteEnrollment(id) {
+
+    const confirmed = confirm("Are you sure you want to remove this enrolment?");
+    if (!confirmed) return;
+
+    const { error } =
+        await supabaseClient
+            .from("enrollments")
+            .delete()
+            .eq("id", id);
+
+    if (error) {
+        showMessage("Unable to delete: " + error.message, "error");
+        return;
+    }
+
+    showMessage("Enrolment removed.", "success");
+    await loadEnrollments();
+
+}
+
+
+/* ================= FILTERS ================= */
+
+function applyFilters() {
+
+    const term = document.getElementById("searchInput").value.toLowerCase().trim();
+    const termFilter = document.getElementById("termFilter").value;
+    const statusFilter = document.getElementById("statusFilter").value;
+
+    const filtered = allEnrollments.filter(enroll => {
+
+        const student = enroll.student_profiles;
+        const name = student?.user_profiles
+            ? `${student.user_profiles.first_name} ${student.user_profiles.last_name}`.toLowerCase()
+            : "";
+        const number = student?.student_number?.toLowerCase() || "";
+
+        const matchesSearch = !term || name.includes(term) || number.includes(term);
+        const matchesTerm = !termFilter || enroll.academic_terms?.id === termFilter;
+        const matchesStatus = !statusFilter || enroll.status === statusFilter;
+
+        return matchesSearch && matchesTerm && matchesStatus;
+
+    });
+
+    renderEnrollments(filtered);
+
+}
+
+
+document.getElementById("searchInput").addEventListener("input", applyFilters);
+document.getElementById("termFilter").addEventListener("change", applyFilters);
+document.getElementById("statusFilter").addEventListener("change", applyFilters);
+
+
+/* ================= INIT ================= */
+
+async function startPage() {
+    await loadStudents();
+    await loadCourses();
+    await loadTerms();
+    await loadEnrollments();
+}
+
+startPage();
+
+</script>
+
+</body>
+
+</html>
