@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Academic Records | E-Campus</title>
+
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+    font-family: Arial, Helvetica, sans-serif;
+    background: #f4f6f9;
+    color: #172033;
+}
+
+.header {
+    background: #111827;
+    color: white;
+    padding: 18px 25px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.brand { display: flex; align-items: center; gap: 14px; }
+.logo { width: 55px; height: 55px; object-fit: contain; background: white; border-radius: 8px; }
+.brand h1 { font-size: 22px; }
+.brand p { color: #d4af37; margin-top: 3px; font-size: 13px; }
+
+.back-button {
+    background: #d4af37;
+    color: #111827;
+    text-decoration: none;
+    padding: 10px 16px;
+    border-radius: 8px;
+    font-weight: bold;
+    font-size: 13px;
+}
+
+.container { max-width: 1100px; margin: 25px auto; padding: 0 20px; }
+
+.page-title { margin-bottom: 20px; }
+.page-title h2 { font-size: 28px; margin-bottom: 6px; }
+.page-title p { color: #6b7280; }
+
+.summary-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 14px;
+    margin-bottom: 22px;
+}
+
+.summary-card {
+    background: white;
+    border-radius: 12px;
+    padding: 18px;
+    text-align: center;
+    box-shadow: 0 3px 12px rgba(0,0,0,0.06);
+}
+
+.summary-card .value { font-size: 24px; font-weight: bold; color: #111827; }
+.summary-card .label { font-size: 12px; color: #6b7280; margin-top: 4px; }
+
+.card {
+    background: white;
+    padding: 22px;
+    border-radius: 14px;
+    margin-bottom: 20px;
+    box-shadow: 0 3px 12px rgba(0,0,0,0.06);
+}
+
+.card h3 { font-size: 19px; margin-bottom: 4px; }
+.card .term-meta { font-size: 13px; color: #6b7280; margin-bottom: 16px; }
+
+table { width: 100%; border-collapse: collapse; }
+
+th, td {
+    padding: 12px;
+    text-align: left;
+    border-bottom: 1px solid #e5e7eb;
+    font-size: 14px;
+}
+
+th { background: #111827; color: white; font-size: 13px; }
+tr:hover { background: #f9fafb; }
+
+.grade-badge {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: bold;
+    background: #e5e7eb;
+    color: #172033;
+}
+
+.status-badge {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: bold;
+}
+
+.status-badge.completed { background: #dcfce7; color: #166534; }
+.status-badge.enrolled { background: #fef3c7; color: #92400e; }
+.status-badge.dropped { background: #fee2e2; color: #991b1b; }
+
+.empty-note { color: #9ca3af; font-size: 14px; padding: 20px 0; text-align: center; }
+
+@media (max-width: 700px) {
+    .summary-grid { grid-template-columns: repeat(2, 1fr); }
+    th, td { white-space: nowrap; }
+}
+
+</style>
+</head>
+
+
+<body>
+
+<header class="header">
+    <div class="brand">
+        <img src="https://pub-b3e2d39712e84119875e84c5ec5f5c09.r2.dev/Logo/IMG-20260816-WA0050(1).jpg" alt="Sunningdale University Logo" class="logo">
+        <div>
+            <h1>E-Campus</h1>
+            <p>Sunningdale University</p>
+        </div>
+    </div>
+    <a href="student-dashboard.html" class="back-button">← Dashboard</a>
+</header>
+
+
+<main class="container">
+
+    <section class="page-title">
+        <h2>Academic Records</h2>
+        <p>Your complete enrollment and grade history, organized by term.</p>
+    </section>
+
+    <div class="summary-grid">
+        <div class="summary-card"><div class="value" id="totalCourses">0</div><div class="label">Total Courses</div></div>
+        <div class="summary-card"><div class="value" id="totalCredits">0</div><div class="label">Credits Earned</div></div>
+        <div class="summary-card"><div class="value" id="completedCount">0</div><div class="label">Completed</div></div>
+        <div class="summary-card"><div class="value" id="averageScore">0%</div><div class="label">Overall Average</div></div>
+    </div>
+
+    <div id="recordsContainer">
+        <div class="card"><p class="empty-note">Loading your academic records...</p></div>
+    </div>
+
+</main>
+
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../supabase-config.js"></script>
+
+
+<script>
+
+function escapeHtml(value) {
+    return String(value ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+}
+
+
+async function loadRecords() {
+
+    const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
+
+    if (authError || !user) {
+        window.location.href = "student-login.html";
+        return;
+    }
+
+    const { data: studentProfile, error: studentError } =
+        await supabaseClient
+            .from("student_profiles")
+            .select("id")
+            .eq("user_id", user.id)
+            .single();
+
+    const container = document.getElementById("recordsContainer");
+
+    if (studentError || !studentProfile) {
+        container.innerHTML = `<div class="card"><p class="empty-note">Unable to load your student profile.</p></div>`;
+        return;
+    }
+
+    const { data: enrollments, error: enrollError } =
+        await supabaseClient
+            .from("enrollments")
+            .select(`
+                id, status, final_grade, final_score, enrollment_date, completed_at,
+                courses ( code, name, credits ),
+                academic_terms ( id, name, start_date )
+            `)
+            .eq("student_id", studentProfile.id)
+            .order("enrollment_date", { ascending: false });
+
+    if (enrollError) {
+        container.innerHTML = `<div class="card"><p class="empty-note">Unable to load records: ${escapeHtml(enrollError.message)}</p></div>`;
+        return;
+    }
+
+    if (!enrollments || enrollments.length === 0) {
+        container.innerHTML = `<div class="card"><p class="empty-note">You have no enrollment records yet.</p></div>`;
+        return;
+    }
+
+    // ===== SUMMARY =====
+
+    const totalCourses = enrollments.length;
+    const completed = enrollments.filter(e => e.status === "completed");
+    const totalCredits = completed.reduce((sum, e) => sum + (e.courses?.credits || 0), 0);
+    const scores = enrollments.filter(e => e.final_score !== null).map(e => e.final_score);
+    const avgScore = scores.length > 0
+        ? Math.round(scores.reduce((a, b) => a + Number(b), 0) / scores.length)
+        : 0;
+
+    document.getElementById("totalCourses").textContent = totalCourses;
+    document.getElementById("totalCredits").textContent = totalCredits;
+    document.getElementById("completedCount").textContent = completed.length;
+    document.getElementById("averageScore").textContent = avgScore + "%";
+
+
+    // ===== GROUP BY TERM =====
+
+    const termGroups = {};
+
+    enrollments.forEach(e => {
+        const termName = e.academic_terms?.name || "No Term Assigned";
+        const termId = e.academic_terms?.id || "none";
+        if (!termGroups[termId]) {
+            termGroups[termId] = { name: termName, startDate: e.academic_terms?.start_date, items: [] };
+        }
+        termGroups[termId].items.push(e);
+    });
+
+    const sortedTerms = Object.values(termGroups).sort((a, b) => {
+        if (!a.startDate) return 1;
+        if (!b.startDate) return -1;
+        return new Date(b.startDate) - new Date(a.startDate);
+    });
+
+    let html = "";
+
+    sortedTerms.forEach(term => {
+
+        html += `
+            <div class="card">
+                <h3>${escapeHtml(term.name)}</h3>
+                <div class="term-meta">${term.items.length} course${term.items.length !== 1 ? "s" : ""}</div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Code</th>
+                            <th>Course</th>
+                            <th>Credits</th>
+                            <th>Score</th>
+                            <th>Grade</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+        `;
+
+        term.items.forEach(item => {
+
+            const course = item.courses;
+            const status = item.status || "enrolled";
+
+            html += `
+                <tr>
+                    <td>${course ? escapeHtml(course.code) : "-"}</td>
+                    <td>${course ? escapeHtml(course.name) : "-"}</td>
+                    <td>${course?.credits ?? "-"}</td>
+                    <td>${item.final_score !== null ? item.final_score + "%" : "-"}</td>
+                    <td>${item.final_grade ? `<span class="grade-badge">${escapeHtml(item.final_grade)}</span>` : "-"}</td>
+                    <td><span class="status-badge ${status}">${escapeHtml(status)}</span></td>
+                </tr>
+            `;
+
+        });
+
+        html += `
+                    </tbody>
+                </table>
+            </div>
+        `;
+
+    });
+
+    container.innerHTML = html;
+
+}
+
+
+loadRecords();
+
+</script>
+
+</body>
+</html>
