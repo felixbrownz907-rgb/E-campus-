@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>My Profile | E-Campus</title>
+
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+    font-family: Arial, Helvetica, sans-serif;
+    background: #f4f6f9;
+    color: #172033;
+}
+
+.header {
+    background: #111827;
+    color: white;
+    padding: 18px 25px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.brand { display: flex; align-items: center; gap: 14px; }
+.logo { width: 55px; height: 55px; object-fit: contain; background: white; border-radius: 8px; }
+.brand h1 { font-size: 22px; }
+.brand p { color: #d4af37; margin-top: 3px; font-size: 13px; }
+
+.back-button {
+    background: #d4af37;
+    color: #111827;
+    text-decoration: none;
+    padding: 10px 16px;
+    border-radius: 8px;
+    font-weight: bold;
+    font-size: 13px;
+}
+
+.container { max-width: 900px; margin: 25px auto; padding: 0 20px; }
+
+.page-title { margin-bottom: 20px; }
+.page-title h2 { font-size: 28px; margin-bottom: 6px; }
+.page-title p { color: #6b7280; }
+
+.message {
+    padding: 14px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    display: none;
+}
+
+.message.success { display: block; background: #dcfce7; color: #166534; }
+.message.error { display: block; background: #fee2e2; color: #991b1b; }
+
+.card {
+    background: white;
+    padding: 25px;
+    border-radius: 14px;
+    margin-bottom: 22px;
+    box-shadow: 0 3px 12px rgba(0,0,0,0.06);
+}
+
+.card h3 { font-size: 20px; margin-bottom: 18px; }
+
+.readonly-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 14px;
+}
+
+.readonly-item {
+    background: #f4f6f9;
+    padding: 12px 14px;
+    border-radius: 8px;
+}
+
+.readonly-item .label { font-size: 12px; color: #6b7280; margin-bottom: 4px; }
+.readonly-item .value { font-weight: bold; font-size: 15px; }
+
+.status-pill {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: bold;
+    background: #dcfce7;
+    color: #166534;
+}
+
+.status-pill.suspended { background: #fee2e2; color: #991b1b; }
+
+.form-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 18px;
+}
+
+.form-group { display: flex; flex-direction: column; }
+.form-group.full { grid-column: 1 / -1; }
+
+label { font-weight: bold; margin-bottom: 7px; font-size: 14px; }
+
+input, select {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    font-size: 15px;
+}
+
+input:focus, select:focus {
+    outline: none;
+    border-color: #d4af37;
+}
+
+input:disabled {
+    background: #f4f6f9;
+    color: #6b7280;
+}
+
+.submit-button {
+    margin-top: 20px;
+    background: #d4af37;
+    color: #111827;
+    border: none;
+    padding: 13px 20px;
+    border-radius: 8px;
+    font-weight: bold;
+    cursor: pointer;
+    width: 100%;
+}
+
+.submit-button:hover { background: #c29d24; }
+.submit-button:disabled { opacity: 0.6; cursor: not-allowed; }
+
+@media (max-width: 700px) {
+    .form-grid, .readonly-grid { grid-template-columns: 1fr; }
+    .form-group.full { grid-column: auto; }
+}
+
+</style>
+</head>
+
+
+<body>
+
+<header class="header">
+    <div class="brand">
+        <img src="https://pub-b3e2d39712e84119875e84c5ec5f5c09.r2.dev/Logo/IMG-20260816-WA0050(1).jpg" alt="Sunningdale University Logo" class="logo">
+        <div>
+            <h1>E-Campus</h1>
+            <p>Sunningdale University</p>
+        </div>
+    </div>
+    <a href="student-dashboard.html" class="back-button">← Dashboard</a>
+</header>
+
+
+<main class="container">
+
+    <section class="page-title">
+        <h2>My Profile</h2>
+        <p>View your academic information and update your personal details.</p>
+    </section>
+
+    <div id="message" class="message"></div>
+
+
+    <section class="card">
+
+        <h3>Academic Information</h3>
+
+        <div class="readonly-grid">
+
+            <div class="readonly-item">
+                <div class="label">Student Number</div>
+                <div class="value" id="displayStudentNumber">-</div>
+            </div>
+
+            <div class="readonly-item">
+                <div class="label">Status</div>
+                <div class="value"><span class="status-pill" id="displayStatus">-</span></div>
+            </div>
+
+            <div class="readonly-item">
+                <div class="label">Programme</div>
+                <div class="value" id="displayProgramme">-</div>
+            </div>
+
+            <div class="readonly-item">
+                <div class="label">Year of Study</div>
+                <div class="value" id="displayLevel">-</div>
+            </div>
+
+            <div class="readonly-item">
+                <div class="label">Mode of Study</div>
+                <div class="value" id="displayMode">-</div>
+            </div>
+
+            <div class="readonly-item">
+                <div class="label">Admission Date</div>
+                <div class="value" id="displayAdmissionDate">-</div>
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <section class="card">
+
+        <h3>Personal Details</h3>
+
+        <form id="profileForm">
+
+            <div class="form-grid">
+
+                <div class="form-group">
+                    <label for="firstName">First Name</label>
+                    <input type="text" id="firstName" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="lastName">Last Name</label>
+                    <input type="text" id="lastName" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="middleName">Middle Name</label>
+                    <input type="text" id="middleName">
+                </div>
+
+                <div class="form-group">
+                    <label for="email">Email Address</label>
+                    <input type="email" id="email" disabled>
+                </div>
+
+                <div class="form-group">
+                    <label for="phone">Phone</label>
+                    <input type="text" id="phone">
+                </div>
+
+                <div class="form-group">
+                    <label for="dateOfBirth">Date of Birth</label>
+                    <input type="date" id="dateOfBirth">
+                </div>
+
+                <div class="form-group">
+                    <label for="gender">Gender</label>
+                    <select id="gender">
+                        <option value="">Select</option>
+                        <option value="male">Male</option>
+                        <option value="female">Female</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="city">City</label>
+                    <input type="text" id="city">
+                </div>
+
+                <div class="form-group full">
+                    <label for="address">Address</label>
+                    <input type="text" id="address">
+                </div>
+
+                <div class="form-group">
+                    <label for="country">Country</label>
+                    <input type="text" id="country">
+                </div>
+
+            </div>
+
+            <button type="submit" class="submit-button" id="submitButton">
+                Save Changes
+            </button>
+
+        </form>
+
+    </section>
+
+</main>
+
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../supabase-config.js"></script>
+
+
+<script>
+
+const message = document.getElementById("message");
+
+
+function showMessage(text, type) {
+    message.textContent = text;
+    message.className = "message " + type;
+}
+
+
+async function loadProfile() {
+
+    const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
+
+    if (authError || !user) {
+        window.location.href = "student-login.html";
+        return;
+    }
+
+    document.getElementById("email").value = user.email || "";
+
+
+    // Academic info via student_profiles
+    const { data: studentProfile, error: studentError } =
+        await supabaseClient
+            .from("student_profiles")
+            .select(`
+                student_number, admission_status, admission_date, mode_of_study,
+                programmes ( name, code ),
+                academic_levels ( name )
+            `)
+            .eq("user_id", user.id)
+            .single();
+
+    if (!studentError && studentProfile) {
+
+        document.getElementById("displayStudentNumber").textContent = studentProfile.student_number || "-";
+
+        const statusEl = document.getElementById("displayStatus");
+        const status = studentProfile.admission_status || "active";
+        statusEl.textContent = status;
+        statusEl.className = "status-pill" + (status === "suspended" ? " suspended" : "");
+
+        document.getElementById("displayProgramme").textContent =
+            studentProfile.programmes ? `${studentProfile.programmes.code} — ${studentProfile.programmes.name}` : "Not assigned";
+
+        document.getElementById("displayLevel").textContent =
+            studentProfile.academic_levels?.name || "Not set";
+
+        document.getElementById("displayMode").textContent =
+            studentProfile.mode_of_study || "-";
+
+        document.getElementById("displayAdmissionDate").textContent =
+            studentProfile.admission_date ? new Date(studentProfile.admission_date).toLocaleDateString() : "-";
+
+    }
+
+
+    // Personal info via user_profiles
+    const { data: userProfile, error: profileError } =
+        await supabaseClient
+            .from("user_profiles")
+            .select("*")
+            .eq("id", user.id)
+            .single();
+
+    if (profileError || !userProfile) {
+        showMessage("Unable to load your profile: " + (profileError?.message || "Not found"), "error");
+        return;
+    }
+
+    document.getElementById("firstName").value = userProfile.first_name || "";
+    document.getElementById("lastName").value = userProfile.last_name || "";
+    document.getElementById("middleName").value = userProfile.middle_name || "";
+    document.getElementById("phone").value = userProfile.phone || "";
+    document.getElementById("dateOfBirth").value = userProfile.date_of_birth || "";
+    document.getElementById("gender").value = userProfile.gender || "";
+    document.getElementById("city").value = userProfile.city || "";
+    document.getElementById("address").value = userProfile.address || "";
+    document.getElementById("country").value = userProfile.country || "";
+
+}
+
+
+document.getElementById("profileForm").addEventListener("submit", async function(event) {
+
+    event.preventDefault();
+
+    const submitButton = document.getElementById("submitButton");
+    submitButton.disabled = true;
+    submitButton.textContent = "Saving...";
+
+    const { data: { user } } = await supabaseClient.auth.getUser();
+
+    const updates = {
+        first_name: document.getElementById("firstName").value.trim(),
+        last_name: document.getElementById("lastName").value.trim(),
+        middle_name: document.getElementById("middleName").value.trim() || null,
+        phone: document.getElementById("phone").value.trim() || null,
+        date_of_birth: document.getElementById("dateOfBirth").value || null,
+        gender: document.getElementById("gender").value || null,
+        city: document.getElementById("city").value.trim() || null,
+        address: document.getElementById("address").value.trim() || null,
+        country: document.getElementById("country").value.trim() || null
+    };
+
+    const { error } =
+        await supabaseClient
+            .from("user_profiles")
+            .update(updates)
+            .eq("id", user.id);
+
+    submitButton.disabled = false;
+    submitButton.textContent = "Save Changes";
+
+    if (error) {
+        showMessage("Unable to save changes: " + error.message, "error");
+        return;
+    }
+
+    showMessage("Profile updated successfully.", "success");
+
+});
+
+
+loadProfile();
+
+</script>
+
+</body>
+</html>
