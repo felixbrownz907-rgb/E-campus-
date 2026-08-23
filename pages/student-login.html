@@ -157,6 +157,12 @@
             color: #166534;
         }
 
+        .pending {
+            display: block;
+            background: #fef3c7;
+            color: #92400e;
+        }
+
         .back-link {
             display: block;
             text-align: center;
@@ -167,6 +173,19 @@
         }
 
         .back-link:hover {
+            text-decoration: underline;
+        }
+
+        .apply-link {
+            display: block;
+            text-align: center;
+            margin-top: 12px;
+            color: #b08b00;
+            text-decoration: none;
+            font-weight: bold;
+        }
+
+        .apply-link:hover {
             text-decoration: underline;
         }
 
@@ -311,6 +330,14 @@
 
 
             <a
+                href="student-apply.html"
+                class="apply-link"
+            >
+                New here? Apply Now →
+            </a>
+
+
+            <a
                 href="../index.html"
                 class="back-link"
             >
@@ -392,6 +419,16 @@
                 }
 
 
+                function resetButton() {
+
+                    loginButton.disabled = false;
+
+                    loginButton.textContent =
+                        "Student Login";
+
+                }
+
+
                 form.addEventListener(
                     "submit",
                     async function (event) {
@@ -452,11 +489,7 @@
                                     "error"
                                 );
 
-                                loginButton.disabled =
-                                    false;
-
-                                loginButton.textContent =
-                                    "Student Login";
+                                resetButton();
 
                                 return;
                             }
@@ -469,13 +502,80 @@
                                     "error"
                                 );
 
-                                loginButton.disabled =
-                                    false;
-
-                                loginButton.textContent =
-                                    "Student Login";
+                                resetButton();
 
                                 return;
+                            }
+
+
+                            /* =========================================
+                               APPLICATION STATUS CHECK
+                               A pending applicant may not enter the
+                               dashboard until admin approves them.
+                            ========================================= */
+
+                            const {
+                                data: studentProfile,
+                                error: profileError
+                            } =
+                                await supabaseClient
+                                    .from("student_profiles")
+                                    .select("application_status")
+                                    .eq("user_id", data.user.id)
+                                    .single();
+
+
+                            if (profileError) {
+
+                                console.error(
+                                    "Profile check error:",
+                                    profileError
+                                );
+
+                                showMessage(
+                                    "Unable to verify your account status. Please try again.",
+                                    "error"
+                                );
+
+                                resetButton();
+
+                                return;
+                            }
+
+
+                            if (
+                                studentProfile.application_status === "pending"
+                            ) {
+
+                                showMessage(
+                                    "Your application is still pending review by our admissions team. You will be contacted via WhatsApp once a decision has been made.",
+                                    "pending"
+                                );
+
+                                await supabaseClient.auth.signOut();
+
+                                resetButton();
+
+                                return;
+
+                            }
+
+
+                            if (
+                                studentProfile.application_status === "rejected"
+                            ) {
+
+                                showMessage(
+                                    "Your application was not successful. Please contact the admissions office for more information.",
+                                    "error"
+                                );
+
+                                await supabaseClient.auth.signOut();
+
+                                resetButton();
+
+                                return;
+
                             }
 
 
@@ -509,11 +609,7 @@
                                 "error"
                             );
 
-                            loginButton.disabled =
-                                false;
-
-                            loginButton.textContent =
-                                "Student Login";
+                            resetButton();
                         }
 
                     }
