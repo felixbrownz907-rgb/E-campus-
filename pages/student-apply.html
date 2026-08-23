@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Apply Now | E-Campus</title>
+
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+    font-family: Arial, Helvetica, sans-serif;
+    background: #f4f6f9;
+    color: #172033;
+}
+
+.header {
+    background: #111827;
+    color: white;
+    padding: 18px 25px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+
+.logo { width: 55px; height: 55px; object-fit: contain; background: white; border-radius: 8px; }
+.header h1 { font-size: 22px; }
+.header p { color: #d4af37; font-size: 13px; margin-top: 3px; }
+
+.container { max-width: 700px; margin: 30px auto; padding: 0 20px; }
+
+.page-title { margin-bottom: 20px; }
+.page-title h2 { font-size: 28px; margin-bottom: 6px; }
+.page-title p { color: #6b7280; }
+
+.message {
+    padding: 14px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    display: none;
+}
+
+.message.success { display: block; background: #dcfce7; color: #166534; }
+.message.error { display: block; background: #fee2e2; color: #991b1b; }
+
+.card {
+    background: white;
+    padding: 25px;
+    border-radius: 14px;
+    box-shadow: 0 5px 20px rgba(0,0,0,0.07);
+}
+
+.form-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 18px;
+}
+
+.form-group { display: flex; flex-direction: column; }
+.form-group.full { grid-column: 1 / -1; }
+
+label { font-weight: bold; margin-bottom: 7px; font-size: 14px; }
+
+input, select {
+    width: 100%;
+    padding: 13px;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    font-size: 15px;
+}
+
+input:focus, select:focus {
+    outline: none;
+    border-color: #d4af37;
+}
+
+.submit-button {
+    margin-top: 20px;
+    background: #d4af37;
+    color: #111827;
+    border: none;
+    padding: 14px 20px;
+    border-radius: 8px;
+    font-weight: bold;
+    cursor: pointer;
+    width: 100%;
+    font-size: 16px;
+}
+
+.submit-button:hover { background: #c29d24; }
+.submit-button:disabled { opacity: 0.6; cursor: not-allowed; }
+
+.back-link {
+    display: block;
+    text-align: center;
+    margin-top: 18px;
+    color: #374151;
+    text-decoration: none;
+    font-weight: bold;
+}
+
+.pending-screen {
+    display: none;
+    text-align: center;
+    padding: 20px 0;
+}
+
+.pending-screen h2 { font-size: 24px; margin-bottom: 12px; }
+.pending-screen p { color: #6b7280; margin-bottom: 10px; }
+
+@media (max-width: 600px) {
+    .form-grid { grid-template-columns: 1fr; }
+    .form-group.full { grid-column: auto; }
+}
+
+</style>
+</head>
+
+
+<body>
+
+<header class="header">
+    <img src="https://pub-b3e2d39712e84119875e84c5ec5f5c09.r2.dev/Logo/IMG-20260816-WA0050(1).jpg" alt="Sunningdale University Logo" class="logo">
+    <div>
+        <h1>E-Campus</h1>
+        <p>Sunningdale University</p>
+    </div>
+</header>
+
+
+<main class="container">
+
+    <div id="formSection">
+
+        <section class="page-title">
+            <h2>Apply Now</h2>
+            <p>Complete this form to apply for admission. Your application will be reviewed by our admissions team.</p>
+        </section>
+
+        <div id="message" class="message"></div>
+
+        <section class="card">
+
+            <form id="applyForm">
+
+                <div class="form-grid">
+
+                    <div class="form-group">
+                        <label for="firstName">First Name</label>
+                        <input type="text" id="firstName" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="lastName">Last Name</label>
+                        <input type="text" id="lastName" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="middleName">Middle Name</label>
+                        <input type="text" id="middleName">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="gender">Gender</label>
+                        <select id="gender">
+                            <option value="">Select</option>
+                            <option value="male">Male</option>
+                            <option value="female">Female</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="dateOfBirth">Date of Birth</label>
+                        <input type="date" id="dateOfBirth">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="phone">Phone Number</label>
+                        <input type="text" id="phone" required placeholder="For WhatsApp contact">
+                    </div>
+
+                    <div class="form-group full">
+                        <label for="email">Email Address</label>
+                        <input type="email" id="email" required>
+                    </div>
+
+                    <div class="form-group full">
+                        <label for="password">Choose a Password</label>
+                        <input type="password" id="password" required minlength="6">
+                    </div>
+
+                    <div class="form-group full">
+                        <label for="programme">Programme You Are Applying For</label>
+                        <select id="programme" required>
+                            <option value="">Select programme</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group full">
+                        <label for="address">Address</label>
+                        <input type="text" id="address">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="city">City</label>
+                        <input type="text" id="city">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="country">Country</label>
+                        <input type="text" id="country" value="Zambia">
+                    </div>
+
+                </div>
+
+                <button type="submit" class="submit-button" id="submitButton">
+                    Submit Application
+                </button>
+
+            </form>
+
+            <a href="../index.html" class="back-link">← Back to E-Campus</a>
+
+        </section>
+
+    </div>
+
+
+    <div id="pendingSection" class="pending-screen">
+        <div class="card">
+            <h2>✅ Application Submitted</h2>
+            <p>Thank you for applying to Sunningdale University.</p>
+            <p>Your application is now pending review by our admissions team.</p>
+            <p>You will be contacted via WhatsApp on the phone number you provided once a decision has been made.</p>
+        </div>
+    </div>
+
+</main>
+
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../supabase-config.js"></script>
+
+
+<script>
+
+const message = document.getElementById("message");
+
+
+function showMessage(text, type) {
+    message.textContent = text;
+    message.className = "message " + type;
+}
+
+
+async function loadProgrammes() {
+
+    const select = document.getElementById("programme");
+
+    const { data, error } = await supabaseClient.from("programmes").select("id, name, code").order("name");
+
+    if (error) {
+        console.error(error);
+        return;
+    }
+
+    data.forEach(p => {
+        const option = document.createElement("option");
+        option.value = p.id;
+        option.textContent = `${p.code} — ${p.name}`;
+        select.appendChild(option);
+    });
+
+}
+
+
+document.getElementById("applyForm").addEventListener("submit", async function(event) {
+
+    event.preventDefault();
+
+    const submitButton = document.getElementById("submitButton");
+    submitButton.disabled = true;
+    submitButton.textContent = "Submitting...";
+
+    const email = document.getElementById("email").value.trim();
+    const password = document.getElementById("password").value;
+
+    try {
+
+        const { data: signUpData, error: signUpError } =
+            await supabaseClient.auth.signUp({ email, password });
+
+        if (signUpError) {
+            showMessage("Error: " + signUpError.message, "error");
+            submitButton.disabled = false;
+            submitButton.textContent = "Submit Application";
+            return;
+        }
+
+        const newUserId = signUpData.user.id;
+
+        const { error: profileError } =
+            await supabaseClient.from("user_profiles").insert({
+                id: newUserId,
+                first_name: document.getElementById("firstName").value.trim(),
+                middle_name: document.getElementById("middleName").value.trim() || null,
+                last_name: document.getElementById("lastName").value.trim(),
+                email: email,
+                phone: document.getElementById("phone").value.trim(),
+                gender: document.getElementById("gender").value || null,
+                date_of_birth: document.getElementById("dateOfBirth").value || null,
+                address: document.getElementById("address").value.trim() || null,
+                city: document.getElementById("city").value.trim() || null,
+                country: document.getElementById("country").value.trim() || "Zambia",
+                status: "active"
+            });
+
+        if (profileError) {
+            showMessage("Error saving details: " + profileError.message, "error");
+            submitButton.disabled = false;
+            submitButton.textContent = "Submit Application";
+            return;
+        }
+
+        const { error: studentError } =
+            await supabaseClient.from("student_profiles").insert({
+                user_id: newUserId,
+                programme_id: document.getElementById("programme").value,
+                mode_of_study: "full-time",
+                admission_status: "active",
+                application_status: "pending"
+            });
+
+        if (studentError) {
+            showMessage("Error creating application: " + studentError.message, "error");
+            submitButton.disabled = false;
+            submitButton.textContent = "Submit Application";
+            return;
+        }
+
+        const { data: roleRow } =
+            await supabaseClient.from("roles").select("id").eq("name", "STUDENT").single();
+
+        if (roleRow) {
+            await supabaseClient.from("user_roles").insert({
+                user_id: newUserId,
+                role_id: roleRow.id
+            });
+        }
+
+        document.getElementById("formSection").style.display = "none";
+        document.getElementById("pendingSection").style.display = "block";
+
+    } catch (err) {
+
+        console.error(err);
+        showMessage("Unexpected error: " + err.message, "error");
+        submitButton.disabled = false;
+        submitButton.textContent = "Submit Application";
+
+    }
+
+});
+
+
+loadProgrammes();
+
+</script>
+
+</body>
+              </html>
