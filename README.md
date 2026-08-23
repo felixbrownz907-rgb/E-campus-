@@ -1,7 +1,7 @@
 # E-Campus
 
 An online learning management platform designed to connect students, lecturers, and administrators in one system.
-
+LIVE LINK https://sunningdale-e-campu.netlify.app/
 ## Features
 
 - Student registration and applications
