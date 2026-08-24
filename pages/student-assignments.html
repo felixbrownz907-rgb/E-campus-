@@ -1,19 +1,14 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Quiz Management | E-Campus</title>
+<title>My Assignments | E-Campus</title>
 
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
-body {
-    font-family: Arial, Helvetica, sans-serif;
-    background: #f4f6f9;
-    color: #172033;
-}
+body { font-family: Arial, Helvetica, sans-serif; background: #f4f6f9; color: #172033; }
 
 .header {
     background: #111827;
@@ -22,26 +17,29 @@ body {
     display: flex;
     align-items: center;
     justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
 }
 
 .brand { display: flex; align-items: center; gap: 14px; }
-.logo { width: 58px; height: 58px; object-fit: contain; background: white; border-radius: 8px; }
-.brand h1 { font-size: 24px; }
-.brand p { color: #d4af37; margin-top: 4px; }
+.logo { width: 55px; height: 55px; object-fit: contain; background: white; border-radius: 8px; }
+.brand h1 { font-size: 22px; }
+.brand p { color: #d4af37; margin-top: 3px; font-size: 13px; }
 
 .back-button {
     background: #d4af37;
     color: #111827;
     text-decoration: none;
-    padding: 11px 18px;
+    padding: 10px 16px;
     border-radius: 8px;
     font-weight: bold;
+    font-size: 13px;
 }
 
-.container { max-width: 1250px; margin: 30px auto; padding: 0 20px; }
+.container { max-width: 900px; margin: 25px auto; padding: 0 20px; }
 
-.page-title { margin-bottom: 25px; }
-.page-title h2 { font-size: 30px; margin-bottom: 7px; }
+.page-title { margin-bottom: 20px; }
+.page-title h2 { font-size: 28px; margin-bottom: 6px; }
 .page-title p { color: #6b7280; }
 
 .message {
@@ -56,250 +54,127 @@ body {
 
 .card {
     background: white;
-    padding: 25px;
+    padding: 22px;
     border-radius: 14px;
-    margin-bottom: 25px;
-    box-shadow: 0 5px 20px rgba(0,0,0,0.07);
+    margin-bottom: 18px;
+    box-shadow: 0 3px 12px rgba(0,0,0,0.06);
 }
 
-.card h3 { margin-bottom: 20px; font-size: 22px; }
-
-.form-grid {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 18px;
+.card-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: start;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-bottom: 6px;
 }
 
-.form-group { display: flex; flex-direction: column; }
-.form-group.full { grid-column: 1 / -1; }
+.card h3 { font-size: 18px; }
+.course-tag { color: #d4af37; font-size: 12px; font-weight: bold; }
+.due-date { color: #6b7280; font-size: 13px; }
+.description { color: #374151; font-size: 14px; margin: 10px 0; }
 
-label { font-weight: bold; margin-bottom: 7px; }
+.status-badge {
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: bold;
+}
 
-input, select, textarea {
+.status-badge.pending { background: #fef3c7; color: #92400e; }
+.status-badge.submitted { background: #dbeafe; color: #1d4ed8; }
+.status-badge.graded { background: #dcfce7; color: #166534; }
+.status-badge.overdue { background: #fee2e2; color: #991b1b; }
+
+.submission-form { margin-top: 14px; border-top: 1px solid #e5e7eb; padding-top: 14px; }
+
+.tab-buttons { display: flex; gap: 8px; margin-bottom: 12px; }
+
+.tab-button {
+    flex: 1;
+    padding: 10px;
+    border: 1px solid #d1d5db;
+    background: white;
+    border-radius: 8px;
+    font-weight: bold;
+    font-size: 13px;
+    cursor: pointer;
+}
+
+.tab-button.active { background: #111827; color: white; border-color: #111827; }
+
+textarea, input[type="file"] {
     width: 100%;
-    padding: 13px;
+    padding: 12px;
     border: 1px solid #d1d5db;
     border-radius: 8px;
-    font-size: 15px;
+    font-size: 14px;
 }
 
-textarea { min-height: 80px; resize: vertical; }
+textarea { min-height: 120px; resize: vertical; }
 
-input:focus, select:focus, textarea:focus {
-    outline: none;
-    border-color: #d4af37;
-}
+.file-hint { font-size: 12px; color: #9ca3af; margin-top: 6px; }
 
 .submit-button {
-    margin-top: 20px;
+    margin-top: 14px;
     background: #d4af37;
     color: #111827;
     border: none;
-    padding: 13px 20px;
+    padding: 12px 20px;
     border-radius: 8px;
     font-weight: bold;
     cursor: pointer;
     width: 100%;
 }
 
-.submit-button:hover { background: #c29d24; }
+.submit-button:disabled { opacity: 0.6; cursor: not-allowed; }
 
-.small-button {
-    background: #111827;
-    color: white;
-    border: none;
-    padding: 9px 14px;
-    border-radius: 6px;
-    font-weight: bold;
-    cursor: pointer;
-    font-size: 13px;
-}
-
-.table-container { overflow-x: auto; }
-
-table { width: 100%; border-collapse: collapse; }
-
-th, td {
-    padding: 12px;
-    text-align: left;
-    border-bottom: 1px solid #e5e7eb;
-    font-size: 14px;
-}
-
-th { background: #111827; color: white; }
-tr:hover { background: #f9fafb; }
-
-.action-button {
-    border: none;
-    padding: 7px 11px;
-    border-radius: 6px;
-    font-weight: bold;
-    cursor: pointer;
-    margin-right: 5px;
-    font-size: 13px;
-}
-
-.questions-button { background: #e5e7eb; color: #111827; }
-.attempts-button { background: #dcfce7; color: #166534; }
-.delete-button { background: #fee2e2; color: #991b1b; }
-
-.panel {
-    display: none;
+.grade-box {
     margin-top: 14px;
-    padding: 16px;
-    background: #f4f6f9;
+    background: #f0fdf4;
+    border: 1px solid #bbf7d0;
     border-radius: 10px;
-}
-
-.question-item {
-    background: white;
     padding: 14px;
-    border-radius: 8px;
-    margin-bottom: 10px;
 }
 
-.question-item .qtext { font-weight: bold; margin-bottom: 8px; }
-.question-item .qoptions { font-size: 13px; color: #374151; margin-bottom: 4px; }
-.question-item .correct { color: #166534; font-weight: bold; }
+.grade-box .score { font-size: 20px; font-weight: bold; color: #166534; }
+.grade-box .feedback { font-size: 14px; color: #374151; margin-top: 8px; }
 
-.option-row {
-    display: flex;
-    gap: 8px;
-    margin-bottom: 8px;
-    align-items: center;
+.empty-note { color: #9ca3af; text-align: center; padding: 30px 0; }
+
+@media (max-width: 600px) {
+    .card-top { flex-direction: column; }
 }
-
-.option-row input[type="text"] { flex: 1; }
-.option-row input[type="radio"] { width: auto; }
-
-.attempt-row {
-    display: flex;
-    justify-content: space-between;
-    padding: 10px;
-    background: white;
-    border-radius: 8px;
-    margin-bottom: 8px;
-    font-size: 14px;
-}
-
-@media (max-width: 700px) {
-    .header { flex-direction: column; align-items: flex-start; gap: 15px; }
-    .form-grid { grid-template-columns: 1fr; }
-    .form-group.full { grid-column: auto; }
-    th, td { white-space: nowrap; }
-}
-
 </style>
 </head>
 
 
 <body>
 
-
 <header class="header">
-
     <div class="brand">
         <img src="https://pub-b3e2d39712e84119875e84c5ec5f5c09.r2.dev/Logo/IMG-20260816-WA0050(1).jpg" alt="Sunningdale University Logo" class="logo">
         <div>
-            <h1>E-Campus Administration</h1>
+            <h1>E-Campus</h1>
             <p>Sunningdale University</p>
         </div>
     </div>
-
-    <a href="admin-dashboard.html" class="back-button">← Admin Dashboard</a>
-
+    <a href="student-dashboard.html" class="back-button">← Dashboard</a>
 </header>
 
 
 <main class="container">
 
     <section class="page-title">
-        <h2>Quiz Management</h2>
-        <p>Create quizzes per module, add questions, and review student attempts.</p>
+        <h2>My Assignments</h2>
+        <p>Submit your work as typed text, or upload a PDF/Word document (max 1MB).</p>
     </section>
 
     <div id="message" class="message"></div>
 
-
-    <section class="card">
-
-        <h3>Add New Quiz</h3>
-
-        <form id="quizForm">
-
-            <div class="form-grid">
-
-                <div class="form-group full">
-                    <label for="course">Course</label>
-                    <select id="course" required>
-                        <option value="">Select course</option>
-                    </select>
-                </div>
-
-                <div class="form-group full">
-                    <label for="module">Module</label>
-                    <select id="module" required disabled>
-                        <option value="">Select course first</option>
-                    </select>
-                </div>
-
-                <div class="form-group full">
-                    <label for="title">Quiz Title</label>
-                    <input type="text" id="title" required placeholder="e.g. Quiz 1 — Networking Basics">
-                </div>
-
-                <div class="form-group">
-                    <label for="dueDate">Due Date</label>
-                    <input type="datetime-local" id="dueDate">
-                </div>
-
-                <div class="form-group">
-                    <label for="maxScore">Max Score</label>
-                    <input type="number" id="maxScore" value="100" min="1">
-                </div>
-
-                <div class="form-group full">
-                    <label for="description">Description / Instructions</label>
-                    <textarea id="description" placeholder="Describe the quiz..."></textarea>
-                </div>
-
-            </div>
-
-            <button type="submit" class="submit-button" id="submitButton">Add Quiz</button>
-
-        </form>
-
-    </section>
-
-
-    <section class="card">
-
-        <h3>Existing Quizzes</h3>
-
-        <div class="table-container">
-
-            <table>
-
-                <thead>
-                    <tr>
-                        <th>Course</th>
-                        <th>Module</th>
-                        <th>Title</th>
-                        <th>Due Date</th>
-                        <th>Questions</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-
-                <tbody id="quizTableBody">
-                    <tr><td colspan="6">Loading quizzes...</td></tr>
-                </tbody>
-
-            </table>
-
-        </div>
-
-    </section>
+    <div id="assignmentsContainer">
+        <div class="card"><p class="empty-note">Loading your assignments...</p></div>
+    </div>
 
 </main>
 
@@ -309,6 +184,11 @@ tr:hover { background: #f9fafb; }
 
 
 <script>
+
+const MAX_FILE_SIZE = 1 * 1024 * 1024; // 1MB
+
+let authUserId = null;
+let studentProfileId = null;
 
 const message = document.getElementById("message");
 
@@ -329,385 +209,287 @@ function escapeHtml(value) {
 }
 
 
-/* ================= LOAD COURSES / MODULES ================= */
+async function loadAssignments() {
 
-async function loadCourses() {
+    const container = document.getElementById("assignmentsContainer");
 
-    const select = document.getElementById("course");
+    const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
 
-    const { data, error } = await supabaseClient.from("courses").select("id, code, name").order("code");
-
-    if (error) {
-        console.error(error);
+    if (authError || !user) {
+        window.location.href = "student-login.html";
         return;
     }
 
-    data.forEach(c => {
-        const option = document.createElement("option");
-        option.value = c.id;
-        option.textContent = `${c.code} — ${c.name}`;
-        select.appendChild(option);
-    });
+    authUserId = user.id;
 
-}
+    const { data: studentProfile, error: studentError } =
+        await supabaseClient
+            .from("student_profiles")
+            .select("id")
+            .eq("user_id", user.id)
+            .single();
 
-
-async function loadModulesByCourse(courseId) {
-
-    const select = document.getElementById("module");
-    select.innerHTML = `<option value="">Loading modules...</option>`;
-    select.disabled = true;
-
-    if (!courseId) {
-        select.innerHTML = `<option value="">Select course first</option>`;
+    if (studentError || !studentProfile) {
+        container.innerHTML = `<div class="card"><p class="empty-note">Unable to load your student profile.</p></div>`;
         return;
     }
 
-    const { data, error } =
+    studentProfileId = studentProfile.id;
+
+    const { data: enrollments } =
+        await supabaseClient
+            .from("enrollments")
+            .select("courses ( id, code, name )")
+            .eq("student_id", studentProfileId);
+
+    const courseIds = (enrollments || []).map(e => e.courses?.id).filter(Boolean);
+    const courseMap = {};
+    (enrollments || []).forEach(e => { if (e.courses) courseMap[e.courses.id] = e.courses; });
+
+    if (courseIds.length === 0) {
+        container.innerHTML = `<div class="card"><p class="empty-note">You are not enrolled in any courses yet.</p></div>`;
+        return;
+    }
+
+    const { data: modules } =
         await supabaseClient
             .from("course_modules")
-            .select("id, module_number, title")
-            .eq("course_id", courseId)
-            .order("module_number");
+            .select("id, course_id")
+            .in("course_id", courseIds);
 
-    if (error) {
-        console.error(error);
-        select.innerHTML = `<option value="">Unable to load modules</option>`;
+    const moduleIds = (modules || []).map(m => m.id);
+    const moduleToCourse = {};
+    (modules || []).forEach(m => moduleToCourse[m.id] = m.course_id);
+
+    if (moduleIds.length === 0) {
+        container.innerHTML = `<div class="card"><p class="empty-note">No assignments available yet.</p></div>`;
         return;
     }
 
-    select.innerHTML = `<option value="">Select module</option>`;
-
-    if (!data || data.length === 0) {
-        select.innerHTML = `<option value="">No modules found for this course</option>`;
-        return;
-    }
-
-    data.forEach(m => {
-        const option = document.createElement("option");
-        option.value = m.id;
-        option.textContent = `Module ${m.module_number} — ${m.title}`;
-        select.appendChild(option);
-    });
-
-    select.disabled = false;
-
-}
-
-
-document.getElementById("course").addEventListener("change", function() {
-    loadModulesByCourse(this.value);
-});
-
-
-/* ================= SUBMIT QUIZ FORM ================= */
-
-document.getElementById("quizForm").addEventListener("submit", async function(event) {
-
-    event.preventDefault();
-
-    const quizData = {
-        module_id: document.getElementById("module").value,
-        title: document.getElementById("title").value.trim(),
-        description: document.getElementById("description").value.trim() || null,
-        due_date: document.getElementById("dueDate").value || null,
-        max_score: Number(document.getElementById("maxScore").value) || 100,
-        status: "active"
-    };
-
-    const { error } = await supabaseClient.from("quizzes").insert(quizData);
-
-    if (error) {
-        showMessage(error.message, "error");
-        return;
-    }
-
-    showMessage("Quiz created successfully.", "success");
-    document.getElementById("quizForm").reset();
-    document.getElementById("module").innerHTML = `<option value="">Select course first</option>`;
-    document.getElementById("module").disabled = true;
-
-    await loadQuizzes();
-
-});
-
-
-/* ================= LOAD QUIZZES ================= */
-
-async function loadQuizzes() {
-
-    const tbody = document.getElementById("quizTableBody");
-
-    const { data, error } =
+    const { data: assignments, error: assignError } =
         await supabaseClient
-            .from("quizzes")
-            .select(`
-                id, title, due_date, module_id,
-                course_modules ( module_number, course_id, courses ( code, name ) )
-            `)
+            .from("assignments")
+            .select("*")
+            .in("module_id", moduleIds)
             .order("due_date");
 
-    if (error) {
-        console.error(error);
-        tbody.innerHTML = `<tr><td colspan="6">Unable to load: ${escapeHtml(error.message)}</td></tr>`;
+    if (assignError) {
+        container.innerHTML = `<div class="card"><p class="empty-note">Unable to load assignments: ${escapeHtml(assignError.message)}</p></div>`;
         return;
     }
 
-    if (!data || data.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="6">No quizzes created yet.</td></tr>`;
+    if (!assignments || assignments.length === 0) {
+        container.innerHTML = `<div class="card"><p class="empty-note">No assignments have been posted yet.</p></div>`;
         return;
     }
 
-    tbody.innerHTML = "";
+    const assignmentIds = assignments.map(a => a.id);
 
-    for (const quiz of data) {
+    const { data: submissions } =
+        await supabaseClient
+            .from("submissions")
+            .select("*")
+            .eq("student_id", authUserId)
+            .in("assignment_id", assignmentIds);
 
-        const { count } = await supabaseClient
-            .from("quiz_questions")
-            .select("id", { count: "exact", head: true })
-            .eq("quiz_id", quiz.id);
+    const submissionMap = {};
+    (submissions || []).forEach(s => submissionMap[s.assignment_id] = s);
 
-        const module = quiz.course_modules;
-        const course = module?.courses;
+    renderAssignments(assignments, submissionMap, moduleToCourse, courseMap);
 
-        const row = document.createElement("tr");
+}
 
-        row.innerHTML = `
-            <td>${course ? escapeHtml(course.code) : "-"}</td>
-            <td>${module ? escapeHtml("Module " + module.module_number) : "-"}</td>
-            <td>${escapeHtml(quiz.title)}</td>
-            <td>${quiz.due_date ? new Date(quiz.due_date).toLocaleString() : "-"}</td>
-            <td>${count || 0}</td>
-            <td>
-                <button class="action-button questions-button" onclick="toggleQuestions('${quiz.id}')">Manage Questions</button>
-                <button class="action-button attempts-button" onclick="toggleAttempts('${quiz.id}')">View Attempts</button>
-                <button class="action-button delete-button" onclick="deleteQuiz('${quiz.id}')">Delete</button>
-            </td>
+
+function renderAssignments(assignments, submissionMap, moduleToCourse, courseMap) {
+
+    const container = document.getElementById("assignmentsContainer");
+    container.innerHTML = "";
+
+    const now = new Date();
+
+    assignments.forEach(assignment => {
+
+        const courseId = moduleToCourse[assignment.module_id];
+        const course = courseMap[courseId];
+        const submission = submissionMap[assignment.id];
+
+        let statusLabel = "Pending";
+        let statusClass = "pending";
+
+        if (submission && submission.score !== null) {
+            statusLabel = "Graded";
+            statusClass = "graded";
+        } else if (submission) {
+            statusLabel = "Submitted";
+            statusClass = "submitted";
+        } else if (assignment.due_date && new Date(assignment.due_date) < now) {
+            statusLabel = "Overdue";
+            statusClass = "overdue";
+        }
+
+        const card = document.createElement("div");
+        card.className = "card";
+
+        card.innerHTML = `
+            <div class="card-top">
+                <div>
+                    <div class="course-tag">${course ? escapeHtml(course.code) : ""}</div>
+                    <h3>${escapeHtml(assignment.title)}</h3>
+                </div>
+                <span class="status-badge ${statusClass}">${statusLabel}</span>
+            </div>
+            <div class="due-date">${assignment.due_date ? "Due: " + new Date(assignment.due_date).toLocaleString() : "No due date"} • Max score: ${assignment.max_score}</div>
+            <div class="description">${escapeHtml(assignment.description || "")}</div>
+            <div id="body-${assignment.id}"></div>
         `;
 
-        tbody.appendChild(row);
+        container.appendChild(card);
 
-        const panelRow = document.createElement("tr");
-        panelRow.innerHTML = `<td colspan="6"><div class="panel" id="qpanel-${quiz.id}"></div><div class="panel" id="apanel-${quiz.id}"></div></td>`;
-        tbody.appendChild(panelRow);
+        const body = document.getElementById(`body-${assignment.id}`);
 
-    }
+        if (submission) {
 
-}
+            if (submission.score !== null) {
 
+                body.innerHTML = `
+                    <div class="grade-box">
+                        <div class="score">${submission.score} / ${assignment.max_score}</div>
+                        ${submission.feedback ? `<div class="feedback">${escapeHtml(submission.feedback)}</div>` : ""}
+                    </div>
+                `;
 
-/* ================= MANAGE QUESTIONS ================= */
+            } else {
 
-async function toggleQuestions(quizId) {
+                body.innerHTML = `<p style="color:#6b7280; font-size:13px; margin-top:10px;">Submitted on ${new Date(submission.submitted_at).toLocaleString()}. Awaiting grading.</p>`;
 
-    const panel = document.getElementById(`qpanel-${quizId}`);
+            }
 
-    if (panel.style.display === "block") {
-        panel.style.display = "none";
-        return;
-    }
+        } else {
 
-    panel.style.display = "block";
-    await renderQuestions(quizId);
+            body.innerHTML = `
+                <div class="submission-form">
+                    <div class="tab-buttons">
+                        <button type="button" class="tab-button active" id="tabText-${assignment.id}" onclick="switchTab('${assignment.id}', 'text')">Type Answer</button>
+                        <button type="button" class="tab-button" id="tabFile-${assignment.id}" onclick="switchTab('${assignment.id}', 'file')">Upload File</button>
+                    </div>
 
-}
+                    <div id="textPanel-${assignment.id}">
+                        <textarea id="textInput-${assignment.id}" placeholder="Type your answer here..."></textarea>
+                    </div>
 
+                    <div id="filePanel-${assignment.id}" style="display:none;">
+                        <input type="file" id="fileInput-${assignment.id}" accept=".pdf,.doc,.docx">
+                        <div class="file-hint">PDF or Word document only. Maximum size: 1MB.</div>
+                    </div>
 
-async function renderQuestions(quizId) {
-
-    const panel = document.getElementById(`qpanel-${quizId}`);
-
-    const { data, error } =
-        await supabaseClient
-            .from("quiz_questions")
-            .select("*")
-            .eq("quiz_id", quizId)
-            .order("created_at");
-
-    let html = `<h4 style="margin-bottom:12px;">Questions</h4>`;
-
-    if (error) {
-        html += `<p>Unable to load questions.</p>`;
-    } else if (!data || data.length === 0) {
-        html += `<p style="color:#9ca3af; margin-bottom:12px;">No questions added yet.</p>`;
-    } else {
-        data.forEach((q, idx) => {
-            html += `
-                <div class="question-item">
-                    <div class="qtext">${idx + 1}. ${escapeHtml(q.question_text)}</div>
-                    ${(q.options || []).map(opt => `
-                        <div class="qoptions ${opt === q.correct_answer ? "correct" : ""}">
-                            ${opt === q.correct_answer ? "✓" : "○"} ${escapeHtml(opt)}
-                        </div>
-                    `).join("")}
-                    <button class="action-button delete-button" style="margin-top:8px;" onclick="deleteQuestion('${q.id}', '${quizId}')">Delete Question</button>
+                    <button class="submit-button" id="submitBtn-${assignment.id}" onclick="submitAssignment('${assignment.id}')">
+                        Submit Assignment
+                    </button>
                 </div>
             `;
-        });
-    }
 
-    html += `
-        <div style="margin-top:16px; padding-top:16px; border-top:1px solid #e5e7eb;">
-            <h4 style="margin-bottom:10px;">Add Question</h4>
-            <textarea id="newQtext-${quizId}" placeholder="Enter the question text..." style="margin-bottom:10px;"></textarea>
+        }
 
-            <div class="option-row"><input type="radio" name="correct-${quizId}" value="0"><input type="text" id="opt0-${quizId}" placeholder="Option A"></div>
-            <div class="option-row"><input type="radio" name="correct-${quizId}" value="1"><input type="text" id="opt1-${quizId}" placeholder="Option B"></div>
-            <div class="option-row"><input type="radio" name="correct-${quizId}" value="2"><input type="text" id="opt2-${quizId}" placeholder="Option C"></div>
-            <div class="option-row"><input type="radio" name="correct-${quizId}" value="3"><input type="text" id="opt3-${quizId}" placeholder="Option D"></div>
-
-            <p style="font-size:12px; color:#6b7280; margin-bottom:10px;">Select the radio button next to the correct answer.</p>
-
-            <button class="small-button" onclick="addQuestion('${quizId}')">Add Question</button>
-        </div>
-    `;
-
-    panel.innerHTML = html;
+    });
 
 }
 
 
-async function addQuestion(quizId) {
+function switchTab(assignmentId, tab) {
 
-    const text = document.getElementById(`newQtext-${quizId}`).value.trim();
-    const options = [0, 1, 2, 3].map(i => document.getElementById(`opt${i}-${quizId}`).value.trim()).filter(Boolean);
-
-    const selectedRadio = document.querySelector(`input[name="correct-${quizId}"]:checked`);
-
-    if (!text || options.length < 2 || !selectedRadio) {
-        showMessage("Please enter a question, at least 2 options, and mark the correct answer.", "error");
-        return;
-    }
-
-    const correctIndex = Number(selectedRadio.value);
-    const correctAnswer = document.getElementById(`opt${correctIndex}-${quizId}`).value.trim();
-
-    const { error } =
-        await supabaseClient.from("quiz_questions").insert({
-            quiz_id: quizId,
-            question_text: text,
-            question_type: "multiple_choice",
-            options: options,
-            correct_answer: correctAnswer,
-            points: 1
-        });
-
-    if (error) {
-        showMessage("Unable to add question: " + error.message, "error");
-        return;
-    }
-
-    showMessage("Question added.", "success");
-    await renderQuestions(quizId);
-    await loadQuizzes();
+    document.getElementById(`tabText-${assignmentId}`).classList.toggle("active", tab === "text");
+    document.getElementById(`tabFile-${assignmentId}`).classList.toggle("active", tab === "file");
+    document.getElementById(`textPanel-${assignmentId}`).style.display = tab === "text" ? "block" : "none";
+    document.getElementById(`filePanel-${assignmentId}`).style.display = tab === "file" ? "block" : "none";
 
 }
 
 
-async function deleteQuestion(questionId, quizId) {
+async function submitAssignment(assignmentId) {
 
-    const confirmed = confirm("Delete this question?");
-    if (!confirmed) return;
+    const submitBtn = document.getElementById(`submitBtn-${assignmentId}`);
+    const textValue = document.getElementById(`textInput-${assignmentId}`).value.trim();
+    const fileInput = document.getElementById(`fileInput-${assignmentId}`);
+    const file = fileInput.files[0];
 
-    const { error } = await supabaseClient.from("quiz_questions").delete().eq("id", questionId);
-
-    if (error) {
-        showMessage("Unable to delete: " + error.message, "error");
+    if (!textValue && !file) {
+        showMessage("Please type an answer or choose a file to upload.", "error");
         return;
     }
 
-    await renderQuestions(quizId);
-
-}
-
-
-/* ================= VIEW ATTEMPTS ================= */
-
-async function toggleAttempts(quizId) {
-
-    const panel = document.getElementById(`apanel-${quizId}`);
-
-    if (panel.style.display === "block") {
-        panel.style.display = "none";
+    if (file && file.size > MAX_FILE_SIZE) {
+        showMessage("File is too large. Maximum allowed size is 1MB.", "error");
         return;
     }
 
-    panel.style.display = "block";
-    panel.innerHTML = "Loading attempts...";
+    submitBtn.disabled = true;
+    submitBtn.textContent = "Submitting...";
 
-    const { data, error } =
-        await supabaseClient
-            .from("quiz_attempts")
-            .select("id, score, submitted_at, student_id")
-            .eq("quiz_id", quizId)
-            .order("submitted_at", { ascending: false });
+    let fileUrl = null;
 
-    if (error) {
-        panel.innerHTML = `Unable to load attempts: ${escapeHtml(error.message)}`;
-        return;
-    }
+    try {
 
-    if (!data || data.length === 0) {
-        panel.innerHTML = `<p style="color:#9ca3af;">No attempts yet.</p>`;
-        return;
-    }
+        if (file) {
 
-    let html = `<h4 style="margin-bottom:12px;">Attempts</h4>`;
+            const filePath = `${authUserId}/${assignmentId}/${Date.now()}-${file.name}`;
 
-    for (const attempt of data) {
+            const { error: uploadError } =
+                await supabaseClient
+                    .storage
+                    .from("assignment-submissions")
+                    .upload(filePath, file);
 
-        const { data: profile } =
+            if (uploadError) {
+                showMessage("Upload failed: " + uploadError.message, "error");
+                submitBtn.disabled = false;
+                submitBtn.textContent = "Submit Assignment";
+                return;
+            }
+
+            const { data: urlData } =
+                supabaseClient
+                    .storage
+                    .from("assignment-submissions")
+                    .getPublicUrl(filePath);
+
+            fileUrl = urlData.publicUrl;
+
+        }
+
+        const { error: insertError } =
             await supabaseClient
-                .from("user_profiles")
-                .select("first_name, last_name")
-                .eq("id", attempt.student_id)
-                .single();
+                .from("submissions")
+                .insert({
+                    assignment_id: assignmentId,
+                    student_id: authUserId,
+                    content: textValue || null,
+                    file_url: fileUrl,
+                    status: "submitted"
+                });
 
-        const name = profile ? `${profile.first_name} ${profile.last_name}` : "Unknown student";
+        if (insertError) {
+            showMessage("Unable to submit: " + insertError.message, "error");
+            submitBtn.disabled = false;
+            submitBtn.textContent = "Submit Assignment";
+            return;
+        }
 
-        html += `
-            <div class="attempt-row">
-                <span>${escapeHtml(name)}</span>
-                <span>${new Date(attempt.submitted_at).toLocaleString()}</span>
-                <strong>${attempt.score ?? "-"}%</strong>
-            </div>
-        `;
+        showMessage("Assignment submitted successfully.", "success");
+        await loadAssignments();
+
+    } catch (err) {
+
+        console.error(err);
+        showMessage("Unexpected error: " + err.message, "error");
+        submitBtn.disabled = false;
+        submitBtn.textContent = "Submit Assignment";
 
     }
 
-    panel.innerHTML = html;
-
 }
 
 
-/* ================= DELETE QUIZ ================= */
-
-async function deleteQuiz(id) {
-
-    const confirmed = confirm("Delete this quiz? This will also remove its questions and attempts.");
-    if (!confirmed) return;
-
-    await supabaseClient.from("quiz_questions").delete().eq("quiz_id", id);
-    await supabaseClient.from("quiz_attempts").delete().eq("quiz_id", id);
-    const { error } = await supabaseClient.from("quizzes").delete().eq("id", id);
-
-    if (error) {
-        showMessage("Unable to delete: " + error.message, "error");
-        return;
-    }
-
-    showMessage("Quiz deleted.", "success");
-    await loadQuizzes();
-
-}
-
-
-async function startPage() {
-    await loadCourses();
-    await loadQuizzes();
-}
-
-startPage();
+loadAssignments();
 
 </script>
 
