@@ -2,27 +2,14 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-
-    <meta
-        name="viewport"
-        content="width=device-width, initial-scale=1.0"
-    >
-
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>My Courses | E-Campus</title>
 
     <style>
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
 
         body {
-            font-family:
-                Arial,
-                Helvetica,
-                sans-serif;
-
+            font-family: Arial, Helvetica, sans-serif;
             background: #f5f6f8;
             color: #111827;
             line-height: 1.6;
@@ -32,832 +19,374 @@
             background: #ffffff;
             border-bottom: 1px solid #e5e7eb;
             padding: 18px 24px;
-
             display: flex;
             align-items: center;
             justify-content: space-between;
-
             position: sticky;
             top: 0;
             z-index: 100;
         }
 
-        .brand {
-            display: flex;
-            align-items: center;
-            gap: 14px;
-        }
-
-        .brand-logo {
-            width: 52px;
-            height: 52px;
-            object-fit: contain;
-        }
-
-        .brand-text h1 {
-            font-size: 22px;
-            color: #111827;
-        }
-
-        .brand-text p {
-            color: #b58b17;
-            font-weight: 600;
-            font-size: 14px;
-        }
+        .brand { display: flex; align-items: center; gap: 14px; }
+        .brand-logo { width: 52px; height: 52px; object-fit: contain; }
+        .brand-text h1 { font-size: 22px; }
+        .brand-text p { color: #b58b17; font-weight: 600; font-size: 14px; }
 
         .back-button {
             border: none;
             background: #111827;
             color: white;
-
             padding: 12px 18px;
             border-radius: 10px;
-
             cursor: pointer;
             font-weight: 600;
         }
 
-        .back-button:hover {
-            background: #1f2937;
-        }
+        .back-button:hover { background: #1f2937; }
 
-        .page-container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 35px 20px 60px;
-        }
+        .page-container { max-width: 1000px; margin: 0 auto; padding: 30px 20px 60px; }
 
-        .page-title {
-            margin-bottom: 25px;
-        }
-
-        .page-title .label {
-            color: #b58b17;
-            font-size: 13px;
-            font-weight: 800;
-            letter-spacing: 2px;
-            text-transform: uppercase;
-            margin-bottom: 8px;
-        }
-
-        .page-title h2 {
-            font-size: 34px;
-            margin-bottom: 8px;
-        }
-
-        .page-title p {
-            color: #6b7280;
-            font-size: 16px;
-        }
+        .page-title { margin-bottom: 25px; }
+        .page-title .label { color: #b58b17; font-size: 13px; font-weight: 800; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 8px; }
+        .page-title h2 { font-size: 30px; margin-bottom: 8px; }
+        .page-title p { color: #6b7280; font-size: 15px; }
 
         .stats {
             display: grid;
-            grid-template-columns:
-                repeat(3, 1fr);
-
-            gap: 18px;
-            margin-bottom: 30px;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 14px;
+            margin-bottom: 25px;
         }
 
         .stat-card {
             background: white;
             border: 1px solid #e5e7eb;
-            border-radius: 16px;
-            padding: 22px;
+            border-radius: 14px;
+            padding: 18px;
+            text-align: center;
         }
 
-        .stat-card .number {
-            font-size: 30px;
-            font-weight: 800;
-            color: #111827;
-        }
-
-        .stat-card .label {
-            color: #6b7280;
-            margin-top: 4px;
-        }
-
-        .courses-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-
-            margin-bottom: 18px;
-        }
-
-        .courses-header h3 {
-            font-size: 23px;
-        }
-
-        .refresh-button {
-            border: 1px solid #d1d5db;
-            background: white;
-            color: #111827;
-
-            padding: 10px 16px;
-            border-radius: 9px;
-
-            cursor: pointer;
-            font-weight: 600;
-        }
-
-        .refresh-button:hover {
-            background: #f9fafb;
-        }
-
-        #coursesContainer {
-            display: grid;
-            grid-template-columns:
-                repeat(2, minmax(0, 1fr));
-
-            gap: 20px;
-        }
+        .stat-card .number { font-size: 26px; font-weight: 800; }
+        .stat-card .label { color: #6b7280; font-size: 12px; margin-top: 4px; }
 
         .course-card {
             background: white;
             border: 1px solid #e5e7eb;
-            border-radius: 18px;
-
-            padding: 24px;
-
-            box-shadow:
-                0 4px 15px
-                rgba(0, 0, 0, 0.04);
-
-            transition:
-                transform 0.2s ease,
-                box-shadow 0.2s ease;
-        }
-
-        .course-card:hover {
-            transform: translateY(-3px);
-
-            box-shadow:
-                0 8px 25px
-                rgba(0, 0, 0, 0.08);
-        }
-
-        .course-top {
-            display: flex;
-            align-items: flex-start;
-            justify-content: space-between;
-
-            gap: 15px;
+            border-radius: 16px;
             margin-bottom: 16px;
+            overflow: hidden;
         }
 
-        .course-icon {
-            width: 52px;
-            height: 52px;
-
+        .course-header {
+            padding: 20px;
+            cursor: pointer;
             display: flex;
+            justify-content: space-between;
             align-items: center;
-            justify-content: center;
-
-            background: #f8f1d8;
-            border-radius: 13px;
-
-            font-size: 25px;
+            gap: 12px;
         }
 
-        .course-code {
-            color: #b58b17;
-            font-weight: 800;
-            font-size: 13px;
-            letter-spacing: 1px;
+        .course-code { color: #b58b17; font-weight: 800; font-size: 12px; letter-spacing: 1px; }
+        .course-header h4 { font-size: 18px; margin: 4px 0; }
+        .course-meta { color: #6b7280; font-size: 13px; }
+
+        .progress-bar-bg {
+            background: #e5e7eb;
+            border-radius: 20px;
+            height: 8px;
+            overflow: hidden;
+            margin-top: 8px;
         }
 
-        .course-card h4 {
-            font-size: 21px;
-            margin: 5px 0 8px;
+        .progress-bar-fill { background: #b58b17; height: 100%; }
+
+        .expand-icon { font-size: 20px; color: #6b7280; }
+
+        .course-body {
+            display: none;
+            padding: 0 20px 20px;
+            border-top: 1px solid #e5e7eb;
         }
 
-        .course-description {
-            color: #6b7280;
-            font-size: 14px;
-            margin-bottom: 18px;
-        }
+        .course-body.open { display: block; }
 
-        .course-details {
-            display: grid;
-            grid-template-columns:
-                repeat(2, 1fr);
+        .module-block { margin-top: 16px; }
+        .module-block h5 { font-size: 15px; margin-bottom: 8px; color: #111827; }
 
-            gap: 10px;
-            margin-bottom: 18px;
-        }
-
-        .detail {
+        .lesson-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 12px;
             background: #f9fafb;
+            border-radius: 8px;
+            margin-bottom: 6px;
+            cursor: pointer;
+        }
+
+        .lesson-row.done { background: #ecfdf5; }
+        .lesson-title { font-size: 14px; }
+        .lesson-check { font-size: 16px; }
+
+        .lesson-content-panel {
+            display: none;
+            background: #fffbeb;
+            border: 1px solid #fde68a;
             border-radius: 10px;
-            padding: 10px;
+            padding: 16px;
+            margin: 6px 0 10px;
+            font-size: 14px;
         }
 
-        .detail-label {
-            color: #6b7280;
-            font-size: 11px;
-            text-transform: uppercase;
+        .lesson-content-panel.open { display: block; }
+        .lesson-content-panel h6 { margin-bottom: 8px; }
+        .lesson-content-panel p { margin-bottom: 10px; color: #374151; white-space: pre-wrap; }
+
+        .complete-button {
+            background: #111827;
+            color: white;
+            border: none;
+            padding: 9px 16px;
+            border-radius: 8px;
             font-weight: 700;
+            font-size: 13px;
+            cursor: pointer;
         }
 
-        .detail-value {
-            font-weight: 700;
-            margin-top: 3px;
-        }
+        .complete-button:disabled { opacity: 0.6; cursor: not-allowed; }
 
         .status {
             display: inline-block;
-
-            padding: 5px 10px;
+            padding: 4px 10px;
             border-radius: 20px;
-
-            font-size: 12px;
+            font-size: 11px;
             font-weight: 700;
-
             background: #e8f5e9;
             color: #166534;
         }
 
-        .status.completed {
-            background: #dbeafe;
-            color: #1d4ed8;
-        }
+        .status.completed { background: #dbeafe; color: #1d4ed8; }
+        .status.dropped { background: #fee2e2; color: #b91c1c; }
 
-        .status.dropped {
-            background: #fee2e2;
-            color: #b91c1c;
-        }
-
-        .status.pending {
-            background: #fef3c7;
-            color: #92400e;
-        }
-
-        .open-button {
-            width: 100%;
-
-            border: none;
-            background: #111827;
-            color: white;
-
-            padding: 13px;
-            border-radius: 10px;
-
-            cursor: pointer;
-            font-weight: 700;
-            font-size: 15px;
-        }
-
-        .open-button:hover {
-            background: #b58b17;
-            color: #111827;
-        }
-
-        .loading,
-        .empty-state,
-        .error-state {
+        .loading, .empty-state, .error-state {
             background: white;
             border: 1px solid #e5e7eb;
             border-radius: 16px;
-
-            padding: 45px 20px;
-            text-align: center;
-
-            grid-column: 1 / -1;
-        }
-
-        .loading-icon,
-        .empty-icon,
-        .error-icon {
-            font-size: 42px;
-            margin-bottom: 12px;
-        }
-
-        .loading p,
-        .empty-state p,
-        .error-state p {
-            color: #6b7280;
-        }
-
-        .error-state {
-            border-color: #fecaca;
-        }
-
-        .error-state h4 {
-            color: #b91c1c;
-            margin-bottom: 5px;
-        }
-
-        .footer {
-            background: #111827;
-            color: white;
-            padding: 30px 20px;
+            padding: 40px 20px;
             text-align: center;
         }
 
-        .footer p {
-            color: #d1d5db;
-            font-size: 14px;
-        }
+        .loading-icon, .empty-icon, .error-icon { font-size: 38px; margin-bottom: 10px; }
+        .loading p, .empty-state p, .error-state p { color: #6b7280; }
+        .error-state { border-color: #fecaca; }
+        .error-state h4 { color: #b91c1c; margin-bottom: 5px; }
 
-        @media (max-width: 800px) {
+        .footer { background: #111827; color: white; padding: 25px 20px; text-align: center; }
+        .footer p { color: #d1d5db; font-size: 13px; }
 
-            .stats {
-                grid-template-columns: 1fr;
-            }
-
-            #coursesContainer {
-                grid-template-columns: 1fr;
-            }
-
-            .page-title h2 {
-                font-size: 28px;
-            }
-
-            .page-header {
-                padding: 14px 16px;
-            }
-
-            .brand-logo {
-                width: 44px;
-                height: 44px;
-            }
-
-            .brand-text h1 {
-                font-size: 19px;
-            }
-
-            .back-button {
-                padding: 10px 12px;
-                font-size: 12px;
-            }
-        }
-
-        @media (max-width: 500px) {
-
-            .course-details {
-                grid-template-columns: 1fr;
-            }
-
-            .courses-header {
-                align-items: flex-start;
-                gap: 10px;
-            }
-
-            .courses-header h3 {
-                font-size: 20px;
-            }
+        @media (max-width: 700px) {
+            .stats { grid-template-columns: 1fr; }
         }
     </style>
 </head>
 
 <body>
 
-    <!-- =========================
-         HEADER
-    ========================== -->
-
     <header class="page-header">
-
         <div class="brand">
-
-            <img
-                src="https://pub-b3e2d39712e84119875e84c5ec5f5c09.r2.dev/Logo/IMAGE.png"
-                alt="Sunningdale University Logo"
-                class="brand-logo"
-            >
-
+            <img src="https://pub-b3e2d39712e84119875e84c5ec5f5c09.r2.dev/Logo/IMG-20260816-WA0050(1).jpg" alt="Sunningdale University Logo" class="brand-logo">
             <div class="brand-text">
-
                 <h1>E-Campus</h1>
-
-                <p>
-                    Sunningdale University
-                </p>
-
+                <p>Sunningdale University</p>
             </div>
-
         </div>
-
-        <button
-            class="back-button"
-            onclick="goBack()"
-        >
-            ← Back
-        </button>
-
+        <button class="back-button" onclick="window.location.href='student-dashboard.html'">← Dashboard</button>
     </header>
 
-
-    <!-- =========================
-         MAIN CONTENT
-    ========================== -->
 
     <main class="page-container">
 
         <section class="page-title">
-
-            <div class="label">
-                Student Portal
-            </div>
-
-            <h2>
-                My Courses
-            </h2>
-
-            <p>
-                View your registered courses,
-                course information and academic
-                progress.
-            </p>
-
+            <div class="label">Student Portal</div>
+            <h2>My Courses</h2>
+            <p>Open a course to view its modules and lessons, and mark lessons as complete.</p>
         </section>
-
-
-        <!-- =========================
-             STATISTICS
-        ========================== -->
 
         <section class="stats">
-
-            <div class="stat-card">
-
-                <div
-                    class="number"
-                    id="totalCourses"
-                >
-                    0
-                </div>
-
-                <div class="label">
-                    Registered Courses
-                </div>
-
-            </div>
-
-
-            <div class="stat-card">
-
-                <div
-                    class="number"
-                    id="completedCourses"
-                >
-                    0
-                </div>
-
-                <div class="label">
-                    Completed Courses
-                </div>
-
-            </div>
-
-
-            <div class="stat-card">
-
-                <div
-                    class="number"
-                    id="activeCourses"
-                >
-                    0
-                </div>
-
-                <div class="label">
-                    Active Courses
-                </div>
-
-            </div>
-
+            <div class="stat-card"><div class="number" id="totalCourses">0</div><div class="label">Registered Courses</div></div>
+            <div class="stat-card"><div class="number" id="completedLessonsCount">0</div><div class="label">Lessons Completed</div></div>
+            <div class="stat-card"><div class="number" id="overallProgress">0%</div><div class="label">Overall Progress</div></div>
         </section>
 
-
-        <!-- =========================
-             COURSE LIST
-        ========================== -->
-
-        <section>
-
-            <div class="courses-header">
-
-                <h3>
-                    Your Registered Courses
-                </h3>
-
-                <button
-                    class="refresh-button"
-                    onclick="loadCourses()"
-                >
-                    ↻ Refresh
-                </button>
-
+        <div id="coursesContainer">
+            <div class="loading">
+                <div class="loading-icon">⏳</div>
+                <p>Loading your courses...</p>
             </div>
-
-
-            <div id="coursesContainer">
-
-                <div class="loading">
-
-                    <div class="loading-icon">
-                        ⏳
-                    </div>
-
-                    <p>
-                        Loading your courses...
-                    </p>
-
-                </div>
-
-            </div>
-
-        </section>
+        </div>
 
     </main>
 
 
-    <!-- =========================
-         FOOTER
-    ========================== -->
-
     <footer class="footer">
-
-        <p>
-            © 2026 Sunningdale University.
-            All rights reserved.
-        </p>
-
+        <p>© 2026 Sunningdale University. All rights reserved.</p>
     </footer>
 
 
-    <!-- =========================
-         SUPABASE
-    ========================== -->
-
-    <script
-        src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2">
-    </script>
-
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="../supabase-config.js"></script>
 
-    <script src="../app.js"></script>
-
-
-    <!-- =========================
-         PAGE JAVASCRIPT
-    ========================== -->
 
     <script>
 
-        let currentCourses = [];
+        let studentProfileId = null;
+        let authUserId = null;
+        let allModules = [];
+        let allLessons = [];
+        let completedLessonIds = new Set();
 
 
-        /*
-        ==========================================
-        WAIT FOR PAGE
-        ==========================================
-        */
-
-        document.addEventListener(
-            "DOMContentLoaded",
-            function () {
-
-                loadCourses();
-
-            }
-        );
+        function escapeHtml(value) {
+            return String(value ?? "")
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
 
 
-        /*
-        ==========================================
-        LOAD COURSES
-        ==========================================
-        */
+        function getStatusClass(status) {
+            const value = String(status || "").toLowerCase();
+            if (value === "completed") return "completed";
+            if (value === "dropped" || value === "cancelled") return "dropped";
+            return "";
+        }
+
+
+        document.addEventListener("DOMContentLoaded", loadCourses);
+
 
         async function loadCourses() {
 
-            const container =
-                document.getElementById(
-                    "coursesContainer"
-                );
-
-
-            container.innerHTML = `
-                <div class="loading">
-
-                    <div class="loading-icon">
-                        ⏳
-                    </div>
-
-                    <p>
-                        Loading your courses...
-                    </p>
-
-                </div>
-            `;
-
+            const container = document.getElementById("coursesContainer");
 
             try {
 
-                /*
-                ----------------------------------
-                GET CURRENT STUDENT
-                ----------------------------------
-                */
+                const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
 
-                if (
-                    typeof getCurrentStudent !==
-                    "function"
-                ) {
-
-                    throw new Error(
-                        "getCurrentStudent() was not found in app.js"
-                    );
-
-                }
-
-
-                const student =
-                    await getCurrentStudent();
-
-
-                if (!student) {
-
+                if (authError || !user) {
                     container.innerHTML = `
                         <div class="error-state">
-
-                            <div class="error-icon">
-                                🔐
-                            </div>
-
-                            <h4>
-                                Student login required
-                            </h4>
-
-                            <p>
-                                Please log in to view
-                                your registered courses.
-                            </p>
-
+                            <div class="error-icon">🔐</div>
+                            <h4>Student login required</h4>
+                            <p>Please log in to view your registered courses.</p>
                         </div>
                     `;
-
                     return;
                 }
 
+                authUserId = user.id;
 
-                /*
-                ----------------------------------
-                QUERY ENROLLMENTS + COURSES
-                ----------------------------------
-                */
+                const { data: studentProfile, error: studentError } =
+                    await supabaseClient
+                        .from("student_profiles")
+                        .select("id")
+                        .eq("user_id", user.id)
+                        .single();
 
-                const {
-                    data,
-                    error
-                } = await supabaseClient
-
-                    .from("enrollments")
-
-                    .select(`
-                        id,
-                        status,
-                        final_grade,
-                        final_score,
-                        enrollment_date,
-
-                        course:courses (
-                            id,
-                            code,
-                            name,
-                            description,
-                            credits,
-                            course_type,
-                            status
-                        )
-                    `)
-
-                    .eq(
-                        "student_id",
-                        student.id
-                    )
-
-                    .order(
-                        "enrollment_date",
-                        {
-                            ascending: false
-                        }
-                    );
-
-
-                if (error) {
-
-                    console.error(
-                        "Supabase course error:",
-                        error
-                    );
-
-                    throw error;
-
+                if (studentError || !studentProfile) {
+                    container.innerHTML = `
+                        <div class="error-state">
+                            <div class="error-icon">⚠️</div>
+                            <h4>Unable to load your student record</h4>
+                            <p>${escapeHtml(studentError?.message || "Profile not found.")}</p>
+                        </div>
+                    `;
+                    return;
                 }
 
+                studentProfileId = studentProfile.id;
 
-                currentCourses =
-                    data || [];
+                const { data: enrollments, error: enrollError } =
+                    await supabaseClient
+                        .from("enrollments")
+                        .select(`
+                            id, status, final_grade, final_score,
+                            course:courses ( id, code, name, description, credits, course_type )
+                        `)
+                        .eq("student_id", studentProfileId)
+                        .order("enrollment_date", { ascending: false });
 
+                if (enrollError) throw enrollError;
 
-                /*
-                ----------------------------------
-                STATISTICS
-                ----------------------------------
-                */
+                document.getElementById("totalCourses").textContent = (enrollments || []).length;
 
-                const total =
-                    currentCourses.length;
+                if (!enrollments || enrollments.length === 0) {
+                    container.innerHTML = `
+                        <div class="empty-state">
+                            <div class="empty-icon">📚</div>
+                            <h4>No registered courses</h4>
+                            <p>You currently have no courses registered.</p>
+                        </div>
+                    `;
+                    return;
+                }
 
+                const courseIds = enrollments.map(e => e.course?.id).filter(Boolean);
 
-                const completed =
-                    currentCourses.filter(
-                        item =>
-                            String(
-                                item.status
-                            ).toLowerCase()
-                            === "completed"
-                    ).length;
+                const { data: modules } = await supabaseClient
+                    .from("course_modules")
+                    .select("id, course_id, module_number, title")
+                    .in("course_id", courseIds)
+                    .order("module_number");
 
+                allModules = modules || [];
+                const moduleIds = allModules.map(m => m.id);
 
-                const active =
-                    currentCourses.filter(
-                        item => {
+                let lessons = [];
+                if (moduleIds.length > 0) {
+                    const { data } = await supabaseClient
+                        .from("lessons")
+                        .select("id, module_id, lesson_number, title, description, content, estimated_hours")
+                        .in("module_id", moduleIds)
+                        .order("lesson_number");
+                    lessons = data || [];
+                }
+                allLessons = lessons;
 
-                            const status =
-                                String(
-                                    item.status ||
-                                    ""
-                                ).toLowerCase();
+                const lessonIds = allLessons.map(l => l.id);
 
-                            return (
-                                status === "active" ||
-                                status === "enrolled" ||
-                                status === "registered"
-                            );
+                let progress = [];
+                if (lessonIds.length > 0) {
+                    const { data } = await supabaseClient
+                        .from("lesson_progress")
+                        .select("lesson_id, status")
+                        .eq("student_id", authUserId)
+                        .in("lesson_id", lessonIds);
+                    progress = data || [];
+                }
 
-                        }
-                    ).length;
-
-
-                document.getElementById(
-                    "totalCourses"
-                ).textContent = total;
-
-
-                document.getElementById(
-                    "completedCourses"
-                ).textContent =
-                    completed;
-
-
-                document.getElementById(
-                    "activeCourses"
-                ).textContent =
-                    active;
-
-
-                /*
-                ----------------------------------
-                DISPLAY COURSES
-                ----------------------------------
-                */
-
-                renderCourses(
-                    currentCourses
+                completedLessonIds = new Set(
+                    progress.filter(p => p.status === "completed").map(p => p.lesson_id)
                 );
 
-            }
+                document.getElementById("completedLessonsCount").textContent = completedLessonIds.size;
+                const overallPct = allLessons.length > 0
+                    ? Math.round((completedLessonIds.size / allLessons.length) * 100)
+                    : 0;
+                document.getElementById("overallProgress").textContent = overallPct + "%";
 
-            catch (error) {
+                renderCourses(enrollments);
 
-                console.error(
-                    "loadCourses failed:",
-                    error
-                );
+            } catch (error) {
 
-
+                console.error("loadCourses failed:", error);
                 container.innerHTML = `
                     <div class="error-state">
-
-                        <div class="error-icon">
-                            ⚠️
-                        </div>
-
-                        <h4>
-                            Unable to load courses
-                        </h4>
-
-                        <p>
-                            ${escapeHtml(
-                                error.message ||
-                                "An unexpected error occurred."
-                            )}
-                        </p>
-
+                        <div class="error-icon">⚠️</div>
+                        <h4>Unable to load courses</h4>
+                        <p>${escapeHtml(error.message || "An unexpected error occurred.")}</p>
                     </div>
                 `;
 
@@ -866,397 +395,153 @@
         }
 
 
-        /*
-        ==========================================
-        RENDER COURSES
-        ==========================================
-        */
+        function renderCourses(enrollments) {
 
-        function renderCourses(
-            enrollments
-        ) {
-
-            const container =
-                document.getElementById(
-                    "coursesContainer"
-                );
-
-
-            if (
-                !enrollments ||
-                enrollments.length === 0
-            ) {
-
-                container.innerHTML = `
-                    <div class="empty-state">
-
-                        <div class="empty-icon">
-                            📚
-                        </div>
-
-                        <h4>
-                            No registered courses
-                        </h4>
-
-                        <p>
-                            You currently have no
-                            courses registered.
-                        </p>
-
-                    </div>
-                `;
-
-                return;
-            }
-
-
+            const container = document.getElementById("coursesContainer");
             container.innerHTML = "";
 
+            enrollments.forEach((enrollment, index) => {
 
-            enrollments.forEach(
-                function (
-                    enrollment,
-                    index
-                ) {
+                const course = enrollment.course;
+                if (!course) return;
 
-                    const course =
-                        enrollment.course;
+                const courseModules = allModules
+                    .filter(m => m.course_id === course.id)
+                    .sort((a, b) => a.module_number - b.module_number);
 
-
-                    if (!course) {
-                        return;
-                    }
-
-
-                    const card =
-                        document.createElement(
-                            "article"
-                        );
-
-
-                    card.className =
-                        "course-card";
-
-
-                    const status =
-                        String(
-                            enrollment.status ||
-                            "active"
-                        );
-
-
-                    const statusClass =
-                        getStatusClass(
-                            status
-                        );
-
-
-                    const description =
-                        course.description ||
-                        "No course description available.";
-
-
-                    card.innerHTML = `
-
-                        <div class="course-top">
-
-                            <div>
-
-                                <div class="course-code">
-
-                                    ${escapeHtml(
-                                        course.code
-                                    )}
-
-                                </div>
-
-                                <h4>
-
-                                    ${escapeHtml(
-                                        course.name
-                                    )}
-
-                                </h4>
-
-                            </div>
-
-
-                            <div class="course-icon">
-                                📚
-                            </div>
-
-                        </div>
-
-
-                        <p class="course-description">
-
-                            ${escapeHtml(
-                                description
-                            )}
-
-                        </p>
-
-
-                        <div class="course-details">
-
-                            <div class="detail">
-
-                                <div class="detail-label">
-                                    Credits
-                                </div>
-
-                                <div class="detail-value">
-
-                                    ${
-                                        course.credits ??
-                                        "N/A"
-                                    }
-
-                                </div>
-
-                            </div>
-
-
-                            <div class="detail">
-
-                                <div class="detail-label">
-                                    Type
-                                </div>
-
-                                <div class="detail-value">
-
-                                    ${escapeHtml(
-                                        course.course_type ||
-                                        "N/A"
-                                    )}
-
-                                </div>
-
-                            </div>
-
-
-                            <div class="detail">
-
-                                <div class="detail-label">
-                                    Grade
-                                </div>
-
-                                <div class="detail-value">
-
-                                    ${
-                                        enrollment.final_grade ||
-                                        "Pending"
-                                    }
-
-                                </div>
-
-                            </div>
-
-
-                            <div class="detail">
-
-                                <div class="detail-label">
-                                    Score
-                                </div>
-
-                                <div class="detail-value">
-
-                                    ${
-                                        enrollment.final_score !==
-                                        null &&
-                                        enrollment.final_score !==
-                                        undefined
-                                            ? enrollment.final_score
-                                            : "Pending"
-                                    }
-
-                                </div>
-
-                            </div>
-
-                        </div>
-
-
-                        <span
-                            class="status ${statusClass}"
-                        >
-
-                            ${escapeHtml(
-                                status
-                            )}
-
-                        </span>
-
-
-                        <br><br>
-
-
-                        <button
-                            class="open-button"
-                            onclick="openCourse(${index})"
-                        >
-                            Open Course
-                        </button>
-
-                    `;
-
-
-                    container.appendChild(
-                        card
-                    );
-
-                }
-            );
-
-        }
-
-
-        /*
-        ==========================================
-        OPEN COURSE
-        ==========================================
-        */
-
-        function openCourse(index) {
-
-            const enrollment =
-                currentCourses[index];
-
-
-            if (!enrollment) {
-                return;
-            }
-
-
-            const course =
-                enrollment.course;
-
-
-            if (!course) {
-                return;
-            }
-
-
-            /*
-            ----------------------------------
-            TEMPORARY COURSE ACTION
-            ----------------------------------
-
-            The actual course-content page
-            will be connected later.
-            ----------------------------------
-            */
-
-            alert(
-                "Opening " +
-                course.name +
-                " (" +
-                course.code +
-                ")"
-            );
-
-        }
-
-
-        /*
-        ==========================================
-        STATUS CLASS
-        ==========================================
-        */
-
-        function getStatusClass(
-            status
-        ) {
-
-            const value =
-                String(
-                    status || ""
-                ).toLowerCase();
-
-
-            if (
-                value === "completed"
-            ) {
-
-                return "completed";
-
-            }
-
-
-            if (
-                value === "dropped" ||
-                value === "cancelled"
-            ) {
-
-                return "dropped";
-
-            }
-
-
-            if (
-                value === "pending"
-            ) {
-
-                return "pending";
-
-            }
-
-
-            return "";
-
-        }
-
-
-        /*
-        ==========================================
-        ESCAPE HTML
-        ==========================================
-        */
-
-        function escapeHtml(
-            value
-        ) {
-
-            const div =
-                document.createElement(
-                    "div"
+                const courseLessons = allLessons.filter(l =>
+                    courseModules.some(m => m.id === l.module_id)
                 );
 
+                const completedInCourse = courseLessons.filter(l => completedLessonIds.has(l.id)).length;
+                const pct = courseLessons.length > 0
+                    ? Math.round((completedInCourse / courseLessons.length) * 100)
+                    : 0;
 
-            div.textContent =
-                value === null ||
-                value === undefined
-                    ? ""
-                    : String(value);
+                const status = String(enrollment.status || "active");
+                const statusClass = getStatusClass(status);
 
+                const card = document.createElement("article");
+                card.className = "course-card";
 
-            return div.innerHTML;
+                card.innerHTML = `
+                    <div class="course-header" onclick="toggleCourse(${index})">
+                        <div style="flex:1;">
+                            <div class="course-code">${escapeHtml(course.code)}</div>
+                            <h4>${escapeHtml(course.name)}</h4>
+                            <div class="course-meta">
+                                ${completedInCourse} of ${courseLessons.length} lessons completed •
+                                <span class="status ${statusClass}">${escapeHtml(status)}</span>
+                            </div>
+                            <div class="progress-bar-bg"><div class="progress-bar-fill" style="width:${pct}%;"></div></div>
+                        </div>
+                        <div class="expand-icon" id="icon-${index}">▼</div>
+                    </div>
+                    <div class="course-body" id="body-${index}">
+                        ${renderModules(courseModules, index)}
+                    </div>
+                `;
+
+                container.appendChild(card);
+
+            });
 
         }
 
 
-        /*
-        ==========================================
-        BACK BUTTON
-        ==========================================
-        */
+        function renderModules(courseModules, courseIndex) {
 
-        function goBack() {
-
-            if (
-                document.referrer &&
-                document.referrer !==
-                window.location.href
-            ) {
-
-                window.history.back();
-
-            } else {
-
-                window.location.href =
-                    "student-dashboard.html";
-
+            if (courseModules.length === 0) {
+                return `<p style="color:#9ca3af; padding:14px 0;">No modules have been added to this course yet.</p>`;
             }
+
+            let html = "";
+
+            courseModules.forEach(module => {
+
+                const moduleLessons = allLessons
+                    .filter(l => l.module_id === module.id)
+                    .sort((a, b) => a.lesson_number - b.lesson_number);
+
+                html += `<div class="module-block"><h5>Module ${module.module_number} — ${escapeHtml(module.title)}</h5>`;
+
+                if (moduleLessons.length === 0) {
+                    html += `<p style="color:#9ca3af; font-size:13px;">No lessons added yet.</p>`;
+                } else {
+                    moduleLessons.forEach(lesson => {
+
+                        const done = completedLessonIds.has(lesson.id);
+
+                        html += `
+                            <div class="lesson-row ${done ? "done" : ""}" onclick="toggleLesson('${lesson.id}')">
+                                <span class="lesson-title">${done ? "✅" : "⬜"} Lesson ${lesson.lesson_number} — ${escapeHtml(lesson.title)}</span>
+                                <span class="lesson-check">›</span>
+                            </div>
+                            <div class="lesson-content-panel" id="panel-${lesson.id}">
+                                <h6>${escapeHtml(lesson.title)}</h6>
+                                <p>${escapeHtml(lesson.description || "No description provided.")}</p>
+                                ${lesson.content ? `<p>${escapeHtml(lesson.content)}</p>` : ""}
+                                <button class="complete-button" id="btn-${lesson.id}" onclick="event.stopPropagation(); markComplete('${lesson.id}')" ${done ? "disabled" : ""}>
+                                    ${done ? "✓ Completed" : "Mark as Complete"}
+                                </button>
+                            </div>
+                        `;
+
+                    });
+                }
+
+                html += `</div>`;
+
+            });
+
+            return html;
+
+        }
+
+
+        function toggleCourse(index) {
+
+            const body = document.getElementById(`body-${index}`);
+            const icon = document.getElementById(`icon-${index}`);
+
+            const isOpen = body.classList.toggle("open");
+            icon.textContent = isOpen ? "▲" : "▼";
+
+        }
+
+
+        function toggleLesson(lessonId) {
+
+            const panel = document.getElementById(`panel-${lessonId}`);
+            panel.classList.toggle("open");
+
+        }
+
+
+        async function markComplete(lessonId) {
+
+            const button = document.getElementById(`btn-${lessonId}`);
+            button.disabled = true;
+            button.textContent = "Saving...";
+
+            const { error } = await supabaseClient
+                .from("lesson_progress")
+                .upsert({
+                    student_id: authUserId,
+                    lesson_id: lessonId,
+                    status: "completed",
+                    completed_at: new Date().toISOString()
+                }, { onConflict: "student_id,lesson_id" });
+
+            if (error) {
+                console.error(error);
+                alert("Unable to mark lesson complete: " + error.message);
+                button.disabled = false;
+                button.textContent = "Mark as Complete";
+                return;
+            }
+
+            await loadCourses();
 
         }
 
