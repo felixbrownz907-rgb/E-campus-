@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Quizzes & Exams | E-Campus</title>
+
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body { font-family: Arial, Helvetica, sans-serif; background: #f4f6f9; color: #172033; }
+
+.header {
+    background: #111827;
+    color: white;
+    padding: 18px 25px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.brand { display: flex; align-items: center; gap: 14px; }
+.logo { width: 55px; height: 55px; object-fit: contain; background: white; border-radius: 8px; }
+.brand h1 { font-size: 22px; }
+.brand p { color: #d4af37; margin-top: 3px; font-size: 13px; }
+
+.back-button {
+    background: #d4af37;
+    color: #111827;
+    text-decoration: none;
+    padding: 10px 16px;
+    border-radius: 8px;
+    font-weight: bold;
+    font-size: 13px;
+}
+
+.container { max-width: 900px; margin: 25px auto; padding: 0 20px; }
+
+.page-title { margin-bottom: 20px; }
+.page-title h2 { font-size: 28px; margin-bottom: 6px; }
+.page-title p { color: #6b7280; }
+
+.card {
+    background: white;
+    padding: 22px;
+    border-radius: 14px;
+    margin-bottom: 18px;
+    box-shadow: 0 3px 12px rgba(0,0,0,0.06);
+}
+
+.card-top { display: flex; justify-content: space-between; align-items: start; gap: 12px; flex-wrap: wrap; }
+.card h3 { font-size: 18px; }
+.course-tag { color: #d4af37; font-size: 12px; font-weight: bold; }
+.meta { color: #6b7280; font-size: 13px; margin-top: 6px; }
+
+.exam-tag {
+    background: #fee2e2;
+    color: #991b1b;
+    padding: 3px 9px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: bold;
+}
+
+.status-badge {
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: bold;
+}
+
+.status-badge.locked { background: #f3f4f6; color: #6b7280; }
+.status-badge.open { background: #dcfce7; color: #166534; }
+.status-badge.done { background: #dbeafe; color: #1d4ed8; }
+
+.start-button {
+    margin-top: 14px;
+    background: #111827;
+    color: white;
+    border: none;
+    padding: 12px 20px;
+    border-radius: 8px;
+    font-weight: bold;
+    cursor: pointer;
+    width: 100%;
+}
+
+.start-button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.empty-note { color: #9ca3af; text-align: center; padding: 30px 0; }
+
+/* ============ EXAM ROOM (full screen) ============ */
+
+.exam-room {
+    display: none;
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: #111827;
+    z-index: 999;
+    overflow-y: auto;
+    padding: 20px;
+}
+
+.exam-room.active { display: block; }
+
+.exam-header {
+    background: #1f2937;
+    color: white;
+    padding: 16px 20px;
+    border-radius: 10px;
+    margin-bottom: 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    position: sticky;
+    top: 0;
+}
+
+.exam-timer { font-size: 18px; font-weight: bold; color: #d4af37; }
+
+.exam-warning {
+    background: #fef3c7;
+    color: #92400e;
+    padding: 14px;
+    border-radius: 10px;
+    margin-bottom: 20px;
+    font-weight: bold;
+    text-align: center;
+}
+
+.exam-question {
+    background: white;
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 16px;
+}
+
+.exam-question .qnum { color: #d4af37; font-weight: bold; font-size: 13px; margin-bottom: 8px; }
+.exam-question .qtext { font-size: 16px; margin-bottom: 14px; }
+
+.option-choice {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    margin-bottom: 8px;
+    cursor: pointer;
+}
+
+.option-choice input { width: auto; }
+
+.short-answer-input {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    min-height: 90px;
+}
+
+.submit-exam-button {
+    background: #d4af37;
+    color: #111827;
+    border: none;
+    padding: 16px;
+    border-radius: 10px;
+    font-weight: bold;
+    font-size: 16px;
+    cursor: pointer;
+    width: 100%;
+    margin-top: 10px;
+}
+
+.lockout-screen {
+    display: none;
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: #991b1b;
+    color: white;
+    z-index: 1000;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 30px;
+}
+
+.lockout-screen.active { display: flex; flex-direction: column; }
+.lockout-screen h2 { font-size: 26px; margin-bottom: 14px; }
+.lockout-screen p { font-size: 15px; max-width: 500px; }
+
+</style>
+</head>
+
+
+<body>
+
+<header class="header">
+    <div class="brand">
+        <img src="https://pub-b3e2d39712e84119875e84c5ec5f5c09.r2.dev/Logo/IMG-20260816-WA0050(1).jpg" alt="Sunningdale University Logo" class="logo">
+        <div>
+            <h1>E-Campus</h1>
+            <p>Sunningdale University</p>
+        </div>
+    </div>
+    <a href="student-dashboard.html" class="back-button">← Dashboard</a>
+</header>
+
+
+<main class="container">
+
+    <section class="page-title">
+        <h2>Quizzes & Exams</h2>
+        <p>Practice quizzes can be retaken. Exams are single-attempt and locked once you begin.</p>
+    </section>
+
+    <div id="quizzesContainer">
+        <div class="card"><p class="empty-note">Loading...</p></div>
+    </div>
+
+</main>
+
+
+<!-- ============ FULL EXAM ROOM ============ -->
+
+<div class="exam-room" id="examRoom">
+
+    <div class="exam-header">
+        <div id="examTitle">Exam</div>
+        <div class="exam-timer" id="examTimer">--:--</div>
+    </div>
+
+    <div class="exam-warning">
+        ⚠️ Do not leave this page or switch apps. Doing so will lock your exam and submit your current answers immediately.
+    </div>
+
+    <div id="examQuestions"></div>
+
+    <button class="submit-exam-button" id="submitExamButton" onclick="submitExam(false)">Submit Exam</button>
+
+</div>
+
+
+<div class="lockout-screen" id="lockoutScreen">
+    <h2>⚠️ Exam Locked</h2>
+    <p id="lockoutMessage">You left the exam page. Your answers at that moment have been submitted automatically and flagged for review.</p>
+</div>
+
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../supabase-config.js"></script>
+
+
+<script>
+
+let authUserId = null;
+let studentProfileId = null;
+
+let activeQuiz = null;
+let activeQuestions = [];
+let activeAttemptId = null;
+let examTimerInterval = null;
+let examEndTime = null;
+let examLocked = false;
+
+
+function escapeHtml(value) {
+    return String(value ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+}
+
+
+async function loadQuizzes() {
+
+    const container = document.getElementById("quizzesContainer");
+
+    const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
+
+    if (authError || !user) {
+        window.location.href = "student-login.html";
+        return;
+    }
+
+    authUserId = user.id;
+
+    const { data: studentProfile } =
+        await supabaseClient.from("student_profiles").select("id").eq("user_id", user.id).single();
+
+    if (!studentProfile) {
+        container.innerHTML = `<div class="card"><p class="empty-note">Unable to load your student profile.</p></div>`;
+        return;
+    }
+
+    studentProfileId = studentProfile.id;
+
+    const { data: enrollments } =
+        await supabaseClient
+            .from("enrollments")
+            .select("courses ( id, code, name )")
+            .eq("student_id", studentProfileId);
+
+    const courseIds = (enrollments || []).map(e => e.courses?.id).filter(Boolean);
+    const courseMap = {};
+    (enrollments || []).forEach(e => { if (e.courses) courseMap[e.courses.id] = e.courses; });
+
+    if (courseIds.length === 0) {
+        container.innerHTML = `<div class="card"><p class="empty-note">You are not enrolled in any courses yet.</p></div>`;
+        return;
+    }
+
+    const { data: modules } =
+        await supabaseClient.from("course_modules").select("id, course_id").in("course_id", courseIds);
+
+    const moduleIds = (modules || []).map(m => m.id);
+    const moduleToCourse = {};
+    (modules || []).forEach(m => moduleToCourse[m.id] = m.course_id);
+
+    if (moduleIds.length === 0) {
+        container.innerHTML = `<div class="card"><p class="empty-note">No quizzes or exams available yet.</p></div>`;
+        return;
+    }
+
+    const { data: quizzes, error: quizError } =
+        await supabaseClient.from("quizzes").select("*").in("module_id", moduleIds).order("due_date");
+
+    if (quizError || !quizzes || quizzes.length === 0) {
+        container.innerHTML = `<div class="card"><p class="empty-note">No quizzes or exams available yet.</p></div>`;
+        return;
+    }
+
+    const quizIds = quizzes.map(q => q.id);
+
+    const { data: attempts } =
+        await supabaseClient
+            .from("quiz_attempts")
+            .select("quiz_id, score, submitted_at")
+            .eq("student_id", authUserId)
+            .in("quiz_id", quizIds);
+
+    const attemptsByQuiz = {};
+    (attempts || []).forEach(a => {
+        if (!attemptsByQuiz[a.quiz_id]) attemptsByQuiz[a.quiz_id] = [];
+        attemptsByQuiz[a.quiz_id].push(a);
+    });
+
+    renderQuizzes(quizzes, moduleToCourse, courseMap, attemptsByQuiz);
+
+}
+
+
+function renderQuizzes(quizzes, moduleToCourse, courseMap, attemptsByQuiz) {
+
+    const container = document.getElementById("quizzesContainer");
+    container.innerHTML = "";
+
+    quizzes.forEach(quiz => {
+
+        const courseId = moduleToCourse[quiz.module_id];
+        const course = courseMap[courseId];
+        const attempts = attemptsByQuiz[quiz.id] || [];
+        const hasAttempted = attempts.length > 0;
+
+        let statusLabel = "Locked";
+        let statusClass = "locked";
+        let buttonDisabled = true;
+        let buttonText = "Locked";
+
+        if (quiz.is_exam) {
+
+            if (hasAttempted) {
+                statusLabel = "Completed";
+                statusClass = "done";
+                buttonText = "Already Submitted";
+            } else if (quiz.is_open) {
+                statusLabel = "Open Now";
+                statusClass = "open";
+                buttonDisabled = false;
+                buttonText = "Start Exam";
+            } else {
+                statusLabel = "Not Yet Open";
+                buttonText = "Waiting for exam window";
+            }
+
+        } else {
+
+            statusLabel = hasAttempted ? "Attempted" : "Available";
+            statusClass = hasAttempted ? "done" : "open";
+            buttonDisabled = false;
+            buttonText = hasAttempted ? "Retake Quiz" : "Start Quiz";
+
+        }
+
+        const card = document.createElement("div");
+        card.className = "card";
+
+        const bestScore = attempts.length > 0
+            ? Math.max(...attempts.map(a => a.score ?? 0))
+            : null;
+
+        card.innerHTML = `
+            <div class="card-top">
+                <div>
+                    <div class="course-tag">${course ? escapeHtml(course.code) : ""} ${quiz.is_exam ? `<span class="exam-tag">EXAM</span>` : ""}</div>
+                    <h3>${escapeHtml(quiz.title)}</h3>
+                    <div class="meta">${quiz.due_date ? "Due: " + new Date(quiz.due_date).toLocaleString() : "No due date"}${bestScore !== null ? ` • Best score: ${bestScore}%` : ""}</div>
+                </div>
+                <span class="status-badge ${statusClass}">${statusLabel}</span>
+            </div>
+            <button class="start-button" ${buttonDisabled ? "disabled" : ""} onclick="beginQuiz('${quiz.id}')">${buttonText}</button>
+        `;
+
+        container.appendChild(card);
+
+    });
+
+}
+
+
+async function beginQuiz(quizId) {
+
+    const { data: quiz, error: quizError } =
+        await supabaseClient.from("quizzes").select("*").eq("id", quizId).single();
+
+    if (quizError || !quiz) {
+        alert("Unable to load this quiz.");
+        return;
+    }
+
+    const { data: questions, error: qError } =
+        await supabaseClient.from("quiz_questions").select("*").eq("quiz_id", quizId);
+
+    if (qError || !questions || questions.length === 0) {
+        alert("This quiz has no questions yet.");
+        return;
+    }
+
+    if (quiz.is_exam) {
+        const confirmed = confirm(
+            "This is a locked exam. Once you start, you must NOT leave this page or switch apps until you finish. Doing so will lock your exam and submit your current answers. Are you ready to begin?"
+        );
+        if (!confirmed) return;
+    }
+
+    activeQuiz = quiz;
+    activeQuestions = questions;
+    examLocked = false;
+
+    const { data: attemptRow, error: insertError } =
+        await supabaseClient
+            .from("quiz_attempts")
+            .insert({
+                quiz_id: quizId,
+                student_id: authUserId,
+                started_at: new Date().toISOString(),
+                answers: {}
+            })
+            .select("id")
+            .single();
+
+    if (insertError) {
+        alert("Unable to start: " + insertError.message);
+        return;
+    }
+
+    activeAttemptId = attemptRow.id;
+
+    renderExamRoom();
+
+    document.getElementById("examRoom").classList.add("active");
+
+    if (quiz.is_exam) {
+        document.addEventListener("visibilitychange", handleVisibilityChange);
+        window.addEventListener("blur", handleWindowBlur);
+    }
+
+    if (quiz.due_date) {
+        examEndTime = new Date(quiz.due_date).getTime();
+        startTimer();
+    } else {
+        document.getElementById("examTimer").textContent = "";
+    }
+
+}
+
+
+function renderExamRoom() {
+
+    document.getElementById("examTitle").textContent = activeQuiz.title;
+
+    const container = document.getElementById("examQuestions");
+    container.innerHTML = "";
+
+    activeQuestions.forEach((q, idx) => {
+
+        const block = document.createElement("div");
+        block.className = "exam-question";
+
+        let inputHtml = "";
+
+        if (q.question_type === "short_answer") {
+
+            inputHtml = `<textarea class="short-answer-input" id="answer-${q.id}" placeholder="Type your answer..."></textarea>`;
+
+        } else {
+
+            (q.options || []).forEach((opt, optIdx) => {
+                inputHtml += `
+                    <label class="option-choice">
+                        <input type="radio" name="q-${q.id}" value="${escapeHtml(opt)}" id="opt-${q.id}-${optIdx}">
+                        ${escapeHtml(opt)}
+                    </label>
+                `;
+            });
+
+        }
+
+        block.innerHTML = `
+            <div class="qnum">Question ${idx + 1} of ${activeQuestions.length}</div>
+            <div class="qtext">${escapeHtml(q.question_text)}</div>
+            ${inputHtml}
+        `;
+
+        container.appendChild(block);
+
+    });
+
+}
+
+
+function startTimer() {
+
+    examTimerInterval = setInterval(() => {
+
+        const remaining = examEndTime - Date.now();
+
+        if (remaining <= 0) {
+            clearInterval(examTimerInterval);
+            document.getElementById("examTimer").textContent = "TIME UP";
+            submitExam(false);
+            return;
+        }
+
+        const mins = Math.floor(remaining / 60000);
+        const secs = Math.floor((remaining % 60000) / 1000);
+        document.getElementById("examTimer").textContent = `${mins}:${secs.toString().padStart(2, "0")}`;
+
+    }, 1000);
+
+}
+
+
+function handleVisibilityChange() {
+    if (document.hidden && !examLocked) {
+        lockExam("You switched away from this tab.");
+    }
+}
+
+
+function handleWindowBlur() {
+    if (!examLocked) {
+        lockExam("You left this window.");
+    }
+}
+
+
+function lockExam(reason) {
+
+    examLocked = true;
+
+    document.removeEventListener("visibilitychange", handleVisibilityChange);
+    window.removeEventListener("blur", handleWindowBlur);
+
+    if (examTimerInterval) clearInterval(examTimerInterval);
+
+    document.getElementById("examRoom").classList.remove("active");
+    document.getElementById("lockoutScreen").classList.add("active");
+    document.getElementById("lockoutMessage").textContent =
+        reason + " Your answers at that moment have been submitted automatically and flagged for lecturer review.";
+
+    submitExam(true, reason);
+
+}
+
+
+async function submitExam(isViolation, violationReason) {
+
+    if (examTimerInterval) clearInterval(examTimerInterval);
+    document.removeEventListener("visibilitychange", handleVisibilityChange);
+    window.removeEventListener("blur", handleWindowBlur);
+
+    const answers = {};
+    let autoScoredPoints = 0;
+    let autoScorableTotal = 0;
+
+    activeQuestions.forEach(q => {
+
+        if (q.question_type === "short_answer") {
+
+            const val = document.getElementById(`answer-${q.id}`)?.value.trim() || "";
+            answers[q.id] = val;
+
+        } else {
+
+            const selected = document.querySelector(`input[name="q-${q.id}"]:checked`);
+            const val = selected ? selected.value : null;
+            answers[q.id] = val;
+
+            autoScorableTotal += 1;
+            if (val && val === q.correct_answer) {
+                autoScoredPoints += 1;
+            }
+
+        }
+
+    });
+
+    const hasShortAnswer = activeQuestions.some(q => q.question_type === "short_answer");
+
+    const score = autoScorableTotal > 0 && !hasShortAnswer
+        ? Math.round((autoScoredPoints / autoScorableTotal) * 100)
+        : null;
+
+    const { error } =
+        await supabaseClient
+            .from("quiz_attempts")
+            .update({
+                answers: answers,
+                score: score,
+                submitted_at: new Date().toISOString(),
+                violation_flag: !!isViolation,
+                violation_reason: violationReason || null
+            })
+            .eq("id", activeAttemptId);
+
+    if (error) {
+        console.error(error);
+    }
+
+    if (!isViolation) {
+        document.getElementById("examRoom").classList.remove("active");
+        alert(score !== null ? `Submitted. Score: ${score}%` : "Submitted. Awaiting grading for short-answer questions.");
+        await loadQuizzes();
+    }
+
+}
+
+
+loadQuizzes();
+
+</script>
+
+</body>
+</html>
