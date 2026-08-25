@@ -545,7 +545,9 @@ async function toggleSubmissions(assignmentId) {
                 <div>
                     <strong>${escapeHtml(name)}</strong><br>
                     <span style="font-size:12px; color:#6b7280;">Submitted: ${new Date(sub.submitted_at).toLocaleString()}</span><br>
-                    <span style="font-size:13px;">${escapeHtml(sub.content || "No text content")}</span>
+                    ${sub.content ? `<span style="font-size:13px;">${escapeHtml(sub.content)}</span><br>` : ""}
+                    ${sub.file_url ? `<a href="${sub.file_url}" target="_blank" style="font-size:13px; color:#1d4ed8; font-weight:bold;">📎 Open uploaded file</a>` : ""}
+                    ${!sub.content && !sub.file_url ? `<span style="font-size:13px; color:#9ca3af;">No content submitted</span>` : ""}
                 </div>
                 <div class="grade-inputs">
                     <input type="number" placeholder="Score" value="${sub.score ?? ""}" id="score-${sub.id}">
