@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lecturer Dashboard | E-Campus</title>
+
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body { font-family: Arial, Helvetica, sans-serif; background: #f4f6f9; color: #172033; }
+
+.header {
+    background: #0e7490;
+    color: white;
+    padding: 18px 25px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.brand { display: flex; align-items: center; gap: 14px; }
+.logo { width: 55px; height: 55px; object-fit: contain; background: white; border-radius: 8px; }
+.brand h1 { font-size: 22px; }
+.brand p { color: #cffafe; margin-top: 3px; font-size: 13px; }
+
+.header-button {
+    background: white;
+    color: #0e7490;
+    border: none;
+    padding: 10px 16px;
+    border-radius: 8px;
+    font-weight: bold;
+    font-size: 13px;
+    cursor: pointer;
+}
+
+.container { max-width: 1100px; margin: 25px auto; padding: 0 20px; }
+
+.welcome-card {
+    background: linear-gradient(135deg, #0e7490, #164e63);
+    color: white;
+    padding: 25px;
+    border-radius: 14px;
+    margin-bottom: 20px;
+}
+
+.welcome-card h2 { font-size: 24px; margin-bottom: 6px; }
+.welcome-card p { color: #cffafe; font-size: 14px; }
+
+.stat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 20px; }
+
+.stat-card { background: white; border-radius: 12px; padding: 18px; text-align: center; box-shadow: 0 3px 12px rgba(0,0,0,0.06); }
+.stat-card .value { font-size: 26px; font-weight: bold; }
+.stat-card .label { font-size: 12px; color: #6b7280; margin-top: 4px; }
+
+.card { background: white; padding: 22px; border-radius: 14px; margin-bottom: 20px; box-shadow: 0 3px 12px rgba(0,0,0,0.06); }
+.card h3 { font-size: 19px; margin-bottom: 16px; }
+
+.course-item {
+    padding: 16px;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    margin-bottom: 12px;
+}
+
+.course-item h4 { font-size: 16px; margin-bottom: 6px; }
+.course-meta { font-size: 12px; color: #6b7280; margin-bottom: 10px; }
+
+.action-row { display: flex; gap: 8px; flex-wrap: wrap; }
+
+.small-button {
+    background: #0e7490;
+    color: white;
+    border: none;
+    padding: 8px 14px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: bold;
+    cursor: pointer;
+    text-decoration: none;
+}
+
+.empty-note { color: #9ca3af; text-align: center; padding: 20px 0; }
+
+@media (max-width: 700px) {
+    .stat-grid { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+
+
+<body>
+
+<header class="header">
+    <div class="brand">
+        <img src="https://pub-b3e2d39712e84119875e84c5ec5f5c09.r2.dev/Logo/IMG-20260816-WA0050(1).jpg" alt="Sunningdale University Logo" class="logo">
+        <div>
+            <h1>E-Campus</h1>
+            <p>Lecturer Portal — Sunningdale University</p>
+        </div>
+    </div>
+    <button id="logoutButton" class="header-button">🚪 Logout</button>
+</header>
+
+
+<main class="container">
+
+    <section class="welcome-card">
+        <h2 id="welcomeName">Welcome back</h2>
+        <p id="lecturerMeta">Loading your details...</p>
+    </section>
+
+    <div class="stat-grid">
+        <div class="stat-card"><div class="value" id="statCourses">0</div><div class="label">📚 My Courses</div></div>
+        <div class="stat-card"><div class="value" id="statStudents">0</div><div class="label">🎓 Total Students</div></div>
+        <div class="stat-card"><div class="value" id="statPending">0</div><div class="label">📝 Pending to Grade</div></div>
+    </div>
+
+    <section class="card">
+        <h3>My Courses</h3>
+        <div id="coursesList"><p class="empty-note">Loading...</p></div>
+    </section>
+
+</main>
+
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../supabase-config.js"></script>
+
+
+<script>
+
+function escapeHtml(value) {
+    return String(value ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+}
+
+
+async function startDashboard() {
+
+    const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
+
+    if (authError || !user) {
+        window.location.href = "lecturer-login.html";
+        return;
+    }
+
+    const { data: lecturerProfile, error: profileError } =
+        await supabaseClient
+            .from("lecturer_profiles")
+            .select(`
+                id, employee_number, specialization, status,
+                user_profiles ( first_name, last_name ),
+                departments ( name )
+            `)
+            .eq("user_id", user.id)
+            .single();
+
+    if (profileError || !lecturerProfile) {
+        document.getElementById("lecturerMeta").textContent = "Unable to load your lecturer profile.";
+        return;
+    }
+
+    const firstName = lecturerProfile.user_profiles?.first_name || "Lecturer";
+    const lastName = lecturerProfile.user_profiles?.last_name || "";
+    const department = lecturerProfile.departments?.name || "No department assigned";
+
+    document.getElementById("welcomeName").textContent = `Welcome back, ${firstName} ${lastName}`;
+    document.getElementById("lecturerMeta").textContent =
+        `${lecturerProfile.employee_number} • ${department} • ${lecturerProfile.specialization || "No specialization set"}`;
+
+    const { data: assignments } =
+        await supabaseClient
+            .from("course_lecturers")
+            .select("courses ( id, code, name, credits )")
+            .eq("lecturer_id", lecturerProfile.id);
+
+    const courses = (assignments || []).map(a => a.courses).filter(Boolean);
+
+    document.getElementById("statCourses").textContent = courses.length;
+
+    const coursesList = document.getElementById("coursesList");
+
+    if (courses.length === 0) {
+        coursesList.innerHTML = `<p class="empty-note">You have not been assigned any courses yet. Please contact admin.</p>`;
+        document.getElementById("statStudents").textContent = "0";
+        document.getElementById("statPending").textContent = "0";
+        return;
+    }
+
+    const courseIds = courses.map(c => c.id);
+
+    const { data: enrollments } =
+        await supabaseClient
+            .from("enrollments")
+            .select("id, course_id")
+            .in("course_id", courseIds);
+
+    const studentCountByCourse = {};
+    (enrollments || []).forEach(e => {
+        studentCountByCourse[e.course_id] = (studentCountByCourse[e.course_id] || 0) + 1;
+    });
+
+    document.getElementById("statStudents").textContent = new Set((enrollments || []).map(e => e.id)).size;
+
+    const { data: modules } =
+        await supabaseClient
+            .from("course_modules")
+            .select("id, course_id")
+            .in("course_id", courseIds);
+
+    const moduleIds = (modules || []).map(m => m.id);
+
+    let pendingCount = 0;
+
+    if (moduleIds.length > 0) {
+
+        const { data: assignmentsForCourses } =
+            await supabaseClient
+                .from("assignments")
+                .select("id")
+                .in("module_id", moduleIds);
+
+        const assignmentIds = (assignmentsForCourses || []).map(a => a.id);
+
+        if (assignmentIds.length > 0) {
+            const { count } = await supabaseClient
+                .from("submissions")
+                .select("id", { count: "exact", head: true })
+                .in("assignment_id", assignmentIds)
+                .is("score", null);
+            pendingCount += count || 0;
+        }
+
+    }
+
+    document.getElementById("statPending").textContent = pendingCount;
+
+    coursesList.innerHTML = courses.map(course => `
+        <div class="course-item">
+            <h4>${escapeHtml(course.code)} — ${escapeHtml(course.name)}</h4>
+            <div class="course-meta">${studentCountByCourse[course.id] || 0} students enrolled • ${course.credits || 0} credits</div>
+            <div class="action-row">
+                <a href="lecturer-attendance.html?course=${course.id}" class="small-button">✓ Take Attendance</a>
+                <a href="lecturer-grading.html?course=${course.id}" class="small-button">📝 Grade Submissions</a>
+            </div>
+        </div>
+    `).join("");
+
+}
+
+
+document.getElementById("logoutButton").addEventListener("click", async function() {
+    await supabaseClient.auth.signOut();
+    window.location.href = "../index.html";
+});
+
+
+startDashboard();
+
+</script>
+
+</body>
+</html>
