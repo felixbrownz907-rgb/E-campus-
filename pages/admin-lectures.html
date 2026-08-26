@@ -309,6 +309,34 @@ tr:hover { background: #f9fafb; }
 
     <section class="card">
 
+        <h3>Assign Lecturer to Course</h3>
+
+        <div class="form-grid">
+
+            <div class="form-group">
+                <label for="assignLecturer">Lecturer</label>
+                <select id="assignLecturer">
+                    <option value="">Select lecturer</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="assignCourse">Course</label>
+                <select id="assignCourse">
+                    <option value="">Select course</option>
+                </select>
+            </div>
+
+        </div>
+
+        <button class="submit-button" onclick="assignLecturerToCourse()">Assign to Course</button>
+
+        <div id="assignmentsList" style="margin-top:20px;"></div>
+
+    </section>
+
+    <section class="card">
+
         <h3>Existing Lecturers</h3>
 
         <div class="search-bar">
@@ -628,6 +656,114 @@ async function toggleStatus(lecturerId, newStatus) {
 }
 
 
+async function loadAssignDropdowns() {
+
+    const lecturerSelect = document.getElementById("assignLecturer");
+    const courseSelect = document.getElementById("assignCourse");
+
+    const { data: lecturers } =
+        await supabaseClient
+            .from("lecturer_profiles")
+            .select("id, employee_number, user_profiles ( first_name, last_name )")
+            .order("employee_number");
+
+    (lecturers || []).forEach(l => {
+        const name = l.user_profiles ? `${l.user_profiles.first_name} ${l.user_profiles.last_name}` : "Unknown";
+        const option = document.createElement("option");
+        option.value = l.id;
+        option.textContent = `${l.employee_number} — ${name}`;
+        lecturerSelect.appendChild(option);
+    });
+
+    const { data: courses } = await supabaseClient.from("courses").select("id, code, name").order("code");
+
+    (courses || []).forEach(c => {
+        const option = document.createElement("option");
+        option.value = c.id;
+        option.textContent = `${c.code} — ${c.name}`;
+        courseSelect.appendChild(option);
+    });
+
+    await loadAssignments();
+
+}
+
+
+async function assignLecturerToCourse() {
+
+    const lecturerId = document.getElementById("assignLecturer").value;
+    const courseId = document.getElementById("assignCourse").value;
+
+    if (!lecturerId || !courseId) {
+        showMessage("Please select both a lecturer and a course.", "error");
+        return;
+    }
+
+    const { error } =
+        await supabaseClient.from("course_lecturers").insert({
+            lecturer_id: lecturerId,
+            course_id: courseId
+        });
+
+    if (error) {
+        showMessage("Unable to assign: " + error.message, "error");
+        return;
+    }
+
+    showMessage("Lecturer assigned to course.", "success");
+    await loadAssignments();
+
+}
+
+
+async function loadAssignments() {
+
+    const container = document.getElementById("assignmentsList");
+
+    const { data, error } =
+        await supabaseClient
+            .from("course_lecturers")
+            .select(`
+                id,
+                lecturer_profiles ( employee_number, user_profiles ( first_name, last_name ) ),
+                courses ( code, name )
+            `);
+
+    if (error || !data || data.length === 0) {
+        container.innerHTML = `<p style="color:#9ca3af; font-size:14px;">No course assignments yet.</p>`;
+        return;
+    }
+
+    container.innerHTML = data.map(a => {
+        const lecturer = a.lecturer_profiles;
+        const name = lecturer?.user_profiles ? `${lecturer.user_profiles.first_name} ${lecturer.user_profiles.last_name}` : "Unknown";
+        const course = a.courses;
+        return `
+            <div style="display:flex; justify-content:space-between; align-items:center; padding:10px; background:#f4f6f9; border-radius:8px; margin-bottom:8px; font-size:14px;">
+                <span>${escapeHtml(name)} → ${course ? escapeHtml(course.code + " — " + course.name) : "-"}</span>
+                <button class="action-button delete-button" onclick="removeAssignment('${a.id}')">Remove</button>
+            </div>
+        `;
+    }).join("");
+
+}
+
+
+async function removeAssignment(id) {
+
+    const { error } = await supabaseClient.from("course_lecturers").delete().eq("id", id);
+
+    if (error) {
+        showMessage("Unable to remove: " + error.message, "error");
+        return;
+    }
+
+    showMessage("Assignment removed.", "success");
+    await loadAssignments();
+
+}
+
+
 /* ================= SEARCH ================= */
 
 document.getElementById("searchInput").addEventListener("input", function() {
@@ -655,6 +791,7 @@ document.getElementById("searchInput").addEventListener("input", function() {
 async function startPage() {
     await loadDepartments();
     await loadLecturers();
+    await loadAssignDropdowns();
 }
 
 startPage();
