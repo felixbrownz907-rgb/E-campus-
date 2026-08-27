@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Grade Submissions | Lecturer Portal</title>
+
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: Arial, Helvetica, sans-serif; background: #f4f6f9; color: #172033; }
+
+.header {
+    background: #0e7490;
+    color: white;
+    padding: 18px 25px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.brand { display: flex; align-items: center; gap: 14px; }
+.logo { width: 55px; height: 55px; object-fit: contain; background: white; border-radius: 8px; }
+.brand h1 { font-size: 22px; }
+.brand p { color: #cffafe; margin-top: 3px; font-size: 13px; }
+
+.back-button {
+    background: white;
+    color: #0e7490;
+    text-decoration: none;
+    padding: 10px 16px;
+    border-radius: 8px;
+    font-weight: bold;
+    font-size: 13px;
+}
+
+.container { max-width: 1000px; margin: 25px auto; padding: 0 20px; }
+
+.page-title { margin-bottom: 20px; }
+.page-title h2 { font-size: 28px; margin-bottom: 6px; }
+.page-title p { color: #6b7280; }
+
+.message { padding: 14px; border-radius: 8px; margin-bottom: 20px; display: none; }
+.message.success { display: block; background: #dcfce7; color: #166534; }
+.message.error { display: block; background: #fee2e2; color: #991b1b; }
+
+.filter-bar { margin-bottom: 18px; }
+
+select, input {
+    padding: 12px;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    font-size: 14px;
+    width: 100%;
+}
+
+.card { background: white; padding: 22px; border-radius: 14px; margin-bottom: 18px; box-shadow: 0 3px 12px rgba(0,0,0,0.06); }
+.card-top { display: flex; justify-content: space-between; align-items: start; gap: 12px; flex-wrap: wrap; }
+.card h3 { font-size: 17px; }
+.course-tag { color: #0e7490; font-size: 12px; font-weight: bold; }
+.due-date { color: #6b7280; font-size: 13px; margin-top: 4px; }
+
+.tab-count {
+    background: #fef3c7;
+    color: #92400e;
+    padding: 3px 9px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: bold;
+}
+
+.submission-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: start;
+    gap: 12px;
+    flex-wrap: wrap;
+    padding: 14px;
+    background: #f9fafb;
+    border-radius: 10px;
+    margin-top: 10px;
+}
+
+.student-name { font-weight: bold; }
+.submitted-date { font-size: 12px; color: #6b7280; }
+.submission-content { font-size: 14px; color: #374151; margin-top: 6px; max-width: 400px; }
+.file-link { color: #1d4ed8; font-weight: bold; font-size: 13px; }
+
+.grade-inputs { display: flex; flex-direction: column; gap: 8px; min-width: 160px; }
+.grade-inputs input, .grade-inputs textarea { padding: 8px; font-size: 13px; }
+.grade-inputs textarea { min-height: 60px; resize: vertical; }
+
+.grade-button {
+    background: #0e7490;
+    color: white;
+    border: none;
+    padding: 9px;
+    border-radius: 6px;
+    font-weight: bold;
+    font-size: 13px;
+    cursor: pointer;
+}
+
+.already-graded { color: #166534; font-weight: bold; font-size: 13px; }
+
+.empty-note { color: #9ca3af; text-align: center; padding: 20px 0; }
+
+@media (max-width: 600px) {
+    .submission-row { flex-direction: column; }
+    .grade-inputs { width: 100%; }
+}
+</style>
+</head>
+
+
+<body>
+
+<header class="header">
+    <div class="brand">
+        <img src="https://pub-b3e2d39712e84119875e84c5ec5f5c09.r2.dev/Logo/IMG-20260816-WA0050(1).jpg" alt="Sunningdale University Logo" class="logo">
+        <div>
+            <h1>E-Campus</h1>
+            <p>Lecturer Portal</p>
+        </div>
+    </div>
+    <a href="lecturer-dashboard.html" class="back-button">← Dashboard</a>
+</header>
+
+
+<main class="container">
+
+    <section class="page-title">
+        <h2>Grade Submissions</h2>
+        <p>Review and grade student assignment submissions for your courses.</p>
+    </section>
+
+    <div id="message" class="message"></div>
+
+    <div class="filter-bar">
+        <select id="filterSelect">
+            <option value="ungraded">Show: Ungraded only</option>
+            <option value="all">Show: All submissions</option>
+        </select>
+    </div>
+
+    <div id="assignmentsContainer">
+        <div class="card"><p class="empty-note">Loading...</p></div>
+    </div>
+
+</main>
+
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../supabase-config.js"></script>
+
+
+<script>
+
+let myCourseIds = [];
+let allAssignmentsData = [];
+const message = document.getElementById("message");
+
+
+function showMessage(text, type) {
+    message.textContent = text;
+    message.className = "message " + type;
+}
+
+
+function escapeHtml(value) {
+    return String(value ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+}
+
+
+async function loadGrading() {
+
+    const container = document.getElementById("assignmentsContainer");
+
+    const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
+
+    if (authError || !user) {
+        window.location.href = "lecturer-login.html";
+        return;
+    }
+
+    const { data: lecturerProfile } =
+        await supabaseClient.from("lecturer_profiles").select("id").eq("user_id", user.id).single();
+
+    if (!lecturerProfile) {
+        container.innerHTML = `<div class="card"><p class="empty-note">Unable to load your lecturer profile.</p></div>`;
+        return;
+    }
+
+    const { data: assignmentsList } =
+        await supabaseClient
+            .from("course_lecturers")
+            .select("courses ( id, code, name )")
+            .eq("lecturer_id", lecturerProfile.id);
+
+    const courses = (assignmentsList || []).map(a => a.courses).filter(Boolean);
+    myCourseIds = courses.map(c => c.id);
+    const courseMap = {};
+    courses.forEach(c => courseMap[c.id] = c);
+
+    if (myCourseIds.length === 0) {
+        container.innerHTML = `<div class="card"><p class="empty-note">You have not been assigned any courses yet.</p></div>`;
+        return;
+    }
+
+    const { data: modules } =
+        await supabaseClient.from("course_modules").select("id, course_id").in("course_id", myCourseIds);
+
+    const moduleIds = (modules || []).map(m => m.id);
+    const moduleToCourse = {};
+    (modules || []).forEach(m => moduleToCourse[m.id] = m.course_id);
+
+    if (moduleIds.length === 0) {
+        container.innerHTML = `<div class="card"><p class="empty-note">No modules found for your courses yet.</p></div>`;
+        return;
+    }
+
+    const { data: assignments, error: assignError } =
+        await supabaseClient.from("assignments").select("*").in("module_id", moduleIds).order("due_date");
+
+    if (assignError || !assignments || assignments.length === 0) {
+        container.innerHTML = `<div class="card"><p class="empty-note">No assignments posted for your courses yet.</p></div>`;
+        return;
+    }
+
+    const assignmentIds = assignments.map(a => a.id);
+
+    const { data: submissions } =
+        await supabaseClient.from("submissions").select("*").in("assignment_id", assignmentIds).order("submitted_at", { ascending: false });
+
+    const submissionsByAssignment = {};
+    (submissions || []).forEach(s => {
+        if (!submissionsByAssignment[s.assignment_id]) submissionsByAssignment[s.assignment_id] = [];
+        submissionsByAssignment[s.assignment_id].push(s);
+    });
+
+    allAssignmentsData = { assignments, submissionsByAssignment, moduleToCourse, courseMap };
+
+    renderAssignments();
+
+}
+
+
+function renderAssignments() {
+
+    const { assignments, submissionsByAssignment, moduleToCourse, courseMap } = allAssignmentsData;
+    const container = document.getElementById("assignmentsContainer");
+    const filter = document.getElementById("filterSelect").value;
+
+    container.innerHTML = "";
+
+    assignments.forEach(assignment => {
+
+        const courseId = moduleToCourse[assignment.module_id];
+        const course = courseMap[courseId];
+        let submissions = submissionsByAssignment[assignment.id] || [];
+
+        if (filter === "ungraded") {
+            submissions = submissions.filter(s => s.score === null);
+        }
+
+        const ungradedCount = (submissionsByAssignment[assignment.id] || []).filter(s => s.score === null).length;
+
+        if (filter === "ungraded" && submissions.length === 0) return;
+
+        const card = document.createElement("div");
+        card.className = "card";
+
+        let submissionsHtml = "";
+
+        if (submissions.length === 0) {
+
+            submissionsHtml = `<p class="empty-note">No submissions to show.</p>`;
+
+        } else {
+
+            submissions.forEach(async (sub) => {
+
+                const { data: profile } =
+                    await supabaseClient.from("user_profiles").select("first_name, last_name").eq("id", sub.student_id).single();
+
+                const name = profile ? `${profile.first_name} ${profile.last_name}` : "Unknown student";
+                const row = document.getElementById(`subrow-${sub.id}`);
+                if (row) row.querySelector(".student-name").textContent = name;
+
+            });
+
+            submissionsHtml = submissions.map(sub => `
+                <div class="submission-row" id="subrow-${sub.id}">
+                    <div>
+                        <div class="student-name">Loading name...</div>
+                        <div class="submitted-date">Submitted: ${new Date(sub.submitted_at).toLocaleString()}</div>
+                        ${sub.content ? `<div class="submission-content">${escapeHtml(sub.content)}</div>` : ""}
+                        ${sub.file_url ? `<a href="${sub.file_url}" target="_blank" class="file-link">📎 Open uploaded file</a>` : ""}
+                    </div>
+                    ${
+                        sub.score !== null
+                        ? `<div class="already-graded">✓ Graded: ${sub.score}/${assignment.max_score}</div>`
+                        : `
+                            <div class="grade-inputs">
+                                <input type="number" placeholder="Score" id="score-${sub.id}" max="${assignment.max_score}">
+                                <textarea placeholder="Feedback (optional)" id="feedback-${sub.id}"></textarea>
+                                <button class="grade-button" onclick="saveGrade('${sub.id}')">Save Grade</button>
+                            </div>
+                        `
+                    }
+                </div>
+            `).join("");
+
+        }
+
+        card.innerHTML = `
+            <div class="card-top">
+                <div>
+                    <div class="course-tag">${course ? escapeHtml(course.code) : ""}</div>
+                    <h3>${escapeHtml(assignment.title)}</h3>
+                    <div class="due-date">${assignment.due_date ? "Due: " + new Date(assignment.due_date).toLocaleString() : "No due date"} • Max: ${assignment.max_score}</div>
+                </div>
+                ${ungradedCount > 0 ? `<span class="tab-count">${ungradedCount} to grade</span>` : ""}
+            </div>
+            ${submissionsHtml}
+        `;
+
+        container.appendChild(card);
+
+    });
+
+    if (container.innerHTML === "") {
+        container.innerHTML = `<div class="card"><p class="empty-note">Nothing to grade right now.</p></div>`;
+    }
+
+}
+
+
+async function saveGrade(submissionId) {
+
+    const score = document.getElementById(`score-${submissionId}`).value;
+    const feedback = document.getElementById(`feedback-${submissionId}`).value.trim();
+
+    if (score === "") {
+        showMessage("Please enter a score.", "error");
+        return;
+    }
+
+    const { error } =
+        await supabaseClient
+            .from("submissions")
+            .update({
+                score: Number(score),
+                feedback: feedback || null,
+                status: "graded",
+                graded_at: new Date().toISOString()
+            })
+            .eq("id", submissionId);
+
+    if (error) {
+        showMessage("Unable to save grade: " + error.message, "error");
+        return;
+    }
+
+    showMessage("Grade saved.", "success");
+    await loadGrading();
+
+}
+
+
+document.getElementById("filterSelect").addEventListener("change", renderAssignments);
+
+
+loadGrading();
+
+</script>
+
+</body>
+</html>
