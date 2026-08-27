@@ -1,0 +1,905 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Exams & Quizzes | Lecturer Portal</title>
+
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: Arial, Helvetica, sans-serif; background: #f4f6f9; color: #172033; }
+
+.header {
+    background: #0e7490;
+    color: white;
+    padding: 18px 25px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.brand { display: flex; align-items: center; gap: 14px; }
+.logo { width: 55px; height: 55px; object-fit: contain; background: white; border-radius: 8px; }
+.brand h1 { font-size: 22px; }
+.brand p { color: #cffafe; margin-top: 3px; font-size: 13px; }
+
+.back-button {
+    background: white;
+    color: #0e7490;
+    text-decoration: none;
+    padding: 10px 16px;
+    border-radius: 8px;
+    font-weight: bold;
+    font-size: 13px;
+}
+
+.container { max-width: 1250px; margin: 25px auto; padding: 0 20px; }
+
+.page-title { margin-bottom: 20px; }
+.page-title h2 { font-size: 28px; margin-bottom: 6px; }
+.page-title p { color: #6b7280; }
+
+.message { padding: 14px; border-radius: 8px; margin-bottom: 20px; display: none; }
+.message.success { display: block; background: #dcfce7; color: #166534; }
+.message.error { display: block; background: #fee2e2; color: #991b1b; }
+
+.card { background: white; padding: 25px; border-radius: 14px; margin-bottom: 25px; box-shadow: 0 5px 20px rgba(0,0,0,0.07); }
+.card h3 { margin-bottom: 20px; font-size: 22px; }
+
+.form-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 18px; }
+.form-group { display: flex; flex-direction: column; }
+.form-group.full { grid-column: 1 / -1; }
+label { font-weight: bold; margin-bottom: 7px; }
+
+input, select, textarea {
+    width: 100%;
+    padding: 13px;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    font-size: 15px;
+}
+
+textarea { min-height: 80px; resize: vertical; }
+input:focus, select:focus, textarea:focus { outline: none; border-color: #0e7490; }
+
+.exam-checkbox-group {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: #fef3c7;
+    padding: 14px;
+    border-radius: 8px;
+    border: 1px solid #f59e0b;
+}
+
+.exam-checkbox-group input { width: auto; }
+.exam-checkbox-group label { margin-bottom: 0; font-weight: normal; }
+
+.submit-button {
+    margin-top: 20px;
+    background: #0e7490;
+    color: white;
+    border: none;
+    padding: 13px 20px;
+    border-radius: 8px;
+    font-weight: bold;
+    cursor: pointer;
+    width: 100%;
+}
+
+.small-button {
+    background: #111827;
+    color: white;
+    border: none;
+    padding: 9px 14px;
+    border-radius: 6px;
+    font-weight: bold;
+    cursor: pointer;
+    font-size: 13px;
+}
+
+.table-container { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; }
+th, td { padding: 12px; text-align: left; border-bottom: 1px solid #e5e7eb; font-size: 14px; }
+th { background: #0e7490; color: white; }
+tr:hover { background: #f9fafb; }
+
+.exam-tag { background: #fee2e2; color: #991b1b; padding: 3px 9px; border-radius: 20px; font-size: 11px; font-weight: bold; margin-left: 6px; }
+
+.action-button {
+    border: none;
+    padding: 7px 11px;
+    border-radius: 6px;
+    font-weight: bold;
+    cursor: pointer;
+    margin-right: 5px;
+    margin-bottom: 5px;
+    font-size: 13px;
+}
+
+.questions-button { background: #e5e7eb; color: #111827; }
+.attempts-button { background: #dcfce7; color: #166534; }
+.delete-button { background: #fee2e2; color: #991b1b; }
+.open-exam-button { background: #dcfce7; color: #166534; }
+.close-exam-button { background: #fee2e2; color: #991b1b; }
+
+.panel { display: none; margin-top: 14px; padding: 16px; background: #f4f6f9; border-radius: 10px; }
+
+.question-item { background: white; padding: 14px; border-radius: 8px; margin-bottom: 10px; }
+.question-item .qtext { font-weight: bold; margin-bottom: 8px; }
+.question-item .qoptions { font-size: 13px; color: #374151; margin-bottom: 4px; }
+.question-item .correct { color: #166534; font-weight: bold; }
+
+.option-row { display: flex; gap: 8px; margin-bottom: 8px; align-items: center; }
+.option-row input[type="text"] { flex: 1; }
+.option-row input[type="radio"] { width: auto; }
+
+.attempt-row { display: flex; justify-content: space-between; padding: 10px; background: white; border-radius: 8px; margin-bottom: 8px; font-size: 14px; flex-wrap: wrap; gap: 6px; }
+
+.violation-tag { background: #fee2e2; color: #991b1b; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: bold; margin-left: 8px; }
+
+.bulk-import-box {
+    margin-top: 20px;
+    padding-top: 18px;
+    border-top: 1px solid #e5e7eb;
+}
+
+.format-hint {
+    background: #f4f6f9;
+    border-radius: 8px;
+    padding: 12px;
+    font-family: monospace;
+    font-size: 12px;
+    white-space: pre-wrap;
+    margin-bottom: 12px;
+    color: #374151;
+}
+
+.empty-note { color: #9ca3af; text-align: center; padding: 20px 0; }
+
+@media (max-width: 700px) {
+    .header { flex-direction: column; align-items: flex-start; gap: 15px; }
+    .form-grid { grid-template-columns: 1fr; }
+    .form-group.full { grid-column: auto; }
+    th, td { white-space: nowrap; }
+}
+</style>
+</head>
+
+
+<body>
+
+<header class="header">
+    <div class="brand">
+        <img src="https://pub-b3e2d39712e84119875e84c5ec5f5c09.r2.dev/Logo/IMG-20260816-WA0050(1).jpg" alt="Sunningdale University Logo" class="logo">
+        <div>
+            <h1>E-Campus</h1>
+            <p>Lecturer Portal</p>
+        </div>
+    </div>
+    <a href="lecturer-dashboard.html" class="back-button">← Dashboard</a>
+</header>
+
+
+<main class="container">
+
+    <section class="page-title">
+        <h2>Exams & Quizzes</h2>
+        <p>Create quizzes and locked exams for your assigned courses.</p>
+    </section>
+
+    <div id="message" class="message"></div>
+
+
+    <section class="card">
+
+        <h3>Add New Quiz / Exam</h3>
+
+        <form id="quizForm">
+
+            <div class="form-grid">
+
+                <div class="form-group full">
+                    <label for="course">Course</label>
+                    <select id="course" required>
+                        <option value="">Select course</option>
+                    </select>
+                </div>
+
+                <div class="form-group full">
+                    <label for="module">Module</label>
+                    <select id="module" required disabled>
+                        <option value="">Select course first</option>
+                    </select>
+                </div>
+
+                <div class="form-group full">
+                    <label for="title">Title</label>
+                    <input type="text" id="title" required placeholder="e.g. Midterm Exam — Networking">
+                </div>
+
+                <div class="form-group">
+                    <label for="maxScore">Max Score</label>
+                    <input type="number" id="maxScore" value="100" min="1">
+                </div>
+
+                <div class="form-group">
+                    <label for="durationMinutes">Duration (minutes)</label>
+                    <input type="number" id="durationMinutes" placeholder="e.g. 60" min="1">
+                </div>
+
+                <div class="form-group full">
+                    <div class="exam-checkbox-group">
+                        <input type="checkbox" id="isExam">
+                        <label for="isExam">This is a locked-down Exam (single attempt, student cannot leave the page once started)</label>
+                    </div>
+                </div>
+
+                <div class="form-group" id="scheduledGroup" style="display:none;">
+                    <label for="scheduledStart">Scheduled Start Time</label>
+                    <input type="datetime-local" id="scheduledStart">
+                </div>
+
+                <div class="form-group full">
+                    <label for="description">Description / Instructions</label>
+                    <textarea id="description" placeholder="Describe the quiz or exam..."></textarea>
+                </div>
+
+            </div>
+
+            <button type="submit" class="submit-button" id="submitButton">Create Quiz</button>
+
+        </form>
+
+    </section>
+
+
+    <section class="card">
+
+        <h3>My Quizzes & Exams</h3>
+
+        <div class="table-container">
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>Course</th>
+                        <th>Title</th>
+                        <th>Scheduled</th>
+                        <th>Duration</th>
+                        <th>Questions</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+
+                <tbody id="quizTableBody">
+                    <tr><td colspan="6">Loading...</td></tr>
+                </tbody>
+            </table>
+
+        </div>
+
+    </section>
+
+</main>
+
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../supabase-config.js"></script>
+
+
+<script>
+
+let lecturerProfileId = null;
+let myCourseIds = [];
+const message = document.getElementById("message");
+
+
+function showMessage(text, type) {
+    message.textContent = text;
+    message.className = "message " + type;
+}
+
+
+function escapeHtml(value) {
+    return String(value ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+}
+
+
+document.getElementById("isExam").addEventListener("change", function() {
+    document.getElementById("scheduledGroup").style.display = this.checked ? "block" : "none";
+});
+
+
+async function loadMyCourses() {
+
+    const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
+
+    if (authError || !user) {
+        window.location.href = "lecturer-login.html";
+        return;
+    }
+
+    const { data: lecturerProfile } =
+        await supabaseClient.from("lecturer_profiles").select("id").eq("user_id", user.id).single();
+
+    if (!lecturerProfile) {
+        showMessage("Unable to load your lecturer profile.", "error");
+        return;
+    }
+
+    lecturerProfileId = lecturerProfile.id;
+
+    const { data: assignments } =
+        await supabaseClient
+            .from("course_lecturers")
+            .select("courses ( id, code, name )")
+            .eq("lecturer_id", lecturerProfileId);
+
+    const courses = (assignments || []).map(a => a.courses).filter(Boolean);
+    myCourseIds = courses.map(c => c.id);
+
+    const select = document.getElementById("course");
+    courses.forEach(c => {
+        const option = document.createElement("option");
+        option.value = c.id;
+        option.textContent = `${c.code} — ${c.name}`;
+        select.appendChild(option);
+    });
+
+    await loadQuizzes();
+
+}
+
+
+async function loadModulesByCourse(courseId) {
+
+    const select = document.getElementById("module");
+    select.innerHTML = `<option value="">Loading modules...</option>`;
+    select.disabled = true;
+
+    if (!courseId) {
+        select.innerHTML = `<option value="">Select course first</option>`;
+        return;
+    }
+
+    const { data, error } =
+        await supabaseClient
+            .from("course_modules")
+            .select("id, module_number, title")
+            .eq("course_id", courseId)
+            .order("module_number");
+
+    if (error || !data || data.length === 0) {
+        select.innerHTML = `<option value="">No modules found for this course</option>`;
+        return;
+    }
+
+    select.innerHTML = `<option value="">Select module</option>`;
+    data.forEach(m => {
+        const option = document.createElement("option");
+        option.value = m.id;
+        option.textContent = `Module ${m.module_number} — ${m.title}`;
+        select.appendChild(option);
+    });
+
+    select.disabled = false;
+
+}
+
+
+document.getElementById("course").addEventListener("change", function() {
+    loadModulesByCourse(this.value);
+});
+
+
+document.getElementById("quizForm").addEventListener("submit", async function(event) {
+
+    event.preventDefault();
+
+    const isExam = document.getElementById("isExam").checked;
+    const scheduledValue = document.getElementById("scheduledStart").value;
+
+    const quizData = {
+        module_id: document.getElementById("module").value,
+        title: document.getElementById("title").value.trim(),
+        description: document.getElementById("description").value.trim() || null,
+        max_score: Number(document.getElementById("maxScore").value) || 100,
+        duration_minutes: document.getElementById("durationMinutes").value
+            ? Number(document.getElementById("durationMinutes").value)
+            : null,
+        status: "active",
+        is_exam: isExam,
+        is_open: false,
+        scheduled_start: isExam && scheduledValue ? scheduledValue : null
+    };
+
+    const { error } = await supabaseClient.from("quizzes").insert(quizData);
+
+    if (error) {
+        showMessage(error.message, "error");
+        return;
+    }
+
+    showMessage("Created successfully.", "success");
+    document.getElementById("quizForm").reset();
+    document.getElementById("scheduledGroup").style.display = "none";
+    document.getElementById("module").innerHTML = `<option value="">Select course first</option>`;
+    document.getElementById("module").disabled = true;
+
+    await loadQuizzes();
+
+});
+
+
+async function loadQuizzes() {
+
+    const tbody = document.getElementById("quizTableBody");
+
+    if (myCourseIds.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6">You have not been assigned any courses yet.</td></tr>`;
+        return;
+    }
+
+    const { data: modules } =
+        await supabaseClient.from("course_modules").select("id, course_id").in("course_id", myCourseIds);
+
+    const moduleIds = (modules || []).map(m => m.id);
+
+    if (moduleIds.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6">No modules found for your courses yet.</td></tr>`;
+        return;
+    }
+
+    const { data, error } =
+        await supabaseClient
+            .from("quizzes")
+            .select(`
+                id, title, is_exam, is_open, duration_minutes, scheduled_start, module_id,
+                course_modules ( course_id, courses ( code, name ) )
+            `)
+            .in("module_id", moduleIds)
+            .order("created_at", { ascending: false });
+
+    if (error) {
+        tbody.innerHTML = `<tr><td colspan="6">Unable to load: ${escapeHtml(error.message)}</td></tr>`;
+        return;
+    }
+
+    if (!data || data.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6">No quizzes or exams created yet.</td></tr>`;
+        return;
+    }
+
+    tbody.innerHTML = "";
+
+    for (const quiz of data) {
+
+        const { count } = await supabaseClient
+            .from("quiz_questions")
+            .select("id", { count: "exact", head: true })
+            .eq("quiz_id", quiz.id);
+
+        const course = quiz.course_modules?.courses;
+
+        const row = document.createElement("tr");
+
+        row.innerHTML = `
+            <td>${course ? escapeHtml(course.code) : "-"}</td>
+            <td>${escapeHtml(quiz.title)} ${quiz.is_exam ? `<span class="exam-tag">EXAM</span>` : ""}</td>
+            <td>${quiz.scheduled_start ? new Date(quiz.scheduled_start).toLocaleString() : "-"}</td>
+            <td>${quiz.duration_minutes ? quiz.duration_minutes + " min" : "-"}</td>
+            <td>${count || 0}</td>
+            <td>
+                ${
+                    quiz.is_exam
+                    ? (quiz.is_open
+                        ? `<button class="action-button close-exam-button" onclick="toggleExamOpen('${quiz.id}', false)">Close Exam Room</button>`
+                        : `<button class="action-button open-exam-button" onclick="toggleExamOpen('${quiz.id}', true)">Open Exam Room</button>`
+                      )
+                    : ""
+                }
+                <button class="action-button questions-button" onclick="toggleQuestions('${quiz.id}')">Manage Questions</button>
+                <button class="action-button attempts-button" onclick="toggleAttempts('${quiz.id}')">View Attempts</button>
+                <button class="action-button delete-button" onclick="deleteQuiz('${quiz.id}')">Delete</button>
+            </td>
+        `;
+
+        tbody.appendChild(row);
+
+        const panelRow = document.createElement("tr");
+        panelRow.innerHTML = `<td colspan="6"><div class="panel" id="qpanel-${quiz.id}"></div><div class="panel" id="apanel-${quiz.id}"></div></td>`;
+        tbody.appendChild(panelRow);
+
+    }
+
+}
+
+
+async function toggleExamOpen(quizId, openState) {
+
+    const { error } = await supabaseClient.from("quizzes").update({ is_open: openState }).eq("id", quizId);
+
+    if (error) {
+        showMessage("Unable to update: " + error.message, "error");
+        return;
+    }
+
+    showMessage(openState ? "Exam room opened." : "Exam room closed.", "success");
+    await loadQuizzes();
+
+}
+
+
+async function toggleQuestions(quizId) {
+
+    const panel = document.getElementById(`qpanel-${quizId}`);
+
+    if (panel.style.display === "block") {
+        panel.style.display = "none";
+        return;
+    }
+
+    panel.style.display = "block";
+    await renderQuestions(quizId);
+
+}
+
+
+async function renderQuestions(quizId) {
+
+    const panel = document.getElementById(`qpanel-${quizId}`);
+
+    const { data, error } =
+        await supabaseClient.from("quiz_questions").select("*").eq("quiz_id", quizId).order("created_at");
+
+    let html = `<h4 style="margin-bottom:12px;">Questions</h4>`;
+
+    if (error) {
+        html += `<p>Unable to load questions.</p>`;
+    } else if (!data || data.length === 0) {
+        html += `<p style="color:#9ca3af; margin-bottom:12px;">No questions added yet.</p>`;
+    } else {
+        data.forEach((q, idx) => {
+            html += `
+                <div class="question-item">
+                    <div class="qtext">${idx + 1}. ${escapeHtml(q.question_text)} ${q.question_type === "short_answer" ? `<span style="font-size:11px; color:#6b7280;">(Short Answer)</span>` : ""}</div>
+                    ${q.question_type === "short_answer"
+                        ? `<div class="qoptions">Model answer: ${escapeHtml(q.correct_answer || "-")}</div>`
+                        : (q.options || []).map(opt => `
+                            <div class="qoptions ${opt === q.correct_answer ? "correct" : ""}">
+                                ${opt === q.correct_answer ? "✓" : "○"} ${escapeHtml(opt)}
+                            </div>
+                        `).join("")
+                    }
+                    <button class="action-button delete-button" style="margin-top:8px;" onclick="deleteQuestion('${q.id}', '${quizId}')">Delete Question</button>
+                </div>
+            `;
+        });
+    }
+
+    html += `
+        <div style="margin-top:16px; padding-top:16px; border-top:1px solid #e5e7eb;">
+            <h4 style="margin-bottom:10px;">Add Multiple Choice Question</h4>
+            <textarea id="newQtext-${quizId}" placeholder="Enter the question text..." style="margin-bottom:10px;"></textarea>
+            <div class="option-row"><input type="radio" name="correct-${quizId}" value="0"><input type="text" id="opt0-${quizId}" placeholder="Option A"></div>
+            <div class="option-row"><input type="radio" name="correct-${quizId}" value="1"><input type="text" id="opt1-${quizId}" placeholder="Option B"></div>
+            <div class="option-row"><input type="radio" name="correct-${quizId}" value="2"><input type="text" id="opt2-${quizId}" placeholder="Option C"></div>
+            <div class="option-row"><input type="radio" name="correct-${quizId}" value="3"><input type="text" id="opt3-${quizId}" placeholder="Option D"></div>
+            <p style="font-size:12px; color:#6b7280; margin-bottom:10px;">Select the radio button next to the correct answer.</p>
+            <button class="small-button" onclick="addQuestion('${quizId}')">Add Multiple Choice Question</button>
+
+            <div style="margin-top:20px; padding-top:16px; border-top:1px solid #e5e7eb;">
+                <h4 style="margin-bottom:10px;">Add Short Answer Question</h4>
+                <textarea id="newShortQtext-${quizId}" placeholder="Enter the question text..." style="margin-bottom:10px;"></textarea>
+                <textarea id="newShortAnswer-${quizId}" placeholder="Enter a model/expected answer..." style="margin-bottom:10px;"></textarea>
+                <button class="small-button" onclick="addShortAnswerQuestion('${quizId}')">Add Short Answer Question</button>
+            </div>
+
+            <div class="bulk-import-box">
+                <h4 style="margin-bottom:10px;">Bulk Paste Questions</h4>
+                <p style="font-size:13px; color:#6b7280; margin-bottom:8px;">Paste your prepared exam below in this format — each question separated by a blank line:</p>
+                <div class="format-hint">Q: What is the capital of Zambia?
+A) Lusaka
+B) Ndola
+C) Kitwe
+D) Livingstone
+ANSWER: A
+
+Q: Explain briefly what a database is.
+TYPE: SHORT
+ANSWER: A structured collection of organized data.</div>
+                <textarea id="bulkImportText-${quizId}" placeholder="Paste your questions here..." style="min-height:180px;"></textarea>
+                <button class="small-button" style="margin-top:10px;" onclick="bulkImportQuestions('${quizId}')">Convert & Add Questions</button>
+            </div>
+        </div>
+    `;
+
+    panel.innerHTML = html;
+
+}
+
+
+async function addQuestion(quizId) {
+
+    const text = document.getElementById(`newQtext-${quizId}`).value.trim();
+    const options = [0, 1, 2, 3].map(i => document.getElementById(`opt${i}-${quizId}`).value.trim()).filter(Boolean);
+    const selectedRadio = document.querySelector(`input[name="correct-${quizId}"]:checked`);
+
+    if (!text || options.length < 2 || !selectedRadio) {
+        showMessage("Please enter a question, at least 2 options, and mark the correct answer.", "error");
+        return;
+    }
+
+    const correctIndex = Number(selectedRadio.value);
+    const correctAnswer = document.getElementById(`opt${correctIndex}-${quizId}`).value.trim();
+
+    const { error } =
+        await supabaseClient.from("quiz_questions").insert({
+            quiz_id: quizId,
+            question_text: text,
+            question_type: "multiple_choice",
+            options: options,
+            correct_answer: correctAnswer,
+            points: 1
+        });
+
+    if (error) {
+        showMessage("Unable to add question: " + error.message, "error");
+        return;
+    }
+
+    showMessage("Question added.", "success");
+    await renderQuestions(quizId);
+    await loadQuizzes();
+
+}
+
+
+async function addShortAnswerQuestion(quizId) {
+
+    const text = document.getElementById(`newShortQtext-${quizId}`).value.trim();
+    const modelAnswer = document.getElementById(`newShortAnswer-${quizId}`).value.trim();
+
+    if (!text) {
+        showMessage("Please enter a question.", "error");
+        return;
+    }
+
+    const { error } =
+        await supabaseClient.from("quiz_questions").insert({
+            quiz_id: quizId,
+            question_text: text,
+            question_type: "short_answer",
+            options: null,
+            correct_answer: modelAnswer || null,
+            points: 1
+        });
+
+    if (error) {
+        showMessage("Unable to add question: " + error.message, "error");
+        return;
+    }
+
+    showMessage("Short answer question added.", "success");
+    await renderQuestions(quizId);
+    await loadQuizzes();
+
+}
+
+
+/* ================= BULK IMPORT PARSER ================= */
+
+function parseBulkQuestions(rawText) {
+
+    const blocks = rawText.split(/\n\s*\n/).map(b => b.trim()).filter(Boolean);
+    const parsed = [];
+
+    blocks.forEach(block => {
+
+        const lines = block.split("\n").map(l => l.trim()).filter(Boolean);
+
+        let questionText = "";
+        let options = [];
+        let optionLetters = [];
+        let answerLetter = null;
+        let answerText = null;
+        let isShort = false;
+
+        lines.forEach(line => {
+
+            const qMatch = line.match(/^Q:\s*(.*)/i);
+            if (qMatch) { questionText = qMatch[1].trim(); return; }
+
+            const optMatch = line.match(/^([A-D])[\).\-]\s*(.*)/i);
+            if (optMatch) {
+                optionLetters.push(optMatch[1].toUpperCase());
+                options.push(optMatch[2].trim());
+                return;
+            }
+
+            const answerMatch = line.match(/^ANSWER:\s*(.*)/i);
+            if (answerMatch) {
+                const val = answerMatch[1].trim();
+                if (/^[A-D]$/i.test(val)) {
+                    answerLetter = val.toUpperCase();
+                } else {
+                    answerText = val;
+                }
+                return;
+            }
+
+            const typeMatch = line.match(/^TYPE:\s*SHORT/i);
+            if (typeMatch) { isShort = true; return; }
+
+        });
+
+        if (!questionText) return;
+
+        if (isShort || options.length === 0) {
+            parsed.push({
+                question_text: questionText,
+                question_type: "short_answer",
+                options: null,
+                correct_answer: answerText || null
+            });
+        } else {
+            const correctIndex = answerLetter ? optionLetters.indexOf(answerLetter) : -1;
+            const correctAnswer = correctIndex >= 0 ? options[correctIndex] : null;
+            parsed.push({
+                question_text: questionText,
+                question_type: "multiple_choice",
+                options: options,
+                correct_answer: correctAnswer
+            });
+        }
+
+    });
+
+    return parsed;
+
+}
+
+
+async function bulkImportQuestions(quizId) {
+
+    const rawText = document.getElementById(`bulkImportText-${quizId}`).value;
+
+    if (!rawText.trim()) {
+        showMessage("Please paste your questions first.", "error");
+        return;
+    }
+
+    const parsedQuestions = parseBulkQuestions(rawText);
+
+    if (parsedQuestions.length === 0) {
+        showMessage("Unable to detect any questions. Please check the format and try again.", "error");
+        return;
+    }
+
+    const rowsToInsert = parsedQuestions.map(q => ({
+        quiz_id: quizId,
+        question_text: q.question_text,
+        question_type: q.question_type,
+        options: q.options,
+        correct_answer: q.correct_answer,
+        points: 1
+    }));
+
+    const { error } = await supabaseClient.from("quiz_questions").insert(rowsToInsert);
+
+    if (error) {
+        showMessage("Unable to import questions: " + error.message, "error");
+        return;
+    }
+
+    showMessage(`${parsedQuestions.length} question(s) imported successfully.`, "success");
+    await renderQuestions(quizId);
+    await loadQuizzes();
+
+}
+
+
+async function deleteQuestion(questionId, quizId) {
+
+    const confirmed = confirm("Delete this question?");
+    if (!confirmed) return;
+
+    const { error } = await supabaseClient.from("quiz_questions").delete().eq("id", questionId);
+
+    if (error) {
+        showMessage("Unable to delete: " + error.message, "error");
+        return;
+    }
+
+    await renderQuestions(quizId);
+
+}
+
+
+async function toggleAttempts(quizId) {
+
+    const panel = document.getElementById(`apanel-${quizId}`);
+
+    if (panel.style.display === "block") {
+        panel.style.display = "none";
+        return;
+    }
+
+    panel.style.display = "block";
+    panel.innerHTML = "Loading attempts...";
+
+    const { data, error } =
+        await supabaseClient
+            .from("quiz_attempts")
+            .select("id, score, submitted_at, student_id, violation_flag, violation_reason")
+            .eq("quiz_id", quizId)
+            .order("submitted_at", { ascending: false });
+
+    if (error) {
+        panel.innerHTML = `Unable to load attempts: ${escapeHtml(error.message)}`;
+        return;
+    }
+
+    if (!data || data.length === 0) {
+        panel.innerHTML = `<p style="color:#9ca3af;">No attempts yet.</p>`;
+        return;
+    }
+
+    let html = `<h4 style="margin-bottom:12px;">Attempts</h4>`;
+
+    for (const attempt of data) {
+
+        const { data: profile } =
+            await supabaseClient.from("user_profiles").select("first_name, last_name").eq("id", attempt.student_id).single();
+
+        const name = profile ? `${profile.first_name} ${profile.last_name}` : "Unknown student";
+
+        html += `
+            <div class="attempt-row">
+                <span>${escapeHtml(name)} ${attempt.violation_flag ? `<span class="violation-tag">⚠ FLAGGED: ${escapeHtml(attempt.violation_reason || "Left exam page")}</span>` : ""}</span>
+                <span>${new Date(attempt.submitted_at).toLocaleString()}</span>
+                <strong>${attempt.score ?? "Ungraded"}${attempt.score !== null ? "%" : ""}</strong>
+            </div>
+        `;
+
+    }
+
+    panel.innerHTML = html;
+
+}
+
+
+async function deleteQuiz(id) {
+
+    const confirmed = confirm("Delete this quiz? This will also remove its questions and attempts.");
+    if (!confirmed) return;
+
+    await supabaseClient.from("quiz_questions").delete().eq("quiz_id", id);
+    await supabaseClient.from("quiz_attempts").delete().eq("quiz_id", id);
+    const { error } = await supabaseClient.from("quizzes").delete().eq("id", id);
+
+    if (error) {
+        showMessage("Unable to delete: " + error.message, "error");
+        return;
+    }
+
+    showMessage("Deleted.", "success");
+    await loadQuizzes();
+
+}
+
+
+loadMyCourses();
+
+</script>
+
+</body>
+</html>
