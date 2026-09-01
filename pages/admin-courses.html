@@ -54,6 +54,19 @@ body {
 .message.success { display: block; background: #dcfce7; color: #166534; }
 .message.error { display: block; background: #fee2e2; color: #991b1b; }
 
+.debug-box {
+    background: #f4f6f9;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    padding: 12px;
+    margin-bottom: 20px;
+    font-family: monospace;
+    font-size: 12px;
+    color: #374151;
+    word-break: break-all;
+    display: none;
+}
+
 .card {
     background: white;
     padding: 25px;
@@ -181,6 +194,7 @@ tr:hover { background: #f9fafb; }
     </section>
 
     <div id="message" class="message"></div>
+    <div id="debugBox" class="debug-box"></div>
 
 
     <section class="card">
@@ -312,11 +326,18 @@ tr:hover { background: #f9fafb; }
 <script>
 
 const message = document.getElementById("message");
+const debugBox = document.getElementById("debugBox");
 
 
 function showMessage(text, type) {
     message.textContent = text;
     message.className = "message " + type;
+}
+
+
+function showDebug(obj) {
+    debugBox.style.display = "block";
+    debugBox.textContent = JSON.stringify(obj, null, 2);
 }
 
 
@@ -340,27 +361,33 @@ document.getElementById("courseForm").addEventListener("submit", async function(
     submitButton.disabled = true;
     submitButton.textContent = "Creating...";
 
-    const { error } =
-        await supabaseClient.from("courses").insert({
-            code: document.getElementById("courseCode").value.trim(),
-            name: document.getElementById("courseName").value.trim(),
-            credits: Number(document.getElementById("credits").value) || 3,
-            course_type: document.getElementById("courseType").value,
-            description: document.getElementById("description").value.trim() || null,
-            status: "active"
-        });
+    const payload = {
+        code: document.getElementById("courseCode").value.trim(),
+        name: document.getElementById("courseName").value.trim(),
+        credits: Number(document.getElementById("credits").value) || 3,
+        course_type: document.getElementById("courseType").value,
+        description: document.getElementById("description").value.trim() || null,
+        status: "active"
+    };
+
+    showDebug({ sending: payload });
+
+    const { error } = await supabaseClient.from("courses").insert(payload);
 
     submitButton.disabled = false;
     submitButton.textContent = "Create Course";
 
     if (error) {
         showMessage("Unable to create course: " + error.message, "error");
+        showDebug({ sent: payload, error: error });
         return;
     }
 
     showMessage("Course created. Now attach it to a programme below.", "success");
+    debugBox.style.display = "none";
     document.getElementById("courseForm").reset();
     document.getElementById("credits").value = 3;
+    document.getElementById("courseType").value = "CORE";
 
     await loadCoursesDropdown();
 
