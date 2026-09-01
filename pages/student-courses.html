@@ -8,12 +8,7 @@
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
 
-        body {
-            font-family: Arial, Helvetica, sans-serif;
-            background: #f5f6f8;
-            color: #111827;
-            line-height: 1.6;
-        }
+        body { font-family: Arial, Helvetica, sans-serif; background: #f5f6f8; color: #111827; line-height: 1.6; }
 
         .page-header {
             background: #ffffff;
@@ -42,140 +37,120 @@
             font-weight: 600;
         }
 
-        .back-button:hover { background: #1f2937; }
-
         .page-container { max-width: 1000px; margin: 0 auto; padding: 30px 20px 60px; }
 
-        .page-title { margin-bottom: 25px; }
-        .page-title .label { color: #b58b17; font-size: 13px; font-weight: 800; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 8px; }
-        .page-title h2 { font-size: 30px; margin-bottom: 8px; }
-        .page-title p { color: #6b7280; font-size: 15px; }
-
-        .stats {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 14px;
+        .welcome-banner {
+            background: linear-gradient(135deg, #111827, #1f2937);
+            color: white;
+            border-radius: 16px;
+            padding: 28px;
             margin-bottom: 25px;
         }
 
-        .stat-card {
-            background: white;
-            border: 1px solid #e5e7eb;
-            border-radius: 14px;
-            padding: 18px;
-            text-align: center;
+        .welcome-banner h2 { font-size: 24px; margin-bottom: 6px; }
+        .welcome-banner .sub { color: #d4af37; font-weight: 600; margin-bottom: 16px; }
+        .welcome-banner .window-note {
+            background: rgba(212,175,55,0.15);
+            border: 1px solid rgba(212,175,55,0.4);
+            border-radius: 10px;
+            padding: 12px 14px;
+            font-size: 13px;
+            margin-bottom: 18px;
         }
 
+        .steps-list { font-size: 14px; color: #d1d5db; }
+        .steps-list div { margin-bottom: 6px; }
+        .steps-list strong { color: white; }
+
+        .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 25px; }
+
+        .stat-card { background: white; border: 1px solid #e5e7eb; border-radius: 14px; padding: 18px; text-align: center; }
         .stat-card .number { font-size: 26px; font-weight: 800; }
         .stat-card .label { color: #6b7280; font-size: 12px; margin-top: 4px; }
 
-        .course-card {
-            background: white;
-            border: 1px solid #e5e7eb;
-            border-radius: 16px;
-            margin-bottom: 16px;
-            overflow: hidden;
-        }
+        .course-card { background: white; border: 1px solid #e5e7eb; border-radius: 16px; margin-bottom: 16px; overflow: hidden; }
 
-        .course-header {
-            padding: 20px;
-            cursor: pointer;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            gap: 12px;
-        }
+        .course-header { padding: 20px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; gap: 12px; }
 
         .course-code { color: #b58b17; font-weight: 800; font-size: 12px; letter-spacing: 1px; }
         .course-header h4 { font-size: 18px; margin: 4px 0; }
         .course-meta { color: #6b7280; font-size: 13px; }
 
-        .progress-bar-bg {
-            background: #e5e7eb;
-            border-radius: 20px;
-            height: 8px;
-            overflow: hidden;
-            margin-top: 8px;
-        }
+        .term-note { font-size: 12px; margin-top: 6px; font-weight: bold; }
+        .term-note.ok { color: #166534; }
+        .term-note.warn { color: #92400e; }
+        .term-note.locked { color: #991b1b; }
 
+        .progress-bar-bg { background: #e5e7eb; border-radius: 20px; height: 8px; overflow: hidden; margin-top: 8px; }
         .progress-bar-fill { background: #b58b17; height: 100%; }
 
         .expand-icon { font-size: 20px; color: #6b7280; }
 
-        .course-body {
-            display: none;
-            padding: 0 20px 20px;
-            border-top: 1px solid #e5e7eb;
-        }
-
+        .course-body { display: none; padding: 0 20px 20px; border-top: 1px solid #e5e7eb; }
         .course-body.open { display: block; }
 
-        .module-block { margin-top: 16px; }
-        .module-block h5 { font-size: 15px; margin-bottom: 8px; color: #111827; }
-
-        .lesson-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 10px 12px;
-            background: #f9fafb;
-            border-radius: 8px;
-            margin-bottom: 6px;
-            cursor: pointer;
+        .locked-notice {
+            background: #fee2e2;
+            color: #991b1b;
+            border-radius: 10px;
+            padding: 14px;
+            margin-top: 16px;
+            font-size: 14px;
+            font-weight: bold;
         }
 
+        .module-block { margin-top: 16px; }
+        .module-block h5 { font-size: 15px; margin-bottom: 8px; color: #111827; display: flex; align-items: center; gap: 8px; }
+
+        .unit-lock-tag {
+            font-size: 11px;
+            background: #f3f4f6;
+            color: #6b7280;
+            padding: 3px 8px;
+            border-radius: 20px;
+            font-weight: bold;
+        }
+
+        .unit-pass-tag { font-size: 11px; background: #dcfce7; color: #166534; padding: 3px 8px; border-radius: 20px; font-weight: bold; }
+
+        .lesson-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 12px; background: #f9fafb; border-radius: 8px; margin-bottom: 6px; cursor: pointer; }
         .lesson-row.done { background: #ecfdf5; }
+        .lesson-row.locked-row { opacity: 0.5; cursor: not-allowed; }
         .lesson-title { font-size: 14px; }
         .lesson-check { font-size: 16px; }
 
-        .lesson-content-panel {
-            display: none;
-            background: #fffbeb;
-            border: 1px solid #fde68a;
-            border-radius: 10px;
-            padding: 16px;
-            margin: 6px 0 10px;
-            font-size: 14px;
-        }
-
+        .lesson-content-panel { display: none; background: #fffbeb; border: 1px solid #fde68a; border-radius: 10px; padding: 16px; margin: 6px 0 10px; font-size: 14px; }
         .lesson-content-panel.open { display: block; }
         .lesson-content-panel h6 { margin-bottom: 8px; }
         .lesson-content-panel p { margin-bottom: 10px; color: #374151; white-space: pre-wrap; }
+        .video-embed { margin-bottom: 12px; }
+        .video-embed a { color: #1d4ed8; font-weight: bold; font-size: 13px; }
 
-        .complete-button {
-            background: #111827;
-            color: white;
-            border: none;
-            padding: 9px 16px;
-            border-radius: 8px;
-            font-weight: 700;
-            font-size: 13px;
-            cursor: pointer;
-        }
-
+        .complete-button { background: #111827; color: white; border: none; padding: 9px 16px; border-radius: 8px; font-weight: 700; font-size: 13px; cursor: pointer; }
         .complete-button:disabled { opacity: 0.6; cursor: not-allowed; }
 
-        .status {
+        .assessment-block {
+            margin-top: 14px;
+            background: #eff6ff;
+            border: 1px solid #bfdbfe;
+            border-radius: 10px;
+            padding: 14px;
+        }
+
+        .assessment-block .title { font-weight: bold; margin-bottom: 6px; }
+        .assessment-block .go-link {
             display: inline-block;
-            padding: 4px 10px;
-            border-radius: 20px;
-            font-size: 11px;
-            font-weight: 700;
-            background: #e8f5e9;
-            color: #166534;
+            margin-top: 8px;
+            background: #1d4ed8;
+            color: white;
+            text-decoration: none;
+            padding: 8px 14px;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: bold;
         }
 
-        .status.completed { background: #dbeafe; color: #1d4ed8; }
-        .status.dropped { background: #fee2e2; color: #b91c1c; }
-
-        .loading, .empty-state, .error-state {
-            background: white;
-            border: 1px solid #e5e7eb;
-            border-radius: 16px;
-            padding: 40px 20px;
-            text-align: center;
-        }
-
+        .loading, .empty-state, .error-state { background: white; border: 1px solid #e5e7eb; border-radius: 16px; padding: 40px 20px; text-align: center; }
         .loading-icon, .empty-icon, .error-icon { font-size: 38px; margin-bottom: 10px; }
         .loading p, .empty-state p, .error-state p { color: #6b7280; }
         .error-state { border-color: #fecaca; }
@@ -184,9 +159,7 @@
         .footer { background: #111827; color: white; padding: 25px 20px; text-align: center; }
         .footer p { color: #d1d5db; font-size: 13px; }
 
-        @media (max-width: 700px) {
-            .stats { grid-template-columns: 1fr; }
-        }
+        @media (max-width: 700px) { .stats { grid-template-columns: 1fr; } }
     </style>
 </head>
 
@@ -206,15 +179,28 @@
 
     <main class="page-container">
 
-        <section class="page-title">
-            <div class="label">Student Portal</div>
-            <h2>My Courses</h2>
-            <p>Open a course to view its modules and lessons, and mark lessons as complete.</p>
+        <section class="welcome-banner">
+            <h2>Welcome, Online Student!</h2>
+            <div class="sub">Enjoy your learning journey with us!</div>
+
+            <div class="window-note">
+                ⏳ <strong>Access Window:</strong> You have 3 months to complete each term's units and assessments. The academic year is divided into 3 terms of 3 months each.
+            </div>
+
+            <div class="steps-list">
+                <div><strong>Step 1:</strong> Choose the course you want to learn by opening it below.</div>
+                <div><strong>Step 2:</strong> Access materials for your courses.</div>
+                <div><strong>Step 3:</strong> Reach out to your lecturer or coordinator for questions.</div>
+                <div><strong>Step 4:</strong> Each Unit has Topics, and under each Topic there are notes and videos.</div>
+                <div><strong>Step 5:</strong> Complete the Assessment Test to proceed to the next Unit.</div>
+                <div><strong>Step 6:</strong> Assessment Tests are part of your Continuous Assessment (CA). Take them seriously.</div>
+            </div>
         </section>
+
 
         <section class="stats">
             <div class="stat-card"><div class="number" id="totalCourses">0</div><div class="label">Registered Courses</div></div>
-            <div class="stat-card"><div class="number" id="completedLessonsCount">0</div><div class="label">Lessons Completed</div></div>
+            <div class="stat-card"><div class="number" id="completedLessonsCount">0</div><div class="label">Topics Completed</div></div>
             <div class="stat-card"><div class="number" id="overallProgress">0%</div><div class="label">Overall Progress</div></div>
         </section>
 
@@ -239,11 +225,15 @@
 
     <script>
 
+        const PASS_THRESHOLD = 70;
+
         let studentProfileId = null;
         let authUserId = null;
         let allModules = [];
         let allLessons = [];
+        let allQuizzes = [];
         let completedLessonIds = new Set();
+        let passedModuleIds = new Set();
 
 
         function escapeHtml(value) {
@@ -256,11 +246,8 @@
         }
 
 
-        function getStatusClass(status) {
-            const value = String(status || "").toLowerCase();
-            if (value === "completed") return "completed";
-            if (value === "dropped" || value === "cancelled") return "dropped";
-            return "";
+        function daysBetween(a, b) {
+            return Math.ceil((b - a) / (1000 * 60 * 60 * 24));
         }
 
 
@@ -289,11 +276,7 @@
                 authUserId = user.id;
 
                 const { data: studentProfile, error: studentError } =
-                    await supabaseClient
-                        .from("student_profiles")
-                        .select("id")
-                        .eq("user_id", user.id)
-                        .single();
+                    await supabaseClient.from("student_profiles").select("id").eq("user_id", user.id).single();
 
                 if (studentError || !studentProfile) {
                     container.innerHTML = `
@@ -312,8 +295,9 @@
                     await supabaseClient
                         .from("enrollments")
                         .select(`
-                            id, status, final_grade, final_score,
-                            course:courses ( id, code, name, description, credits, course_type )
+                            id, status,
+                            course:courses ( id, code, name, description, credits ),
+                            academic_terms ( id, name, start_date, end_date )
                         `)
                         .eq("student_id", studentProfileId)
                         .order("enrollment_date", { ascending: false });
@@ -348,13 +332,24 @@
                 if (moduleIds.length > 0) {
                     const { data } = await supabaseClient
                         .from("lessons")
-                        .select("id, module_id, lesson_number, title, description, content, estimated_hours")
+                        .select("id, module_id, lesson_number, title, description, content, video_url, estimated_hours")
                         .in("module_id", moduleIds)
                         .order("lesson_number");
                     lessons = data || [];
                 }
                 allLessons = lessons;
 
+                let quizzes = [];
+                if (moduleIds.length > 0) {
+                    const { data } = await supabaseClient
+                        .from("quizzes")
+                        .select("id, module_id, title, is_exam")
+                        .in("module_id", moduleIds);
+                    quizzes = data || [];
+                }
+                allQuizzes = quizzes;
+
+                const quizIds = allQuizzes.map(q => q.id);
                 const lessonIds = allLessons.map(l => l.id);
 
                 let progress = [];
@@ -370,6 +365,32 @@
                 completedLessonIds = new Set(
                     progress.filter(p => p.status === "completed").map(p => p.lesson_id)
                 );
+
+                let attempts = [];
+                if (quizIds.length > 0) {
+                    const { data } = await supabaseClient
+                        .from("quiz_attempts")
+                        .select("quiz_id, score")
+                        .eq("student_id", authUserId)
+                        .in("quiz_id", quizIds);
+                    attempts = data || [];
+                }
+
+                const bestScoreByQuiz = {};
+                attempts.forEach(a => {
+                    if (a.score === null) return;
+                    if (!bestScoreByQuiz[a.quiz_id] || a.score > bestScoreByQuiz[a.quiz_id]) {
+                        bestScoreByQuiz[a.quiz_id] = a.score;
+                    }
+                });
+
+                passedModuleIds = new Set();
+                allQuizzes.forEach(q => {
+                    const best = bestScoreByQuiz[q.id];
+                    if (best !== undefined && best >= PASS_THRESHOLD) {
+                        passedModuleIds.add(q.module_id);
+                    }
+                });
 
                 document.getElementById("completedLessonsCount").textContent = completedLessonIds.size;
                 const overallPct = allLessons.length > 0
@@ -395,6 +416,34 @@
         }
 
 
+        function getTermStatus(term) {
+
+            if (!term || !term.start_date || !term.end_date) {
+                return { state: "unknown", message: "" };
+            }
+
+            const now = new Date();
+            const start = new Date(term.start_date);
+            const end = new Date(term.end_date);
+
+            if (now < start) {
+                return { state: "upcoming", message: `Starts ${start.toLocaleDateString()}` };
+            }
+
+            if (now > end) {
+                return { state: "locked", message: `Access window closed (ended ${end.toLocaleDateString()})` };
+            }
+
+            const daysLeft = daysBetween(now, end);
+            if (daysLeft <= 14) {
+                return { state: "warn", message: `${daysLeft} day(s) left in this term's access window` };
+            }
+
+            return { state: "ok", message: `${daysLeft} day(s) left in this term's access window` };
+
+        }
+
+
         function renderCourses(enrollments) {
 
             const container = document.getElementById("coursesContainer");
@@ -404,6 +453,10 @@
 
                 const course = enrollment.course;
                 if (!course) return;
+
+                const term = enrollment.academic_terms;
+                const termStatus = getTermStatus(term);
+                const isTermLocked = termStatus.state === "locked" || termStatus.state === "upcoming";
 
                 const courseModules = allModules
                     .filter(m => m.course_id === course.id)
@@ -418,27 +471,27 @@
                     ? Math.round((completedInCourse / courseLessons.length) * 100)
                     : 0;
 
-                const status = String(enrollment.status || "active");
-                const statusClass = getStatusClass(status);
-
                 const card = document.createElement("article");
                 card.className = "course-card";
+
+                const termNoteClass = termStatus.state === "locked" ? "locked" : termStatus.state === "warn" ? "warn" : "ok";
 
                 card.innerHTML = `
                     <div class="course-header" onclick="toggleCourse(${index})">
                         <div style="flex:1;">
                             <div class="course-code">${escapeHtml(course.code)}</div>
                             <h4>${escapeHtml(course.name)}</h4>
-                            <div class="course-meta">
-                                ${completedInCourse} of ${courseLessons.length} lessons completed •
-                                <span class="status ${statusClass}">${escapeHtml(status)}</span>
-                            </div>
+                            <div class="course-meta">${completedInCourse} of ${courseLessons.length} topics completed</div>
+                            ${term ? `<div class="term-note ${termNoteClass}">${escapeHtml(term.name)} — ${termStatus.message}</div>` : ""}
                             <div class="progress-bar-bg"><div class="progress-bar-fill" style="width:${pct}%;"></div></div>
                         </div>
                         <div class="expand-icon" id="icon-${index}">▼</div>
                     </div>
                     <div class="course-body" id="body-${index}">
-                        ${renderModules(courseModules, index)}
+                        ${isTermLocked
+                            ? `<div class="locked-notice">🔒 ${termStatus.message}. Contact the admissions office if you believe this is an error.</div>`
+                            : renderModules(courseModules, index)
+                        }
                     </div>
                 `;
 
@@ -452,35 +505,58 @@
         function renderModules(courseModules, courseIndex) {
 
             if (courseModules.length === 0) {
-                return `<p style="color:#9ca3af; padding:14px 0;">No modules have been added to this course yet.</p>`;
+                return `<p style="color:#9ca3af; padding:14px 0;">No units have been added to this course yet.</p>`;
             }
 
             let html = "";
 
-            courseModules.forEach(module => {
+            courseModules.forEach((module, idx) => {
+
+                const isFirstModule = idx === 0;
+                const previousModule = idx > 0 ? courseModules[idx - 1] : null;
+                const previousModuleHasQuiz = previousModule && allQuizzes.some(q => q.module_id === previousModule.id);
+                const previousPassed = previousModule ? passedModuleIds.has(previousModule.id) : true;
+
+                const unitUnlocked = isFirstModule || !previousModuleHasQuiz || previousPassed;
 
                 const moduleLessons = allLessons
                     .filter(l => l.module_id === module.id)
                     .sort((a, b) => a.lesson_number - b.lesson_number);
 
-                html += `<div class="module-block"><h5>Module ${module.module_number} — ${escapeHtml(module.title)}</h5>`;
+                const moduleQuiz = allQuizzes.find(q => q.module_id === module.id);
+                const thisModulePassed = passedModuleIds.has(module.id);
 
-                if (moduleLessons.length === 0) {
-                    html += `<p style="color:#9ca3af; font-size:13px;">No lessons added yet.</p>`;
+                html += `<div class="module-block">
+                    <h5>
+                        Unit ${module.module_number} — ${escapeHtml(module.title)}
+                        ${!unitUnlocked ? `<span class="unit-lock-tag">🔒 Locked</span>` : ""}
+                        ${unitUnlocked && thisModulePassed ? `<span class="unit-pass-tag">✓ Assessment Passed</span>` : ""}
+                    </h5>`;
+
+                if (!unitUnlocked) {
+
+                    html += `<p style="color:#9ca3af; font-size:13px;">Complete the previous Unit's Assessment Test (70% or higher) to unlock this Unit.</p>`;
+
+                } else if (moduleLessons.length === 0) {
+
+                    html += `<p style="color:#9ca3af; font-size:13px;">No topics added yet.</p>`;
+
                 } else {
+
                     moduleLessons.forEach(lesson => {
 
                         const done = completedLessonIds.has(lesson.id);
 
                         html += `
                             <div class="lesson-row ${done ? "done" : ""}" onclick="toggleLesson('${lesson.id}')">
-                                <span class="lesson-title">${done ? "✅" : "⬜"} Lesson ${lesson.lesson_number} — ${escapeHtml(lesson.title)}</span>
+                                <span class="lesson-title">${done ? "✅" : "⬜"} Topic ${lesson.lesson_number} — ${escapeHtml(lesson.title)}</span>
                                 <span class="lesson-check">›</span>
                             </div>
                             <div class="lesson-content-panel" id="panel-${lesson.id}">
                                 <h6>${escapeHtml(lesson.title)}</h6>
                                 <p>${escapeHtml(lesson.description || "No description provided.")}</p>
                                 ${lesson.content ? `<p>${escapeHtml(lesson.content)}</p>` : ""}
+                                ${lesson.video_url ? `<div class="video-embed"><a href="${escapeHtml(lesson.video_url)}" target="_blank">🎥 Watch video for this topic</a></div>` : ""}
                                 <button class="complete-button" id="btn-${lesson.id}" onclick="event.stopPropagation(); markComplete('${lesson.id}')" ${done ? "disabled" : ""}>
                                     ${done ? "✓ Completed" : "Mark as Complete"}
                                 </button>
@@ -488,6 +564,21 @@
                         `;
 
                     });
+
+                    if (moduleQuiz) {
+
+                        html += `
+                            <div class="assessment-block">
+                                <div class="title">📝 Assessment Test: ${escapeHtml(moduleQuiz.title)}</div>
+                                <div style="font-size:13px; color:#374151;">
+                                    ${thisModulePassed ? "You have passed this assessment." : "Score 70% or higher to unlock the next Unit."}
+                                </div>
+                                <a href="student-quizzes.html" class="go-link">Go to Assessment Test</a>
+                            </div>
+                        `;
+
+                    }
+
                 }
 
                 html += `</div>`;
@@ -500,21 +591,16 @@
 
 
         function toggleCourse(index) {
-
             const body = document.getElementById(`body-${index}`);
             const icon = document.getElementById(`icon-${index}`);
-
             const isOpen = body.classList.toggle("open");
             icon.textContent = isOpen ? "▲" : "▼";
-
         }
 
 
         function toggleLesson(lessonId) {
-
             const panel = document.getElementById(`panel-${lessonId}`);
-            panel.classList.toggle("open");
-
+            if (panel) panel.classList.toggle("open");
         }
 
 
@@ -535,7 +621,7 @@
 
             if (error) {
                 console.error(error);
-                alert("Unable to mark lesson complete: " + error.message);
+                alert("Unable to mark topic complete: " + error.message);
                 button.disabled = false;
                 button.textContent = "Mark as Complete";
                 return;
