@@ -77,6 +77,19 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: #0e7490
 .exam-checkbox-group input { width: auto; }
 .exam-checkbox-group label { margin-bottom: 0; font-weight: normal; }
 
+.final-checkbox-group {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: #eff6ff;
+    padding: 14px;
+    border-radius: 8px;
+    border: 1px solid #bfdbfe;
+}
+
+.final-checkbox-group input { width: auto; }
+.final-checkbox-group label { margin-bottom: 0; font-weight: normal; }
+
 .submit-button {
     margin-top: 20px;
     background: #0e7490;
@@ -107,6 +120,7 @@ th { background: #0e7490; color: white; }
 tr:hover { background: #f9fafb; }
 
 .exam-tag { background: #fee2e2; color: #991b1b; padding: 3px 9px; border-radius: 20px; font-size: 11px; font-weight: bold; margin-left: 6px; }
+.final-tag { background: #dbeafe; color: #1d4ed8; padding: 3px 9px; border-radius: 20px; font-size: 11px; font-weight: bold; margin-left: 6px; }
 
 .action-button {
     border: none;
@@ -140,11 +154,7 @@ tr:hover { background: #f9fafb; }
 
 .violation-tag { background: #fee2e2; color: #991b1b; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: bold; margin-left: 8px; }
 
-.bulk-import-box {
-    margin-top: 20px;
-    padding-top: 18px;
-    border-top: 1px solid #e5e7eb;
-}
+.bulk-import-box { margin-top: 20px; padding-top: 18px; border-top: 1px solid #e5e7eb; }
 
 .format-hint {
     background: #f4f6f9;
@@ -187,7 +197,7 @@ tr:hover { background: #f9fafb; }
 
     <section class="page-title">
         <h2>Exams & Quizzes</h2>
-        <p>Create quizzes and locked exams for your assigned courses.</p>
+        <p>Create Unit CAs and course Final Exams for your assigned courses.</p>
     </section>
 
     <div id="message" class="message"></div>
@@ -209,7 +219,14 @@ tr:hover { background: #f9fafb; }
                 </div>
 
                 <div class="form-group full">
-                    <label for="module">Module</label>
+                    <div class="final-checkbox-group">
+                        <input type="checkbox" id="isFinalExam">
+                        <label for="isFinalExam">This is the course's Final Exam (not tied to a Unit — covers the whole course, unlocks only after all 3 CAs are passed)</label>
+                    </div>
+                </div>
+
+                <div class="form-group full" id="moduleGroup">
+                    <label for="module">Unit</label>
                     <select id="module" required disabled>
                         <option value="">Select course first</option>
                     </select>
@@ -217,7 +234,7 @@ tr:hover { background: #f9fafb; }
 
                 <div class="form-group full">
                     <label for="title">Title</label>
-                    <input type="text" id="title" required placeholder="e.g. Midterm Exam — Networking">
+                    <input type="text" id="title" required placeholder="e.g. CA1 — Networking Basics, or Final Exam">
                 </div>
 
                 <div class="form-group">
@@ -318,6 +335,19 @@ document.getElementById("isExam").addEventListener("change", function() {
 });
 
 
+document.getElementById("isFinalExam").addEventListener("change", function() {
+    const moduleGroup = document.getElementById("moduleGroup");
+    const moduleSelect = document.getElementById("module");
+    if (this.checked) {
+        moduleGroup.style.display = "none";
+        moduleSelect.required = false;
+    } else {
+        moduleGroup.style.display = "block";
+        moduleSelect.required = true;
+    }
+});
+
+
 async function loadMyCourses() {
 
     const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
@@ -378,15 +408,15 @@ async function loadModulesByCourse(courseId) {
             .order("module_number");
 
     if (error || !data || data.length === 0) {
-        select.innerHTML = `<option value="">No modules found for this course</option>`;
+        select.innerHTML = `<option value="">No units found for this course</option>`;
         return;
     }
 
-    select.innerHTML = `<option value="">Select module</option>`;
+    select.innerHTML = `<option value="">Select unit</option>`;
     data.forEach(m => {
         const option = document.createElement("option");
         option.value = m.id;
-        option.textContent = `Module ${m.module_number} — ${m.title}`;
+        option.textContent = `Unit ${m.module_number} — ${m.title}`;
         select.appendChild(option);
     });
 
@@ -396,7 +426,9 @@ async function loadModulesByCourse(courseId) {
 
 
 document.getElementById("course").addEventListener("change", function() {
-    loadModulesByCourse(this.value);
+    if (!document.getElementById("isFinalExam").checked) {
+        loadModulesByCourse(this.value);
+    }
 });
 
 
@@ -405,10 +437,19 @@ document.getElementById("quizForm").addEventListener("submit", async function(ev
     event.preventDefault();
 
     const isExam = document.getElementById("isExam").checked;
+    const isFinalExam = document.getElementById("isFinalExam").checked;
     const scheduledValue = document.getElementById("scheduledStart").value;
+    const courseId = document.getElementById("course").value;
+
+    if (!isFinalExam && !document.getElementById("module").value) {
+        showMessage("Please select a Unit, or mark this as the Final Exam.", "error");
+        return;
+    }
 
     const quizData = {
-        module_id: document.getElementById("module").value,
+        module_id: isFinalExam ? null : document.getElementById("module").value,
+        course_id: isFinalExam ? courseId : null,
+        is_final_exam: isFinalExam,
         title: document.getElementById("title").value.trim(),
         description: document.getElementById("description").value.trim() || null,
         max_score: Number(document.getElementById("maxScore").value) || 100,
@@ -431,8 +472,10 @@ document.getElementById("quizForm").addEventListener("submit", async function(ev
     showMessage("Created successfully.", "success");
     document.getElementById("quizForm").reset();
     document.getElementById("scheduledGroup").style.display = "none";
+    document.getElementById("moduleGroup").style.display = "block";
     document.getElementById("module").innerHTML = `<option value="">Select course first</option>`;
     document.getElementById("module").disabled = true;
+    document.getElementById("module").required = true;
 
     await loadQuizzes();
 
@@ -453,47 +496,56 @@ async function loadQuizzes() {
 
     const moduleIds = (modules || []).map(m => m.id);
 
-    if (moduleIds.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="6">No modules found for your courses yet.</td></tr>`;
-        return;
-    }
-
-    const { data, error } =
-        await supabaseClient
+    const { data: unitQuizzes, error: unitError } =
+        moduleIds.length > 0
+        ? await supabaseClient
             .from("quizzes")
             .select(`
-                id, title, is_exam, is_open, duration_minutes, scheduled_start, module_id,
+                id, title, is_exam, is_open, is_final_exam, duration_minutes, scheduled_start, module_id, course_id,
                 course_modules ( course_id, courses ( code, name ) )
             `)
             .in("module_id", moduleIds)
-            .order("created_at", { ascending: false });
+        : { data: [], error: null };
 
-    if (error) {
-        tbody.innerHTML = `<tr><td colspan="6">Unable to load: ${escapeHtml(error.message)}</td></tr>`;
+    const { data: finalExams, error: finalError } =
+        await supabaseClient
+            .from("quizzes")
+            .select(`
+                id, title, is_exam, is_open, is_final_exam, duration_minutes, scheduled_start, module_id, course_id,
+                courses ( code, name )
+            `)
+            .in("course_id", myCourseIds)
+            .eq("is_final_exam", true);
+
+    const allQuizzes = [...(unitQuizzes || []), ...(finalExams || [])]
+        .sort((a, b) => (a.title || "").localeCompare(b.title || ""));
+
+    if (unitError || finalError) {
+        tbody.innerHTML = `<tr><td colspan="6">Unable to load: ${escapeHtml((unitError || finalError).message)}</td></tr>`;
         return;
     }
 
-    if (!data || data.length === 0) {
+    if (allQuizzes.length === 0) {
         tbody.innerHTML = `<tr><td colspan="6">No quizzes or exams created yet.</td></tr>`;
         return;
     }
 
     tbody.innerHTML = "";
 
-    for (const quiz of data) {
+    for (const quiz of allQuizzes) {
 
         const { count } = await supabaseClient
             .from("quiz_questions")
             .select("id", { count: "exact", head: true })
             .eq("quiz_id", quiz.id);
 
-        const course = quiz.course_modules?.courses;
+        const course = quiz.is_final_exam ? quiz.courses : quiz.course_modules?.courses;
 
         const row = document.createElement("tr");
 
         row.innerHTML = `
             <td>${course ? escapeHtml(course.code) : "-"}</td>
-            <td>${escapeHtml(quiz.title)} ${quiz.is_exam ? `<span class="exam-tag">EXAM</span>` : ""}</td>
+            <td>${escapeHtml(quiz.title)} ${quiz.is_final_exam ? `<span class="final-tag">FINAL</span>` : ""} ${quiz.is_exam ? `<span class="exam-tag">EXAM</span>` : ""}</td>
             <td>${quiz.scheduled_start ? new Date(quiz.scheduled_start).toLocaleString() : "-"}</td>
             <td>${quiz.duration_minutes ? quiz.duration_minutes + " min" : "-"}</td>
             <td>${count || 0}</td>
@@ -694,8 +746,6 @@ async function addShortAnswerQuestion(quizId) {
 
 }
 
-
-/* ================= BULK IMPORT PARSER ================= */
 
 function parseBulkQuestions(rawText) {
 
