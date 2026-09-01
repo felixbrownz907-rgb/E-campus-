@@ -25,6 +25,18 @@ body { font-family: Arial, Helvetica, sans-serif; background: #f4f6f9; color: #1
 .message.success { display: block; background: #dcfce7; color: #166534; }
 .message.error { display: block; background: #fee2e2; color: #991b1b; }
 
+.debug-box {
+    background: #1f2937;
+    color: #d1fae5;
+    border-radius: 8px;
+    padding: 12px;
+    margin-bottom: 20px;
+    font-family: monospace;
+    font-size: 12px;
+    white-space: pre-wrap;
+    word-break: break-all;
+}
+
 .card { background: white; padding: 22px; border-radius: 14px; margin-bottom: 18px; box-shadow: 0 3px 12px rgba(0,0,0,0.06); }
 .card h3 { font-size: 18px; margin-bottom: 14px; }
 
@@ -35,6 +47,7 @@ select, input, textarea {
     border-radius: 8px;
     font-size: 14px;
     margin-bottom: 12px;
+    background: white;
 }
 
 textarea { min-height: 90px; resize: vertical; }
@@ -89,10 +102,11 @@ textarea { min-height: 90px; resize: vertical; }
 
     <section class="page-title">
         <h2>My Course Content</h2>
-        <p>Create Units and paste your notes to quickly add Topics for your students. Add exams for a Unit from Manage Exams.</p>
+        <p>Create Units and paste your notes to quickly add Topics for your students.</p>
     </section>
 
     <div id="message" class="message"></div>
+    <div id="debugBox" class="debug-box">Debug: no course selected yet</div>
 
     <section class="card">
         <h3>1. Select Course</h3>
@@ -111,14 +125,13 @@ textarea { min-height: 90px; resize: vertical; }
         <select id="unitSelect"><option value="">Select a unit first</option></select>
 
         <div style="margin-top:14px;">
-            <p style="font-size:13px; color:#6b7280; margin-bottom:8px;">Paste your notes below. Separate each Topic with a line containing only <strong>===</strong>. Start each Topic with <strong>TITLE:</strong>. Optionally add a <strong>VIDEO:</strong> line with a YouTube link to embed a video for that topic.</p>
+            <p style="font-size:13px; color:#6b7280; margin-bottom:8px;">Paste your notes below. Separate each Topic with a line containing only <strong>===</strong>. Start each Topic with <strong>TITLE:</strong>. Optionally add a <strong>VIDEO:</strong> line with a YouTube link.</p>
             <div class="format-hint">TITLE: Introduction to Networks
 VIDEO: https://www.youtube.com/watch?v=xxxxxxxxxxx
 This is the full content of the topic...
-can be multiple paragraphs...
 ===
 TITLE: OSI Model
-More content here, no video needed for this one...
+More content here...
 ===</div>
             <textarea id="bulkNotes" placeholder="Paste your notes here..." style="min-height:200px;"></textarea>
             <button class="small-button" onclick="importTopics()">Convert & Add Topics</button>
@@ -140,6 +153,7 @@ More content here, no video needed for this one...
 <script>
 
 const message = document.getElementById("message");
+const debugBox = document.getElementById("debugBox");
 let currentCourseId = null;
 let currentUnits = [];
 
@@ -147,6 +161,17 @@ let currentUnits = [];
 function showMessage(text, type) {
     message.textContent = text;
     message.className = "message " + type;
+}
+
+
+function updateDebug(extra) {
+    const unitSelect = document.getElementById("unitSelect");
+    debugBox.textContent =
+        "currentCourseId: " + currentCourseId + "\n" +
+        "units loaded: " + currentUnits.length + "\n" +
+        "unit dropdown options: " + unitSelect.options.length + "\n" +
+        "unit dropdown current value: '" + unitSelect.value + "'" +
+        (extra ? ("\n" + extra) : "");
 }
 
 
@@ -198,6 +223,8 @@ async function startPage() {
         select.appendChild(option);
     });
 
+    updateDebug();
+
 }
 
 
@@ -208,7 +235,14 @@ document.getElementById("courseSelect").addEventListener("change", async functio
     } else {
         document.getElementById("unitsContainer").innerHTML = `<p class="empty-note">Select a course to view its content.</p>`;
         document.getElementById("unitSelect").innerHTML = `<option value="">Select a unit first</option>`;
+        currentUnits = [];
+        updateDebug();
     }
+});
+
+
+document.getElementById("unitSelect").addEventListener("change", function() {
+    updateDebug();
 });
 
 
@@ -227,21 +261,23 @@ async function createUnit() {
         return;
     }
 
-    const { error } =
+    const { data: insertedUnit, error } =
         await supabaseClient.from("course_modules").insert({
             course_id: currentCourseId,
             module_number: Number(number),
             title: title
-        });
+        }).select().single();
 
     if (error) {
         showMessage("Unable to create unit: " + error.message, "error");
+        updateDebug("createUnit error: " + error.message);
         return;
     }
 
-    showMessage("Unit created.", "success");
+    showMessage("Unit created: " + (insertedUnit?.title || title), "success");
     document.getElementById("unitTitle").value = "";
     document.getElementById("unitNumber").value = "";
+
     await loadUnits();
 
 }
@@ -259,21 +295,28 @@ async function loadUnits() {
             .eq("course_id", currentCourseId)
             .order("module_number");
 
-    if (error || !units || units.length === 0) {
+    if (error) {
+        container.innerHTML = `<p class="empty-note">Error loading units: ${escapeHtml(error.message)}</p>`;
+        unitSelect.innerHTML = `<option value="">Error loading units</option>`;
+        currentUnits = [];
+        updateDebug("loadUnits error: " + error.message);
+        return;
+    }
+
+    if (!units || units.length === 0) {
         container.innerHTML = `<p class="empty-note">No units created for this course yet.</p>`;
         unitSelect.innerHTML = `<option value="">Create a unit first</option>`;
+        currentUnits = [];
+        updateDebug();
         return;
     }
 
     currentUnits = units;
 
-    unitSelect.innerHTML = `<option value="">Select a unit</option>`;
-    units.forEach(u => {
-        const option = document.createElement("option");
-        option.value = u.id;
-        option.textContent = `Unit ${u.module_number} — ${u.title}`;
-        unitSelect.appendChild(option);
-    });
+    const newOptionsHtml = `<option value="">Select a unit</option>` +
+        units.map(u => `<option value="${u.id}">Unit ${u.module_number} — ${escapeHtml(u.title)}</option>`).join("");
+
+    unitSelect.innerHTML = newOptionsHtml;
 
     const { data: lessons } =
         await supabaseClient
@@ -294,6 +337,8 @@ async function loadUnits() {
             </div>
         `;
     }).join("");
+
+    updateDebug();
 
 }
 
@@ -316,7 +361,6 @@ function parseBulkTopics(rawText) {
         let videoUrl = null;
         let contentLines = lines.slice(1);
 
-        // Check if the next line is a VIDEO: line
         if (contentLines.length > 0) {
             const videoMatch = contentLines[0].match(/^VIDEO:\s*(.*)/i);
             if (videoMatch) {
@@ -343,8 +387,10 @@ async function importTopics() {
     const unitId = document.getElementById("unitSelect").value;
     const rawText = document.getElementById("bulkNotes").value;
 
+    updateDebug("importTopics called, unitId read as: '" + unitId + "'");
+
     if (!unitId) {
-        showMessage("Please select a unit first.", "error");
+        showMessage("Please select a unit first. (Debug box above shows what the page currently sees — check it shows units loaded)", "error");
         return;
     }
 
@@ -377,6 +423,7 @@ async function importTopics() {
 
     if (error) {
         showMessage("Unable to import topics: " + error.message, "error");
+        updateDebug("importTopics insert error: " + error.message);
         return;
     }
 
