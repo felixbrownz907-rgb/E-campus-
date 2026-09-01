@@ -1,815 +1,619 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Programme Management | E-Campus</title>
 
-    <title>Programme Management | E-Campus</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
 
-    <style>
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
+body {
+    font-family: Arial, Helvetica, sans-serif;
+    background: #f4f6f9;
+    color: #172033;
+}
 
-        body {
-            font-family: Arial, Helvetica, sans-serif;
-            background: #f4f6f9;
-            color: #172033;
-        }
+.header {
+    background: #111827;
+    color: white;
+    padding: 18px 25px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
 
-        .header {
-            background: #111827;
-            color: white;
-            padding: 18px 25px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 15px;
-        }
+.brand { display: flex; align-items: center; gap: 14px; }
+.logo { width: 58px; height: 58px; object-fit: contain; background: white; border-radius: 8px; }
+.brand h1 { font-size: 24px; }
+.brand p { color: #d4af37; margin-top: 4px; }
 
-        .brand {
-            display: flex;
-            align-items: center;
-            gap: 14px;
-        }
+.back-button {
+    background: #d4af37;
+    color: #111827;
+    text-decoration: none;
+    padding: 11px 18px;
+    border-radius: 8px;
+    font-weight: bold;
+}
 
-        .logo {
-            width: 58px;
-            height: 58px;
-            object-fit: contain;
-            background: white;
-            border-radius: 8px;
-        }
+.container { max-width: 1250px; margin: 30px auto; padding: 0 20px; }
 
-        .brand h1 {
-            font-size: 24px;
-        }
+.page-title { margin-bottom: 25px; }
+.page-title h2 { font-size: 30px; margin-bottom: 7px; }
+.page-title p { color: #6b7280; }
 
-        .brand p {
-            color: #d4af37;
-            margin-top: 4px;
-            font-size: 14px;
-        }
+.message {
+    padding: 14px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    display: none;
+}
 
-        .back-button {
-            text-decoration: none;
-            color: #111827;
-            background: #d4af37;
-            padding: 11px 18px;
-            border-radius: 8px;
-            font-weight: bold;
-        }
+.message.success { display: block; background: #dcfce7; color: #166534; }
+.message.error { display: block; background: #fee2e2; color: #991b1b; }
 
-        .container {
-            width: 100%;
-            max-width: 1200px;
-            margin: 30px auto;
-            padding: 0 20px;
-        }
+.card {
+    background: white;
+    padding: 25px;
+    border-radius: 14px;
+    margin-bottom: 25px;
+    box-shadow: 0 5px 20px rgba(0,0,0,0.07);
+}
 
-        .page-title {
-            margin-bottom: 25px;
-        }
+.card h3 { margin-bottom: 6px; font-size: 22px; }
+.card .sub { color: #6b7280; font-size: 13px; margin-bottom: 18px; }
 
-        .page-title h2 {
-            font-size: 30px;
-            margin-bottom: 7px;
-        }
+.form-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 18px;
+}
 
-        .page-title p {
-            color: #6b7280;
-        }
+.form-group { display: flex; flex-direction: column; }
+.form-group.full { grid-column: 1 / -1; }
 
-        .layout {
-            display: grid;
-            grid-template-columns: 380px 1fr;
-            gap: 25px;
-            align-items: start;
-        }
+label { font-weight: bold; margin-bottom: 7px; }
 
-        .card {
-            background: white;
-            border-radius: 14px;
-            padding: 25px;
-            box-shadow: 0 5px 20px rgba(0,0,0,0.07);
-        }
+input, select, textarea {
+    width: 100%;
+    padding: 13px;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    font-size: 15px;
+}
 
-        .card h3 {
-            margin-bottom: 20px;
-            font-size: 21px;
-        }
+textarea { min-height: 90px; resize: vertical; }
 
-        .form-group {
-            margin-bottom: 16px;
-        }
+input:focus, select:focus, textarea:focus {
+    outline: none;
+    border-color: #d4af37;
+}
 
-        label {
-            display: block;
-            margin-bottom: 7px;
-            font-weight: bold;
-            font-size: 14px;
-        }
+.submit-button {
+    margin-top: 20px;
+    background: #d4af37;
+    color: #111827;
+    border: none;
+    padding: 13px 20px;
+    border-radius: 8px;
+    font-weight: bold;
+    cursor: pointer;
+    width: 100%;
+}
 
-        input,
-        textarea,
-        select {
-            width: 100%;
-            padding: 12px;
-            border: 1px solid #d1d5db;
-            border-radius: 8px;
-            font-size: 15px;
-            outline: none;
-            background: white;
-        }
+.submit-button:hover { background: #c29d24; }
 
-        textarea {
-            min-height: 100px;
-            resize: vertical;
-        }
+.table-container { overflow-x: auto; }
 
-        input:focus,
-        textarea:focus,
-        select:focus {
-            border-color: #d4af37;
-            box-shadow: 0 0 0 3px rgba(212,175,55,0.12);
-        }
+table { width: 100%; border-collapse: collapse; }
 
-        .save-button {
-            width: 100%;
-            border: none;
-            padding: 13px;
-            border-radius: 8px;
-            background: #d4af37;
-            color: #111827;
-            font-size: 16px;
-            font-weight: bold;
-            cursor: pointer;
-        }
+th, td {
+    padding: 14px;
+    text-align: left;
+    border-bottom: 1px solid #e5e7eb;
+}
 
-        .save-button:hover {
-            background: #c29d24;
-        }
+th { background: #111827; color: white; }
+tr:hover { background: #f9fafb; }
 
-        .save-button:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-        }
+.status {
+    display: inline-block;
+    padding: 5px 10px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: bold;
+}
 
-        .message {
-            display: none;
-            padding: 12px;
-            border-radius: 8px;
-            margin-bottom: 15px;
-            line-height: 1.4;
-            font-size: 14px;
-        }
+.status.active { background: #dcfce7; color: #166534; }
+.status.inactive { background: #fee2e2; color: #991b1b; }
 
-        .message.success {
-            display: block;
-            background: #dcfce7;
-            color: #166534;
-        }
+.action-button {
+    border: none;
+    padding: 7px 11px;
+    border-radius: 6px;
+    font-weight: bold;
+    cursor: pointer;
+    font-size: 13px;
+}
 
-        .message.error {
-            display: block;
-            background: #fee2e2;
-            color: #991b1b;
-        }
+.delete-button { background: #fee2e2; color: #991b1b; }
 
-        .table-wrapper {
-            overflow-x: auto;
-        }
+.level-quick-add {
+    display: flex;
+    gap: 8px;
+    margin-top: 10px;
+    flex-wrap: wrap;
+}
 
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            min-width: 650px;
-        }
+.quick-add-button {
+    background: #e5e7eb;
+    color: #111827;
+    border: none;
+    padding: 9px 14px;
+    border-radius: 6px;
+    font-weight: bold;
+    font-size: 13px;
+    cursor: pointer;
+}
 
-        th,
-        td {
-            padding: 13px 10px;
-            border-bottom: 1px solid #e5e7eb;
-            text-align: left;
-            font-size: 14px;
-        }
+.empty-note { color: #9ca3af; text-align: center; padding: 20px 0; }
 
-        th {
-            background: #f9fafb;
-            font-weight: bold;
-        }
+@media (max-width: 700px) {
+    .header { flex-direction: column; align-items: flex-start; gap: 15px; }
+    .form-grid { grid-template-columns: 1fr; }
+    .form-group.full { grid-column: auto; }
+}
 
-        .status {
-            display: inline-block;
-            padding: 5px 9px;
-            border-radius: 20px;
-            background: #dcfce7;
-            color: #166534;
-            font-size: 12px;
-            font-weight: bold;
-        }
-
-        .empty {
-            text-align: center;
-            color: #6b7280;
-            padding: 30px;
-        }
-
-        .loading {
-            text-align: center;
-            color: #6b7280;
-            padding: 25px;
-        }
-
-        @media (max-width: 850px) {
-            .layout {
-                grid-template-columns: 1fr;
-            }
-
-            .header {
-                flex-direction: column;
-                align-items: flex-start;
-            }
-        }
-    </style>
+</style>
 </head>
+
 
 <body>
 
-    <header class="header">
 
-        <div class="brand">
+<header class="header">
 
-            <img
-                src="https://pub-b3e2d39712e84119875e84c5ec5f5c09.r2.dev/Logo/IMG-20260816-WA0050(1).jpg"
-                alt="Sunningdale University Logo"
-                class="logo"
-            >
-
-            <div>
-                <h1>E-Campus Administration</h1>
-                <p>Sunningdale University</p>
-            </div>
-
+    <div class="brand">
+        <img src="https://pub-b3e2d39712e84119875e84c5ec5f5c09.r2.dev/Logo/IMG-20260816-WA0050(1).jpg" alt="Sunningdale University Logo" class="logo">
+        <div>
+            <h1>E-Campus Administration</h1>
+            <p>Sunningdale University</p>
         </div>
+    </div>
 
-        <a href="admin-dashboard.html" class="back-button">
-            ← Admin Dashboard
-        </a>
+    <a href="admin-dashboard.html" class="back-button">← Admin Dashboard</a>
 
-    </header>
+</header>
 
 
-    <main class="container">
+<main class="container">
 
-        <div class="page-title">
+    <section class="page-title">
+        <h2>Programme Management</h2>
+        <p>Create academic programmes. Year Levels are created automatically based on the Duration you set.</p>
+    </section>
 
-            <h2>Programme Management</h2>
+    <div id="message" class="message"></div>
 
-            <p>
-                Create and manage academic programmes offered by the university.
-            </p>
 
-        </div>
+    <section class="card">
+        <h3>Add New Programme</h3>
 
+        <form id="programmeForm">
 
-        <div class="layout">
+            <div class="form-grid">
 
-            <!-- ADD PROGRAMME -->
-
-            <section class="card">
-
-                <h3>Add New Programme</h3>
-
-                <div id="message" class="message"></div>
-
-                <form id="programmeForm">
-
-                    <div class="form-group">
-
-                        <label for="name">
-                            Programme Name
-                        </label>
-
-                        <input
-                            type="text"
-                            id="name"
-                            placeholder="e.g. Bachelor of Information Technology"
-                            required
-                        >
-
-                    </div>
-
-
-                    <div class="form-group">
-
-                        <label for="code">
-                            Programme Code
-                        </label>
-
-                        <input
-                            type="text"
-                            id="code"
-                            placeholder="e.g. BIT"
-                            required
-                        >
-
-                    </div>
-
-
-                    <div class="form-group">
-
-                        <label for="qualification_type">
-                            Qualification Type
-                        </label>
-
-                        <select id="qualification_type" required>
-
-                            <option value="">
-                                Select qualification
-                            </option>
-
-                            <option value="Certificate">
-                                Certificate
-                            </option>
-
-                            <option value="Diploma">
-                                Diploma
-                            </option>
-
-                            <option value="Bachelor Degree">
-                                Bachelor Degree
-                            </option>
-
-                            <option value="Master Degree">
-                                Master Degree
-                            </option>
-
-                            <option value="PhD">
-                                PhD
-                            </option>
-
-                        </select>
-
-                    </div>
-
-
-                    <div class="form-group">
-
-                        <label for="duration_value">
-                            Duration
-                        </label>
-
-                        <input
-                            type="number"
-                            id="duration_value"
-                            min="1"
-                            placeholder="e.g. 3"
-                            required
-                        >
-
-                    </div>
-
-
-                    <div class="form-group">
-
-                        <label for="duration_unit">
-                            Duration Unit
-                        </label>
-
-                        <select id="duration_unit" required>
-
-                            <option value="">
-                                Select unit
-                            </option>
-
-                            <option value="Years">
-                                Years
-                            </option>
-
-                            <option value="Months">
-                                Months
-                            </option>
-
-                            <option value="Semesters">
-                                Semesters
-                            </option>
-
-                            <option value="Terms">
-                                Terms
-                            </option>
-
-                        </select>
-
-                    </div>
-
-
-                    <div class="form-group">
-
-                        <label for="total_credits">
-                            Total Credits
-                        </label>
-
-                        <input
-                            type="number"
-                            id="total_credits"
-                            min="0"
-                            step="0.5"
-                            placeholder="e.g. 120"
-                        >
-
-                    </div>
-
-
-                    <div class="form-group">
-
-                        <label for="description">
-                            Description
-                        </label>
-
-                        <textarea
-                            id="description"
-                            placeholder="Describe the programme..."
-                        ></textarea>
-
-                    </div>
-
-
-                    <div class="form-group">
-
-                        <label for="status">
-                            Status
-                        </label>
-
-                        <select id="status" required>
-
-                            <option value="ACTIVE">
-                                ACTIVE
-                            </option>
-
-                            <option value="INACTIVE">
-                                INACTIVE
-                            </option>
-
-                            <option value="DRAFT">
-                                DRAFT
-                            </option>
-
-                        </select>
-
-                    </div>
-
-
-                    <button
-                        type="submit"
-                        id="saveButton"
-                        class="save-button"
-                    >
-                        Add Programme
-                    </button>
-
-                </form>
-
-            </section>
-
-
-            <!-- PROGRAMMES LIST -->
-
-            <section class="card">
-
-                <h3>Existing Programmes</h3>
-
-                <div class="table-wrapper">
-
-                    <table>
-
-                        <thead>
-
-                            <tr>
-                                <th>Code</th>
-                                <th>Programme</th>
-                                <th>Qualification</th>
-                                <th>Duration</th>
-                                <th>Credits</th>
-                                <th>Status</th>
-                            </tr>
-
-                        </thead>
-
-                        <tbody id="programmesTable">
-
-                            <tr>
-                                <td colspan="6" class="loading">
-                                    Loading programmes...
-                                </td>
-                            </tr>
-
-                        </tbody>
-
-                    </table>
-
+                <div class="form-group">
+                    <label for="progName">Programme Name</label>
+                    <input type="text" id="progName" required placeholder="e.g. Bachelor of Business Administration">
                 </div>
 
-            </section>
+                <div class="form-group">
+                    <label for="progCode">Programme Code</label>
+                    <input type="text" id="progCode" required placeholder="e.g. BBA">
+                </div>
+
+                <div class="form-group">
+                    <label for="progQualification">Qualification Type</label>
+                    <select id="progQualification">
+                        <option value="Certificate">Certificate</option>
+                        <option value="Diploma">Diploma</option>
+                        <option value="Bachelor Degree">Bachelor Degree</option>
+                        <option value="Master Degree">Master Degree</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="progDuration">Duration (Years)</label>
+                    <input type="number" id="progDuration" min="1" value="4">
+                </div>
+
+                <div class="form-group full">
+                    <label for="progTotalCredits">Total Credits</label>
+                    <input type="number" id="progTotalCredits" min="1" value="120">
+                </div>
+
+                <div class="form-group full">
+                    <label for="progDescription">Description</label>
+                    <textarea id="progDescription" placeholder="Describe the programme..."></textarea>
+                </div>
+
+            </div>
+
+            <button type="submit" class="submit-button" id="submitProgButton">Add Programme</button>
+
+        </form>
+    </section>
+
+
+    <section class="card">
+        <h3>Existing Programmes</h3>
+
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Code</th>
+                        <th>Programme</th>
+                        <th>Qualification</th>
+                        <th>Duration</th>
+                        <th>Credits</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody id="programmesTableBody">
+                    <tr><td colspan="6">Loading...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+
+    <section class="card">
+        <h3>Year Levels (Manual Adjustment)</h3>
+        <div class="sub">Year Levels are now created automatically when you add a new programme. Use this section only if you need to manually add or remove a specific year for an existing programme.</div>
+
+        <div class="form-group">
+            <label for="levelProgSelect">Programme</label>
+            <select id="levelProgSelect">
+                <option value="">Select programme</option>
+            </select>
+        </div>
+
+        <div id="levelManager" style="display:none;">
+
+            <div class="form-grid" style="margin-top:14px;">
+                <div class="form-group">
+                    <label for="newLevelNumber">Year Number</label>
+                    <input type="number" id="newLevelNumber" min="1" placeholder="e.g. 1">
+                </div>
+                <div class="form-group">
+                    <label for="newLevelName">Year Name</label>
+                    <input type="text" id="newLevelName" placeholder="e.g. Year 1">
+                </div>
+            </div>
+
+            <button class="submit-button" onclick="addLevel()">Add Year Level</button>
+
+            <div class="level-quick-add">
+                <button class="quick-add-button" onclick="quickAddAllYears()">Quick Add Year 1–4</button>
+            </div>
+
+            <div id="levelsList" style="margin-top:18px;"></div>
 
         </div>
 
-    </main>
+    </section>
 
+</main>
 
-    <!-- SUPABASE -->
 
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../supabase-config.js"></script>
 
-    <script src="../supabase-config.js"></script>
 
+<script>
 
-    <script>
+const message = document.getElementById("message");
+let currentProgrammeId = null;
 
-        const form =
-            document.getElementById("programmeForm");
 
-        const message =
-            document.getElementById("message");
+function showMessage(text, type) {
+    message.textContent = text;
+    message.className = "message " + type;
+}
 
-        const saveButton =
-            document.getElementById("saveButton");
 
-        const programmesTable =
-            document.getElementById("programmesTable");
+function escapeHtml(value) {
+    return String(value ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+}
 
 
-        function showMessage(text, type) {
+/* ================= CREATE PROGRAMME ================= */
 
-            message.textContent = text;
+document.getElementById("programmeForm").addEventListener("submit", async function(event) {
 
-            message.className =
-                "message " + type;
+    event.preventDefault();
 
-        }
+    const submitButton = document.getElementById("submitProgButton");
+    submitButton.disabled = true;
+    submitButton.textContent = "Adding...";
 
+    const progCode = document.getElementById("progCode").value.trim();
+    const yearsToCreate = Number(document.getElementById("progDuration").value) || 4;
 
-        async function loadProgrammes() {
+    const { error } =
+        await supabaseClient.from("programmes").insert({
+            name: document.getElementById("progName").value.trim(),
+            code: progCode,
+            qualification_type: document.getElementById("progQualification").value,
+            duration_value: yearsToCreate,
+            duration_unit: "years",
+            total_credits: Number(document.getElementById("progTotalCredits").value) || 120,
+            description: document.getElementById("progDescription").value.trim() || null,
+            status: "active"
+        });
 
-            programmesTable.innerHTML = `
-                <tr>
-                    <td colspan="6" class="loading">
-                        Loading programmes...
-                    </td>
-                </tr>
-            `;
+    if (error) {
+        submitButton.disabled = false;
+        submitButton.textContent = "Add Programme";
+        showMessage("Unable to add programme: " + error.message, "error");
+        return;
+    }
 
-            const {
-                data,
-                error
-            } = await supabaseClient
-                .from("programmes")
-                .select(`
-                    id,
-                    name,
-                    code,
-                    qualification_type,
-                    duration_value,
-                    duration_unit,
-                    total_credits,
-                    status
-                `)
-                .order("created_at", {
-                    ascending: false
-                });
+    // Automatically create Year Levels based on the Duration entered above
+    const { data: newProgramme } =
+        await supabaseClient
+            .from("programmes")
+            .select("id")
+            .eq("code", progCode)
+            .order("created_at", { ascending: false })
+            .limit(1)
+            .single();
 
+    if (newProgramme) {
+        const levelRows = Array.from({ length: yearsToCreate }, (_, i) => ({
+            programme_id: newProgramme.id,
+            level_number: i + 1,
+            name: `Year ${i + 1}`,
+            code: `Y${i + 1}`
+        }));
+        await supabaseClient.from("academic_levels").insert(levelRows);
+    }
 
-            if (error) {
+    submitButton.disabled = false;
+    submitButton.textContent = "Add Programme";
 
-                console.error(error);
+    showMessage("Programme added successfully, with Year levels created automatically.", "success");
+    document.getElementById("programmeForm").reset();
+    document.getElementById("progDuration").value = 4;
+    document.getElementById("progTotalCredits").value = 120;
 
-                programmesTable.innerHTML = `
-                    <tr>
-                        <td colspan="6" class="empty">
-                            Unable to load programmes.
-                        </td>
-                    </tr>
-                `;
+    await loadProgrammes();
+    await loadProgrammeDropdown();
 
-                return;
-            }
+});
 
 
-            if (!data || data.length === 0) {
+/* ================= LOAD PROGRAMMES TABLE ================= */
 
-                programmesTable.innerHTML = `
-                    <tr>
-                        <td colspan="6" class="empty">
-                            No programmes have been created yet.
-                        </td>
-                    </tr>
-                `;
+async function loadProgrammes() {
 
-                return;
-            }
+    const tbody = document.getElementById("programmesTableBody");
 
+    const { data, error } =
+        await supabaseClient.from("programmes").select("*").order("name");
 
-            programmesTable.innerHTML =
-                data.map(programme => `
+    if (error) {
+        tbody.innerHTML = `<tr><td colspan="6">Unable to load: ${escapeHtml(error.message)}</td></tr>`;
+        return;
+    }
 
-                    <tr>
+    if (!data || data.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6">No programmes created yet.</td></tr>`;
+        return;
+    }
 
-                        <td>
-                            <strong>
-                                ${escapeHtml(programme.code || "")}
-                            </strong>
-                        </td>
-
-                        <td>
-                            ${escapeHtml(programme.name || "")}
-                        </td>
-
-                        <td>
-                            ${escapeHtml(
-                                programme.qualification_type || ""
-                            )}
-                        </td>
-
-                        <td>
-                            ${escapeHtml(
-                                programme.duration_value || ""
-                            )}
-                            ${escapeHtml(
-                                programme.duration_unit || ""
-                            )}
-                        </td>
-
-                        <td>
-                            ${escapeHtml(
-                                programme.total_credits || "-"
-                            )}
-                        </td>
-
-                        <td>
-                            <span class="status">
-                                ${escapeHtml(
-                                    programme.status || ""
-                                )}
-                            </span>
-                        </td>
-
-                    </tr>
-
-                `).join("");
-
-        }
-
-
-        form.addEventListener(
-            "submit",
-            async function(event) {
-
-                event.preventDefault();
-
-
-                saveButton.disabled = true;
-
-                saveButton.textContent =
-                    "Saving...";
-
-
-                const programme = {
-
-                    name:
-                        document
-                            .getElementById("name")
-                            .value
-                            .trim(),
-
-                    code:
-                        document
-                            .getElementById("code")
-                            .value
-                            .trim()
-                            .toUpperCase(),
+    tbody.innerHTML = data.map(p => `
+        <tr>
+            <td>${escapeHtml(p.code)}</td>
+            <td>${escapeHtml(p.name)}</td>
+            <td>${escapeHtml(p.qualification_type || "-")}</td>
+            <td>${p.duration_value || "-"} ${escapeHtml(p.duration_unit || "")}</td>
+            <td>${p.total_credits || "-"}</td>
+            <td><span class="status ${p.status === "active" ? "active" : "inactive"}">${escapeHtml(p.status)}</span></td>
+        </tr>
+    `).join("");
 
-                    qualification_type:
-                        document
-                            .getElementById(
-                                "qualification_type"
-                            )
-                            .value,
+}
 
-                    duration_value:
-                        Number(
-                            document
-                                .getElementById(
-                                    "duration_value"
-                                )
-                                .value
-                        ),
 
-                    duration_unit:
-                        document
-                            .getElementById(
-                                "duration_unit"
-                            )
-                            .value,
+/* ================= LEVEL PROGRAMME DROPDOWN ================= */
 
-                    total_credits:
-                        document
-                            .getElementById(
-                                "total_credits"
-                            )
-                            .value
-                            ? Number(
-                                document
-                                    .getElementById(
-                                        "total_credits"
-                                    )
-                                    .value
-                            )
-                            : null,
+async function loadProgrammeDropdown() {
 
-                    description:
-                        document
-                            .getElementById(
-                                "description"
-                            )
-                            .value
-                            .trim() || null,
+    const select = document.getElementById("levelProgSelect");
+    select.innerHTML = `<option value="">Select programme</option>`;
 
-                    status:
-                        document
-                            .getElementById(
-                                "status"
-                            )
-                            .value
+    const { data, error } =
+        await supabaseClient.from("programmes").select("id, code, name").order("name");
 
-                };
+    if (error || !data) return;
 
+    data.forEach(p => {
+        const option = document.createElement("option");
+        option.value = p.id;
+        option.textContent = `${p.code} — ${p.name}`;
+        select.appendChild(option);
+    });
 
-                const {
-                    error
-                } = await supabaseClient
-                    .from("programmes")
-                    .insert([programme]);
+}
 
 
-                if (error) {
+document.getElementById("levelProgSelect").addEventListener("change", async function() {
 
-                    console.error(error);
+    currentProgrammeId = this.value;
+    const manager = document.getElementById("levelManager");
 
-                    showMessage(
-                        error.message,
-                        "error"
-                    );
+    if (!currentProgrammeId) {
+        manager.style.display = "none";
+        return;
+    }
 
-                    saveButton.disabled = false;
+    manager.style.display = "block";
+    await loadLevels();
 
-                    saveButton.textContent =
-                        "Add Programme";
+});
 
-                    return;
-                }
 
+/* ================= ADD LEVEL ================= */
 
-                showMessage(
-                    "Programme created successfully.",
-                    "success"
-                );
+async function addLevel() {
 
+    if (!currentProgrammeId) {
+        showMessage("Please select a programme first.", "error");
+        return;
+    }
 
-                form.reset();
+    const levelNumber = document.getElementById("newLevelNumber").value;
+    const levelName = document.getElementById("newLevelName").value.trim();
 
-                document.getElementById("status").value =
-                    "ACTIVE";
+    if (!levelNumber || !levelName) {
+        showMessage("Please enter both a year number and name.", "error");
+        return;
+    }
 
+    const { error } =
+        await supabaseClient.from("academic_levels").insert({
+            programme_id: currentProgrammeId,
+            level_number: Number(levelNumber),
+            name: levelName,
+            code: `Y${levelNumber}`
+        });
 
-                await loadProgrammes();
+    if (error) {
+        showMessage("Unable to add year level: " + error.message, "error");
+        return;
+    }
 
+    showMessage("Year level added.", "success");
+    document.getElementById("newLevelNumber").value = "";
+    document.getElementById("newLevelName").value = "";
 
-                saveButton.disabled = false;
+    await loadLevels();
 
-                saveButton.textContent =
-                    "Add Programme";
+}
 
-            }
-        );
 
+/* ================= QUICK ADD YEAR 1-4 ================= */
 
-        function escapeHtml(value) {
+async function quickAddAllYears() {
 
-            return String(value)
-                .replaceAll("&", "&amp;")
-                .replaceAll("<", "&lt;")
-                .replaceAll(">", "&gt;")
-                .replaceAll('"', "&quot;")
-                .replaceAll("'", "&#039;");
+    if (!currentProgrammeId) {
+        showMessage("Please select a programme first.", "error");
+        return;
+    }
 
-        }
+    const { data: existing } =
+        await supabaseClient.from("academic_levels").select("level_number").eq("programme_id", currentProgrammeId);
 
+    const existingNumbers = new Set((existing || []).map(l => l.level_number));
 
-        loadProgrammes();
+    const rowsToInsert = [1, 2, 3, 4]
+        .filter(n => !existingNumbers.has(n))
+        .map(n => ({
+            programme_id: currentProgrammeId,
+            level_number: n,
+            name: `Year ${n}`,
+            code: `Y${n}`
+        }));
 
-    </script>
+    if (rowsToInsert.length === 0) {
+        showMessage("Year 1–4 already exist for this programme.", "success");
+        return;
+    }
+
+    const { error } = await supabaseClient.from("academic_levels").insert(rowsToInsert);
+
+    if (error) {
+        showMessage("Unable to add year levels: " + error.message, "error");
+        return;
+    }
+
+    showMessage(`${rowsToInsert.length} year level(s) added.`, "success");
+    await loadLevels();
+
+}
+
+
+/* ================= LOAD LEVELS LIST ================= */
+
+async function loadLevels() {
+
+    const container = document.getElementById("levelsList");
+
+    const { data, error } =
+        await supabaseClient
+            .from("academic_levels")
+            .select("id, level_number, name")
+            .eq("programme_id", currentProgrammeId)
+            .order("level_number");
+
+    if (error) {
+        container.innerHTML = `<p class="empty-note">Unable to load: ${escapeHtml(error.message)}</p>`;
+        return;
+    }
+
+    if (!data || data.length === 0) {
+        container.innerHTML = `<p class="empty-note">No year levels created for this programme yet.</p>`;
+        return;
+    }
+
+    container.innerHTML = data.map(l => `
+        <div style="display:flex; justify-content:space-between; align-items:center; padding:10px 14px; background:#f4f6f9; border-radius:8px; margin-bottom:8px;">
+            <span style="font-weight:bold;">Level ${l.level_number} — ${escapeHtml(l.name)}</span>
+            <button class="action-button delete-button" onclick="removeLevel('${l.id}')">Remove</button>
+        </div>
+    `).join("");
+
+}
+
+
+async function removeLevel(id) {
+
+    const confirmed = confirm("Remove this year level? This may affect courses/students already linked to it.");
+    if (!confirmed) return;
+
+    const { error } = await supabaseClient.from("academic_levels").delete().eq("id", id);
+
+    if (error) {
+        showMessage("Unable to remove: " + error.message, "error");
+        return;
+    }
+
+    showMessage("Year level removed.", "success");
+    await loadLevels();
+
+}
+
+
+/* ================= INIT ================= */
+
+async function startPage() {
+    await loadProgrammes();
+    await loadProgrammeDropdown();
+}
+
+startPage();
+
+</script>
 
 </body>
 </html>
