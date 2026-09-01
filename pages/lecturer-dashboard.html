@@ -59,6 +59,25 @@ body { font-family: Arial, Helvetica, sans-serif; background: #f4f6f9; color: #1
 .card { background: white; padding: 22px; border-radius: 14px; margin-bottom: 20px; box-shadow: 0 3px 12px rgba(0,0,0,0.06); }
 .card h3 { font-size: 19px; margin-bottom: 16px; }
 
+.quick-links {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.quick-link {
+    background: #ecfeff;
+    border: 1px solid #a5f3fc;
+    border-radius: 10px;
+    padding: 14px;
+    text-align: center;
+    text-decoration: none;
+    color: #0e7490;
+    font-weight: bold;
+    font-size: 13px;
+}
+
 .course-item {
     padding: 16px;
     border: 1px solid #e5e7eb;
@@ -118,6 +137,16 @@ body { font-family: Arial, Helvetica, sans-serif; background: #f4f6f9; color: #1
         <div class="stat-card"><div class="value" id="statStudents">0</div><div class="label">🎓 Total Students</div></div>
         <div class="stat-card"><div class="value" id="statPending">0</div><div class="label">📝 Pending to Grade</div></div>
     </div>
+
+    <section class="card">
+        <h3>Quick Actions</h3>
+        <div class="quick-links">
+            <a href="lecturer-content.html" class="quick-link">📖 Manage Content</a>
+            <a href="lecturer-exams.html" class="quick-link">📋 Manage Exams</a>
+            <a href="lecturer-grading.html" class="quick-link">📝 Grade Submissions</a>
+            <a href="lecturer-attendance.html" class="quick-link">✓ Take Attendance</a>
+        </div>
+    </section>
 
     <section class="card">
         <h3>My Courses</h3>
@@ -201,14 +230,15 @@ async function startDashboard() {
         await supabaseClient
             .from("enrollments")
             .select("id, course_id")
-            .in("course_id", courseIds);
+            .in("course_id", courseIds)
+            .eq("status", "enrolled");
 
     const studentCountByCourse = {};
     (enrollments || []).forEach(e => {
         studentCountByCourse[e.course_id] = (studentCountByCourse[e.course_id] || 0) + 1;
     });
 
-    document.getElementById("statStudents").textContent = new Set((enrollments || []).map(e => e.id)).size;
+    document.getElementById("statStudents").textContent = (enrollments || []).length;
 
     const { data: modules } =
         await supabaseClient
@@ -248,9 +278,10 @@ async function startDashboard() {
             <h4>${escapeHtml(course.code)} — ${escapeHtml(course.name)}</h4>
             <div class="course-meta">${studentCountByCourse[course.id] || 0} students enrolled • ${course.credits || 0} credits</div>
             <div class="action-row">
-                <a href="lecturer-attendance.html?course=${course.id}" class="small-button">✓ Take Attendance</a>
-                <a href="lecturer-grading.html?course=${course.id}" class="small-button">📝 Grade Submissions</a>
+                <a href="lecturer-content.html" class="small-button">📖 Manage Content</a>
                 <a href="lecturer-exams.html" class="small-button">📋 Manage Exams</a>
+                <a href="lecturer-grading.html" class="small-button">📝 Grade Submissions</a>
+                <a href="lecturer-attendance.html" class="small-button">✓ Take Attendance</a>
             </div>
         </div>
     `).join("");
