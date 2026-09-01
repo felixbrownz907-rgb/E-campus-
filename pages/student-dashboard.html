@@ -275,10 +275,10 @@ body {
     <section class="card">
         <h3>Today's Learning</h3>
         <div class="quick-actions">
+            <a href="student-register-courses.html" class="quick-action">📋 Register for Courses</a>
             <a href="student-courses.html" class="quick-action">▶ Continue Learning</a>
             <a href="student-assignments.html" class="quick-action">📝 Complete Assignment</a>
             <a href="student-quizzes.html" class="quick-action">🎯 Take Quiz</a>
-            <a href="student-courses.html" class="quick-action">📖 Review Module</a>
         </div>
     </section>
 
@@ -347,6 +347,7 @@ body {
         <div class="services-grid">
             <a href="student-profile.html" class="service-link">👤 My Profile</a>
             <a href="student-academic-records.html" class="service-link">📄 Academic Records</a>
+            <a href="student-register-courses.html" class="service-link">📋 Register for Courses</a>
             <a href="#" class="service-link">🎓 Certificates</a>
             <a href="#" class="service-link">💳 Fees & Payments</a>
             <a href="#" class="service-link">📅 Academic Calendar</a>
@@ -374,7 +375,8 @@ body {
 
 
 <script>
-                function escapeHtml(value) {
+
+function escapeHtml(value) {
     return String(value ?? "")
         .replace(/&/g, "&amp;")
         .replace(/</g, "&lt;")
@@ -438,7 +440,8 @@ async function startDashboard() {
                 id, status, final_score, final_grade,
                 courses ( id, code, name, credits )
             `)
-            .eq("student_id", studentProfile.id);
+            .eq("student_id", studentProfile.id)
+            .eq("status", "enrolled");
 
     const enrolledCourses = (enrollments || []).map(e => e.courses).filter(Boolean);
     const courseIds = enrolledCourses.map(c => c.id);
@@ -654,7 +657,7 @@ async function startDashboard() {
     const selector = document.getElementById("courseStructureSelector");
 
     if (enrolledCourses.length === 0) {
-        myLearningList.innerHTML = `<p class="empty-note">You are not enrolled in any courses yet. Register for courses via your term registration.</p>`;
+        myLearningList.innerHTML = `<p class="empty-note">You are not enrolled in any courses yet. <a href="student-register-courses.html">Register for courses</a> to get started.</p>`;
         myCoursesList.innerHTML = `<p class="empty-note">No courses yet.</p>`;
         selector.innerHTML = `<p class="empty-note">No courses available.</p>`;
     } else {
