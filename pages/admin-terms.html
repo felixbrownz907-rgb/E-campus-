@@ -257,12 +257,16 @@ document.getElementById("termForm").addEventListener("submit", async function(ev
     submitButton.disabled = true;
     submitButton.textContent = "Creating...";
 
+    const termNumber = document.getElementById("termNumber").value;
+    const academicYear = document.getElementById("academicYear").value.trim() || "2026";
+
     const { error } =
         await supabaseClient.from("academic_terms").insert({
             name: document.getElementById("termName").value.trim(),
-            academic_year: document.getElementById("academicYear").value.trim() || null,
-            term_number: Number(document.getElementById("termNumber").value),
-            status: "open"
+            code: `${academicYear}-T${termNumber}`,
+            academic_year: academicYear,
+            term_number: Number(termNumber),
+            status: "active"
         });
 
     submitButton.disabled = false;
@@ -275,6 +279,7 @@ document.getElementById("termForm").addEventListener("submit", async function(ev
 
     showMessage("Term created and opened for registration.", "success");
     document.getElementById("termForm").reset();
+    document.getElementById("academicYear").value = "2026";
 
     await loadTerms();
 
@@ -299,18 +304,18 @@ async function loadTerms() {
     }
 
     container.innerHTML = data.map(t => {
-        const isOpen = t.status === "open";
+        const isOpen = t.status === "active";
         return `
             <div class="term-item">
                 <div>
                     <h4>${escapeHtml(t.name)}</h4>
-                    <div class="meta">Term ${t.term_number} • ${escapeHtml(t.academic_year || "-")}</div>
+                    <div class="meta">Term ${t.term_number} • ${escapeHtml(t.academic_year || "-")} • ${escapeHtml(t.status)}</div>
                 </div>
                 <div style="display:flex; align-items:center; gap:10px;">
-                    <span class="status-badge ${isOpen ? "open" : "closed"}">${isOpen ? "Open" : "Closed"}</span>
+                    <span class="status-badge ${isOpen ? "open" : "closed"}">${isOpen ? "Active" : "Closed"}</span>
                     ${isOpen
-                        ? `<button class="action-button close-button" onclick="toggleTerm('${t.id}', 'closed')">Close</button>`
-                        : `<button class="action-button open-button" onclick="toggleTerm('${t.id}', 'open')">Reopen</button>`
+                        ? `<button class="action-button close-button" onclick="toggleTerm('${t.id}', 'completed')">Close</button>`
+                        : `<button class="action-button open-button" onclick="toggleTerm('${t.id}', 'active')">Reopen</button>`
                     }
                     <button class="action-button delete-button" onclick="deleteTerm('${t.id}')">Delete</button>
                 </div>
@@ -330,7 +335,7 @@ async function toggleTerm(id, newStatus) {
         return;
     }
 
-    showMessage(newStatus === "open" ? "Term reopened." : "Term closed.", "success");
+    showMessage(newStatus === "active" ? "Term reopened." : "Term closed.", "success");
     await loadTerms();
 
 }
