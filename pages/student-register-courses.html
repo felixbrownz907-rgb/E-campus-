@@ -154,7 +154,7 @@ async function startPage() {
         await supabaseClient
             .from("academic_terms")
             .select("id, name, term_number")
-            .eq("status", "open")
+            .eq("status", "active")
             .order("created_at", { ascending: false });
 
     const select = document.getElementById("termSelect");
