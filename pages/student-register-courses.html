@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Course Registration | E-Campus</title>
+
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: Arial, Helvetica, sans-serif; background: #f4f6f9; color: #172033; }
+
+.header { background: #111827; color: white; padding: 18px 25px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+.brand { display: flex; align-items: center; gap: 14px; }
+.logo { width: 55px; height: 55px; object-fit: contain; background: white; border-radius: 8px; }
+.brand h1 { font-size: 22px; }
+.brand p { color: #d4af37; margin-top: 3px; font-size: 13px; }
+.back-button { background: #d4af37; color: #111827; text-decoration: none; padding: 10px 16px; border-radius: 8px; font-weight: bold; font-size: 13px; }
+
+.container { max-width: 900px; margin: 25px auto; padding: 0 20px; }
+.page-title { margin-bottom: 20px; }
+.page-title h2 { font-size: 28px; margin-bottom: 6px; }
+.page-title p { color: #6b7280; }
+
+.message { padding: 14px; border-radius: 8px; margin-bottom: 20px; display: none; }
+.message.success { display: block; background: #dcfce7; color: #166534; }
+.message.error { display: block; background: #fee2e2; color: #991b1b; }
+
+.card { background: white; padding: 22px; border-radius: 14px; margin-bottom: 18px; box-shadow: 0 3px 12px rgba(0,0,0,0.06); }
+.card h3 { font-size: 18px; margin-bottom: 14px; }
+
+select { width: 100%; padding: 12px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 14px; margin-bottom: 16px; }
+
+.course-choice {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    margin-bottom: 8px;
+}
+
+.course-choice input { width: 18px; height: 18px; }
+.course-choice .code { color: #d4af37; font-weight: bold; font-size: 12px; }
+.course-choice .name { font-weight: bold; font-size: 14px; }
+.course-choice .credits { color: #6b7280; font-size: 12px; }
+.core-tag { background: #fee2e2; color: #991b1b; padding: 2px 8px; border-radius: 20px; font-size: 10px; font-weight: bold; margin-left: 6px; }
+
+.submit-button { background: #d4af37; color: #111827; border: none; padding: 13px 20px; border-radius: 8px; font-weight: bold; cursor: pointer; width: 100%; margin-top: 12px; }
+.submit-button:disabled { opacity: 0.6; cursor: not-allowed; }
+
+.pending-item { display: flex; justify-content: space-between; padding: 12px; background: #fef3c7; border-radius: 8px; margin-bottom: 8px; font-size: 14px; }
+.approved-item { display: flex; justify-content: space-between; padding: 12px; background: #dcfce7; border-radius: 8px; margin-bottom: 8px; font-size: 14px; }
+
+.empty-note { color: #9ca3af; text-align: center; padding: 20px 0; }
+</style>
+</head>
+
+
+<body>
+
+<header class="header">
+    <div class="brand">
+        <img src="https://pub-b3e2d39712e84119875e84c5ec5f5c09.r2.dev/Logo/IMG-20260816-WA0050(1).jpg" alt="Sunningdale University Logo" class="logo">
+        <div>
+            <h1>E-Campus</h1>
+            <p>Sunningdale University</p>
+        </div>
+    </div>
+    <a href="student-dashboard.html" class="back-button">← Dashboard</a>
+</header>
+
+
+<main class="container">
+
+    <section class="page-title">
+        <h2>Course Registration</h2>
+        <p>Select your courses for the current term. Your registration will be reviewed by admissions.</p>
+    </section>
+
+    <div id="message" class="message"></div>
+
+    <section class="card">
+        <h3>Select Term</h3>
+        <select id="termSelect">
+            <option value="">Select an open term</option>
+        </select>
+        <div id="coursesArea"></div>
+    </section>
+
+    <section class="card">
+        <h3>My Registration Status</h3>
+        <div id="statusList"><p class="empty-note">Loading...</p></div>
+    </section>
+
+</main>
+
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../supabase-config.js"></script>
+
+
+<script>
+
+const message = document.getElementById("message");
+let authUserId = null;
+let studentProfile = null;
+let existingEnrollments = [];
+
+
+function showMessage(text, type) {
+    message.textContent = text;
+    message.className = "message " + type;
+}
+
+
+function escapeHtml(value) {
+    return String(value ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+}
+
+
+async function startPage() {
+
+    const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
+
+    if (authError || !user) {
+        window.location.href = "student-login.html";
+        return;
+    }
+
+    authUserId = user.id;
+
+    const { data: profile, error: profileError } =
+        await supabaseClient
+            .from("student_profiles")
+            .select("id, programme_id, current_level_id")
+            .eq("user_id", user.id)
+            .single();
+
+    if (profileError || !profile) {
+        showMessage("Unable to load your student profile.", "error");
+        return;
+    }
+
+    studentProfile = profile;
+
+    const now = new Date().toISOString();
+
+    const { data: terms, error: termError } =
+        await supabaseClient
+            .from("academic_terms")
+            .select("id, name, registration_start, registration_end")
+            .lte("registration_start", now)
+            .gte("registration_end", now);
+
+    const select = document.getElementById("termSelect");
+
+    if (termError || !terms || terms.length === 0) {
+        select.innerHTML = `<option value="">No terms are currently open for registration</option>`;
+    } else {
+        select.innerHTML = `<option value="">Select an open term</option>`;
+        terms.forEach(t => {
+            const option = document.createElement("option");
+            option.value = t.id;
+            option.textContent = t.name;
+            select.appendChild(option);
+        });
+    }
+
+    await loadMyRegistrations();
+
+}
+
+
+document.getElementById("termSelect").addEventListener("change", async function() {
+
+    const termId = this.value;
+    const area = document.getElementById("coursesArea");
+
+    if (!termId) {
+        area.innerHTML = "";
+        return;
+    }
+
+    area.innerHTML = `<p class="empty-note">Loading courses...</p>`;
+
+    const { data: programmeCourses, error } =
+        await supabaseClient
+            .from("programme_courses")
+            .select(`
+                course_id, semester, is_core,
+                courses ( id, code, name, credits )
+            `)
+            .eq("programme_id", studentProfile.programme_id)
+            .eq("academic_level_id", studentProfile.current_level_id);
+
+    if (error || !programmeCourses || programmeCourses.length === 0) {
+        area.innerHTML = `<p class="empty-note">No courses are set up for your programme/level yet. Please contact admissions.</p>`;
+        return;
+    }
+
+    const alreadyRegisteredCourseIds = new Set(existingEnrollments.map(e => e.course_id));
+
+    let html = `<div style="margin-top:14px;">`;
+
+    programmeCourses.forEach(pc => {
+
+        const course = pc.courses;
+        if (!course) return;
+
+        const already = alreadyRegisteredCourseIds.has(course.id);
+
+        html += `
+            <label class="course-choice">
+                <input type="checkbox" value="${course.id}" ${already ? "disabled checked" : ""}>
+                <div>
+                    <div class="code">${escapeHtml(course.code)} ${pc.is_core ? `<span class="core-tag">CORE</span>` : ""}</div>
+                    <div class="name">${escapeHtml(course.name)}</div>
+                    <div class="credits">${course.credits || 0} credits ${already ? "• Already registered" : ""}</div>
+                </div>
+            </label>
+        `;
+
+    });
+
+    html += `</div>
+        <button class="submit-button" id="submitRegButton" onclick="submitRegistration('${termId}')">Submit Registration</button>
+    `;
+
+    area.innerHTML = html;
+
+});
+
+
+async function submitRegistration(termId) {
+
+    const checkboxes = document.querySelectorAll("#coursesArea input[type=checkbox]:checked:not(:disabled)");
+
+    if (checkboxes.length === 0) {
+        showMessage("Please select at least one course to register.", "error");
+        return;
+    }
+
+    const button = document.getElementById("submitRegButton");
+    button.disabled = true;
+    button.textContent = "Submitting...";
+
+    const rows = Array.from(checkboxes).map(cb => ({
+        student_id: studentProfile.id,
+        course_id: cb.value,
+        academic_term_id: termId,
+        status: "pending"
+    }));
+
+    const { error } = await supabaseClient.from("enrollments").insert(rows);
+
+    button.disabled = false;
+    button.textContent = "Submit Registration";
+
+    if (error) {
+        showMessage("Unable to submit: " + error.message, "error");
+        return;
+    }
+
+    showMessage("Registration submitted. Awaiting admin approval.", "success");
+    document.getElementById("termSelect").value = "";
+    document.getElementById("coursesArea").innerHTML = "";
+
+    await loadMyRegistrations();
+
+}
+
+
+async function loadMyRegistrations() {
+
+    const container = document.getElementById("statusList");
+
+    const { data, error } =
+        await supabaseClient
+            .from("enrollments")
+            .select(`
+                id, status, course_id,
+                courses ( code, name ),
+                academic_terms ( name )
+            `)
+            .eq("student_id", studentProfile.id)
+            .order("created_at", { ascending: false });
+
+    if (error) {
+        container.innerHTML = `<p class="empty-note">Unable to load: ${escapeHtml(error.message)}</p>`;
+        return;
+    }
+
+    existingEnrollments = data || [];
+
+    if (existingEnrollments.length === 0) {
+        container.innerHTML = `<p class="empty-note">You have no course registrations yet.</p>`;
+        return;
+    }
+
+    container.innerHTML = existingEnrollments.map(e => {
+        const course = e.courses;
+        const term = e.academic_terms;
+        const isPending = e.status === "pending";
+        return `
+            <div class="${isPending ? "pending-item" : "approved-item"}">
+                <span>${course ? escapeHtml(course.code + " — " + course.name) : "-"} (${term ? escapeHtml(term.name) : "-"})</span>
+                <strong>${isPending ? "⏳ Pending Approval" : escapeHtml(e.status)}</strong>
+            </div>
+        `;
+    }).join("");
+
+}
+
+
+startPage();
+
+</script>
+
+</body>
+</html>
