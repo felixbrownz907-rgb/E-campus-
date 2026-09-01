@@ -106,6 +106,7 @@ const message = document.getElementById("message");
 let authUserId = null;
 let studentProfile = null;
 let existingEnrollments = [];
+let openTerms = [];
 
 
 function showMessage(text, type) {
@@ -154,17 +155,19 @@ async function startPage() {
     const { data: terms, error: termError } =
         await supabaseClient
             .from("academic_terms")
-            .select("id, name, registration_start, registration_end")
+            .select("id, name, term_number, registration_start, registration_end")
             .lte("registration_start", now)
             .gte("registration_end", now);
 
     const select = document.getElementById("termSelect");
 
-    if (termError || !terms || terms.length === 0) {
+    openTerms = terms || [];
+
+    if (termError || openTerms.length === 0) {
         select.innerHTML = `<option value="">No terms are currently open for registration</option>`;
     } else {
         select.innerHTML = `<option value="">Select an open term</option>`;
-        terms.forEach(t => {
+        openTerms.forEach(t => {
             const option = document.createElement("option");
             option.value = t.id;
             option.textContent = t.name;
@@ -189,6 +192,14 @@ document.getElementById("termSelect").addEventListener("change", async function(
 
     area.innerHTML = `<p class="empty-note">Loading courses...</p>`;
 
+    const selectedTerm = openTerms.find(t => t.id === termId);
+    const termNumber = selectedTerm?.term_number;
+
+    if (!termNumber) {
+        area.innerHTML = `<p class="empty-note">This term is not configured with a term number. Please contact admissions.</p>`;
+        return;
+    }
+
     const { data: programmeCourses, error } =
         await supabaseClient
             .from("programme_courses")
@@ -197,10 +208,11 @@ document.getElementById("termSelect").addEventListener("change", async function(
                 courses ( id, code, name, credits )
             `)
             .eq("programme_id", studentProfile.programme_id)
-            .eq("academic_level_id", studentProfile.current_level_id);
+            .eq("academic_level_id", studentProfile.current_level_id)
+            .eq("semester", termNumber);
 
     if (error || !programmeCourses || programmeCourses.length === 0) {
-        area.innerHTML = `<p class="empty-note">No courses are set up for your programme/level yet. Please contact admissions.</p>`;
+        area.innerHTML = `<p class="empty-note">No courses are set up for your programme/year/term yet. Please contact admissions.</p>`;
         return;
     }
 
