@@ -2,269 +2,156 @@
 <html lang="en">
 
 <head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Course Management | E-Campus</title>
 
-    <meta charset="UTF-8">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
 
-    <meta
-        name="viewport"
-        content="width=device-width, initial-scale=1.0"
-    >
+body {
+    font-family: Arial, Helvetica, sans-serif;
+    background: #f4f6f9;
+    color: #172033;
+}
 
-    <title>Course Management | E-Campus</title>
+.header {
+    background: #111827;
+    color: white;
+    padding: 18px 25px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
 
-    <style>
+.brand { display: flex; align-items: center; gap: 14px; }
+.logo { width: 58px; height: 58px; object-fit: contain; background: white; border-radius: 8px; }
+.brand h1 { font-size: 24px; }
+.brand p { color: #d4af37; margin-top: 4px; }
 
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
+.back-button {
+    background: #d4af37;
+    color: #111827;
+    text-decoration: none;
+    padding: 11px 18px;
+    border-radius: 8px;
+    font-weight: bold;
+}
 
-        body {
-            font-family: Arial, Helvetica, sans-serif;
-            background: #f4f6f9;
-            color: #172033;
-        }
+.container { max-width: 1250px; margin: 30px auto; padding: 0 20px; }
 
-        /* ================= HEADER ================= */
+.page-title { margin-bottom: 25px; }
+.page-title h2 { font-size: 30px; margin-bottom: 7px; }
+.page-title p { color: #6b7280; }
 
-        .header {
-            background: #111827;
-            color: white;
-            padding: 18px 25px;
+.message {
+    padding: 14px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    display: none;
+}
 
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-        }
+.message.success { display: block; background: #dcfce7; color: #166534; }
+.message.error { display: block; background: #fee2e2; color: #991b1b; }
 
-        .brand {
-            display: flex;
-            align-items: center;
-            gap: 14px;
-        }
+.card {
+    background: white;
+    padding: 25px;
+    border-radius: 14px;
+    margin-bottom: 25px;
+    box-shadow: 0 5px 20px rgba(0,0,0,0.07);
+}
 
-        .logo {
-            width: 58px;
-            height: 58px;
-            object-fit: contain;
-            background: white;
-            border-radius: 8px;
-        }
+.card h3 { margin-bottom: 6px; font-size: 22px; }
+.card .sub { color: #6b7280; font-size: 13px; margin-bottom: 18px; }
 
-        .brand h1 {
-            font-size: 24px;
-        }
+.form-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 18px;
+}
 
-        .brand p {
-            color: #d4af37;
-            margin-top: 4px;
-        }
+.form-group { display: flex; flex-direction: column; }
+.form-group.full { grid-column: 1 / -1; }
 
-        .back-button {
-            background: #d4af37;
-            color: #111827;
-            text-decoration: none;
-            padding: 11px 18px;
-            border-radius: 8px;
-            font-weight: bold;
-        }
+label { font-weight: bold; margin-bottom: 7px; }
 
-        /* ================= CONTAINER ================= */
+input, select, textarea {
+    width: 100%;
+    padding: 13px;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    font-size: 15px;
+}
 
-        .container {
-            max-width: 1200px;
-            margin: 30px auto;
-            padding: 0 20px;
-        }
+textarea { min-height: 80px; resize: vertical; }
 
-        .page-title {
-            margin-bottom: 25px;
-        }
+input:focus, select:focus, textarea:focus {
+    outline: none;
+    border-color: #d4af37;
+}
 
-        .page-title h2 {
-            font-size: 30px;
-            margin-bottom: 7px;
-        }
+.submit-button {
+    margin-top: 20px;
+    background: #d4af37;
+    color: #111827;
+    border: none;
+    padding: 13px 20px;
+    border-radius: 8px;
+    font-weight: bold;
+    cursor: pointer;
+    width: 100%;
+}
 
-        .page-title p {
-            color: #6b7280;
-        }
+.submit-button:hover { background: #c29d24; }
 
-        /* ================= MESSAGE ================= */
+.checkbox-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
 
-        .message {
-            padding: 14px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            display: none;
-        }
+.checkbox-row input { width: auto; }
+.checkbox-row label { margin-bottom: 0; font-weight: normal; }
 
-        .success {
-            background: #dcfce7;
-            color: #166534;
-            display: block;
-        }
+.table-container { overflow-x: auto; }
 
-        .error {
-            background: #fee2e2;
-            color: #991b1b;
-            display: block;
-        }
+table { width: 100%; border-collapse: collapse; }
 
-        /* ================= CARD ================= */
+th, td {
+    padding: 12px;
+    text-align: left;
+    border-bottom: 1px solid #e5e7eb;
+    font-size: 14px;
+}
 
-        .card {
-            background: white;
-            padding: 25px;
-            border-radius: 14px;
-            margin-bottom: 25px;
+th { background: #111827; color: white; }
+tr:hover { background: #f9fafb; }
 
-            box-shadow:
-                0 5px 20px rgba(0,0,0,0.07);
-        }
+.core-tag { background: #fee2e2; color: #991b1b; padding: 2px 8px; border-radius: 20px; font-size: 10px; font-weight: bold; }
+.elective-tag { background: #dcfce7; color: #166534; padding: 2px 8px; border-radius: 20px; font-size: 10px; font-weight: bold; }
 
-        .card h3 {
-            margin-bottom: 20px;
-            font-size: 22px;
-        }
+.action-button {
+    border: none;
+    padding: 7px 11px;
+    border-radius: 6px;
+    font-weight: bold;
+    cursor: pointer;
+    font-size: 13px;
+}
 
-        /* ================= FORM ================= */
+.delete-button { background: #fee2e2; color: #991b1b; }
 
-        .form-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 18px;
-        }
+.empty-note { color: #9ca3af; text-align: center; padding: 20px 0; }
 
-        .form-group {
-            display: flex;
-            flex-direction: column;
-        }
+@media (max-width: 700px) {
+    .header { flex-direction: column; align-items: flex-start; gap: 15px; }
+    .form-grid { grid-template-columns: 1fr; }
+    .form-group.full { grid-column: auto; }
+    th, td { white-space: nowrap; }
+}
 
-        .form-group.full {
-            grid-column: 1 / -1;
-        }
-
-        label {
-            font-weight: bold;
-            margin-bottom: 7px;
-        }
-
-        input,
-        select,
-        textarea {
-            width: 100%;
-            padding: 13px;
-            border: 1px solid #d1d5db;
-            border-radius: 8px;
-            font-size: 15px;
-        }
-
-        textarea {
-            min-height: 120px;
-            resize: vertical;
-        }
-
-        input:focus,
-        select:focus,
-        textarea:focus {
-            outline: none;
-            border-color: #d4af37;
-        }
-
-        .submit-button {
-            margin-top: 20px;
-            background: #d4af37;
-            color: #111827;
-            border: none;
-            padding: 13px 20px;
-            border-radius: 8px;
-            font-weight: bold;
-            cursor: pointer;
-            width: 100%;
-        }
-
-        .submit-button:hover {
-            background: #c29d24;
-        }
-
-        /* ================= TABLE ================= */
-
-        .table-container {
-            overflow-x: auto;
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-
-        th,
-        td {
-            padding: 14px;
-            text-align: left;
-            border-bottom: 1px solid #e5e7eb;
-        }
-
-        th {
-            background: #111827;
-            color: white;
-        }
-
-        tr:hover {
-            background: #f9fafb;
-        }
-
-        .status {
-            display: inline-block;
-            padding: 5px 10px;
-            border-radius: 20px;
-            font-size: 12px;
-            font-weight: bold;
-        }
-
-        .status.active {
-            background: #dcfce7;
-            color: #166534;
-        }
-
-        .status.inactive {
-            background: #fee2e2;
-            color: #991b1b;
-        }
-
-        /* ================= MOBILE ================= */
-
-        @media (max-width: 700px) {
-
-            .header {
-                flex-direction: column;
-                align-items: flex-start;
-                gap: 15px;
-            }
-
-            .form-grid {
-                grid-template-columns: 1fr;
-            }
-
-            .form-group.full {
-                grid-column: auto;
-            }
-
-            .page-title h2 {
-                font-size: 25px;
-            }
-
-            th,
-            td {
-                white-space: nowrap;
-            }
-
-        }
-
-    </style>
-
+</style>
 </head>
 
 
@@ -274,701 +161,394 @@
 <header class="header">
 
     <div class="brand">
-
-        <img
-            src="https://pub-b3e2d39712e84119875e84c5ec5f5c09.r2.dev/Logo/IMG-20260816-WA0050(1).jpg"
-            alt="Sunningdale University Logo"
-            class="logo"
-        >
-
+        <img src="https://pub-b3e2d39712e84119875e84c5ec5f5c09.r2.dev/Logo/IMG-20260816-WA0050(1).jpg" alt="Sunningdale University Logo" class="logo">
         <div>
-
-            <h1>
-                E-Campus Administration
-            </h1>
-
-            <p>
-                Sunningdale University
-            </p>
-
+            <h1>E-Campus Administration</h1>
+            <p>Sunningdale University</p>
         </div>
-
     </div>
 
-
-    <a
-        href="admin-dashboard.html"
-        class="back-button"
-    >
-        ← Admin Dashboard
-    </a>
+    <a href="admin-dashboard.html" class="back-button">← Admin Dashboard</a>
 
 </header>
 
 
-
 <main class="container">
 
-
     <section class="page-title">
-
-        <h2>
-            Course Management
-        </h2>
-
-        <p>
-            Create and manage university courses.
-        </p>
-
+        <h2>Course Management</h2>
+        <p>Create courses and attach each one to the Programme, Year and Term it belongs to.</p>
     </section>
 
+    <div id="message" class="message"></div>
 
-    <div
-        id="message"
-        class="message"
-    ></div>
-
-
-
-    <!-- ================= ADD COURSE ================= -->
 
     <section class="card">
-
-        <h3>
-            Add New Course
-        </h3>
-
+        <h3>1. Create a Course</h3>
+        <div class="sub">Basic course details — no programme attached yet.</div>
 
         <form id="courseForm">
 
-
             <div class="form-grid">
 
-
                 <div class="form-group">
-
-                    <label for="courseCode">
-                        Course Code
-                    </label>
-
-                    <input
-                        type="text"
-                        id="courseCode"
-                        placeholder="e.g. BBA101"
-                        required
-                    >
-
+                    <label for="courseCode">Course Code</label>
+                    <input type="text" id="courseCode" required placeholder="e.g. BBA201">
                 </div>
 
-
-
                 <div class="form-group">
-
-                    <label for="courseName">
-                        Course Name
-                    </label>
-
-                    <input
-                        type="text"
-                        id="courseName"
-                        placeholder="e.g. Introduction to Business"
-                        required
-                    >
-
+                    <label for="courseName">Course Name</label>
+                    <input type="text" id="courseName" required placeholder="e.g. Fundamentals of Business">
                 </div>
 
-
-
                 <div class="form-group">
-
-                    <label for="department">
-                        Department
-                    </label>
-
-                    <select
-                        id="department"
-                        required
-                    >
-
-                        <option value="">
-                            Select department
-                        </option>
-
-                    </select>
-
+                    <label for="credits">Credit Hours</label>
+                    <input type="number" id="credits" min="1" value="3">
                 </div>
-
-
-
-                <div class="form-group">
-
-                    <label for="level">
-                        Academic Level
-                    </label>
-
-                    <select
-                        id="level"
-                        required
-                    >
-
-                        <option value="">
-                            Select level
-                        </option>
-
-                    </select>
-
-                </div>
-
-
-
-                <div class="form-group">
-
-                    <label for="credits">
-                        Credits
-                    </label>
-
-                    <input
-                        type="number"
-                        id="credits"
-                        min="0"
-                        step="0.5"
-                        placeholder="e.g. 3"
-                        required
-                    >
-
-                </div>
-
-
-
-                <div class="form-group">
-
-                    <label for="courseType">
-                        Course Type
-                    </label>
-
-                    <select
-                        id="courseType"
-                        required
-                    >
-
-                        <option value="">
-                            Select course type
-                        </option>
-
-                        <option value="CORE">
-                            Core
-                        </option>
-
-                        <option value="ELECTIVE">
-                            Elective
-                        </option>
-
-                        <option value="OPTIONAL">
-                            Optional
-                        </option>
-
-                    </select>
-
-                </div>
-
-
-
-                <div class="form-group">
-
-                    <label for="status">
-                        Status
-                    </label>
-
-                    <select id="status">
-
-                        <option value="ACTIVE">
-                            ACTIVE
-                        </option>
-
-                        <option value="INACTIVE">
-                            INACTIVE
-                        </option>
-
-                    </select>
-
-                </div>
-
-
 
                 <div class="form-group full">
-
-                    <label for="description">
-                        Description
-                    </label>
-
-                    <textarea
-                        id="description"
-                        placeholder="Describe the course..."
-                    ></textarea>
-
+                    <label for="description">Description</label>
+                    <textarea id="description" placeholder="Brief description of this course..."></textarea>
                 </div>
-
 
             </div>
 
-
-            <button
-                type="submit"
-                class="submit-button"
-            >
-                Add Course
-            </button>
-
+            <button type="submit" class="submit-button" id="submitCourseButton">Create Course</button>
 
         </form>
-
     </section>
 
 
-
-    <!-- ================= EXISTING COURSES ================= -->
-
     <section class="card">
+        <h3>2. Attach a Course to a Programme</h3>
+        <div class="sub">A course can belong to more than one programme — repeat this for each one.</div>
 
-        <h3>
-            Existing Courses
-        </h3>
+        <div class="form-grid">
 
+            <div class="form-group full">
+                <label for="assignCourse">Course</label>
+                <select id="assignCourse" required>
+                    <option value="">Select course</option>
+                </select>
+            </div>
 
-        <div class="table-container">
+            <div class="form-group">
+                <label for="assignProgramme">Programme</label>
+                <select id="assignProgramme" required>
+                    <option value="">Select programme</option>
+                </select>
+            </div>
 
-            <table>
+            <div class="form-group">
+                <label for="assignLevel">Year</label>
+                <select id="assignLevel" required disabled>
+                    <option value="">Select programme first</option>
+                </select>
+            </div>
 
-                <thead>
+            <div class="form-group">
+                <label for="assignTerm">Term</label>
+                <select id="assignTerm" required>
+                    <option value="1">Term 1</option>
+                    <option value="2">Term 2</option>
+                    <option value="3">Term 3</option>
+                </select>
+            </div>
 
-                    <tr>
-
-                        <th>
-                            Code
-                        </th>
-
-                        <th>
-                            Course
-                        </th>
-
-                        <th>
-                            Department
-                        </th>
-
-                        <th>
-                            Level
-                        </th>
-
-                        <th>
-                            Credits
-                        </th>
-
-                        <th>
-                            Type
-                        </th>
-
-                        <th>
-                            Status
-                        </th>
-
-                    </tr>
-
-                </thead>
-
-
-                <tbody id="courseTableBody">
-
-                    <tr>
-
-                        <td colspan="7">
-                            Loading courses...
-                        </td>
-
-                    </tr>
-
-                </tbody>
-
-            </table>
+            <div class="form-group">
+                <div class="checkbox-row" style="margin-top:14px;">
+                    <input type="checkbox" id="assignCore" checked>
+                    <label for="assignCore">This is a Core (compulsory) course</label>
+                </div>
+            </div>
 
         </div>
 
+        <button class="submit-button" onclick="attachCourse()">Attach to Programme</button>
     </section>
 
+
+    <section class="card">
+        <h3>Course ↔ Programme Assignments</h3>
+
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Code</th>
+                        <th>Course</th>
+                        <th>Programme</th>
+                        <th>Year</th>
+                        <th>Term</th>
+                        <th>Type</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="assignmentsTableBody">
+                    <tr><td colspan="7">Loading...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
 
 </main>
 
 
-
-<!-- ================= SUPABASE ================= -->
-
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
 <script src="../supabase-config.js"></script>
-
 
 
 <script>
 
+const message = document.getElementById("message");
 
-const message =
-    document.getElementById("message");
-
-
-/* ================= MESSAGE ================= */
 
 function showMessage(text, type) {
-
     message.textContent = text;
-
-    message.className =
-        "message " + type;
-
+    message.className = "message " + type;
 }
 
 
-/* ================= LOAD DEPARTMENTS ================= */
-
-async function loadDepartments() {
-
-    const select =
-        document.getElementById("department");
-
-
-    const { data, error } =
-        await supabaseClient
-            .from("departments")
-            .select("id,name")
-            .order("name");
-
-
-    if (error) {
-
-        console.error(error);
-
-        showMessage(
-            "Unable to load departments.",
-            "error"
-        );
-
-        return;
-    }
-
-
-    data.forEach(department => {
-
-        const option =
-            document.createElement("option");
-
-        option.value =
-            department.id;
-
-        option.textContent =
-            department.name;
-
-        select.appendChild(option);
-
-    });
-
+function escapeHtml(value) {
+    return String(value ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
 }
 
 
-/* ================= LOAD LEVELS ================= */
-
-async function loadLevels() {
-
-    const select =
-        document.getElementById("level");
-
-
-    const { data, error } =
-        await supabaseClient
-            .from("levels")
-            .select("id,name")
-            .order("name");
-
-
-    if (error) {
-
-        console.error(error);
-
-        showMessage(
-            "Unable to load academic levels.",
-            "error"
-        );
-
-        return;
-    }
-
-
-    data.forEach(level => {
-
-        const option =
-            document.createElement("option");
-
-        option.value =
-            level.id;
-
-        option.textContent =
-            level.name;
-
-        select.appendChild(option);
-
-    });
-
-}
-
-
-/* ================= LOAD COURSES ================= */
-
-async function loadCourses() {
-
-    const tbody =
-        document.getElementById(
-            "courseTableBody"
-        );
-
-
-    const { data, error } =
-        await supabaseClient
-            .from("courses")
-            .select(`
-                id,
-                code,
-                name,
-                credits,
-                course_type,
-                status,
-                departments(name),
-                levels(name)
-            `)
-            .order("code");
-
-
-    if (error) {
-
-        console.error(error);
-
-        tbody.innerHTML = `
-            <tr>
-                <td colspan="7">
-                    Unable to load courses.
-                </td>
-            </tr>
-        `;
-
-        return;
-    }
-
-
-    if (!data || data.length === 0) {
-
-        tbody.innerHTML = `
-            <tr>
-                <td colspan="7">
-                    No courses have been created yet.
-                </td>
-            </tr>
-        `;
-
-        return;
-    }
-
-
-    tbody.innerHTML = "";
-
-
-    data.forEach(course => {
-
-        const row =
-            document.createElement("tr");
-
-
-        row.innerHTML = `
-
-            <td>
-                ${course.code || ""}
-            </td>
-
-            <td>
-                ${course.name || ""}
-            </td>
-
-            <td>
-                ${course.departments?.name || "-"}
-            </td>
-
-            <td>
-                ${course.levels?.name || "-"}
-            </td>
-
-            <td>
-                ${course.credits || 0}
-            </td>
-
-            <td>
-                ${course.course_type || "-"}
-            </td>
-
-            <td>
-
-                <span
-                    class="status ${
-                        String(course.status).toLowerCase()
-                    }"
-                >
-                    ${course.status || ""}
-                </span>
-
-            </td>
-
-        `;
-
-
-        tbody.appendChild(row);
-
-    });
-
-}
-
-
-/* ================= ADD COURSE ================= */
-
-document
-    .getElementById("courseForm")
-    .addEventListener(
-        "submit",
-        async function(event) {
-
-            event.preventDefault();
-
-
-            const code =
-                document
-                    .getElementById("courseCode")
-                    .value
-                    .trim()
-                    .toUpperCase();
-
-
-            const name =
-                document
-                    .getElementById("courseName")
-                    .value
-                    .trim();
-
-
-            const department_id =
-                document
-                    .getElementById("department")
-                    .value;
-
-
-            const level_id =
-                document
-                    .getElementById("level")
-                    .value;
-
-
-            const credits =
-                document
-                    .getElementById("credits")
-                    .value;
-
-
-            const course_type =
-                document
-                    .getElementById("courseType")
-                    .value;
-
-
-            const status =
-                document
-                    .getElementById("status")
-                    .value;
-
-
-            const description =
-                document
-                    .getElementById("description")
-                    .value
-                    .trim();
-
-
-            const { error } =
-                await supabaseClient
-                    .from("courses")
-                    .insert({
-
-                        code,
-                        name,
-                        description,
-                        department_id,
-                        level_id,
-                        credits,
-                        course_type,
-                        status
-
-                    });
-
-
-            if (error) {
-
-                console.error(error);
-
-                showMessage(
-                    error.message,
-                    "error"
-                );
-
-                return;
-            }
-
-
-            showMessage(
-                "Course created successfully.",
-                "success"
-            );
-
-
-            document
-                .getElementById("courseForm")
-                .reset();
-
-
-            document
-                .getElementById("status")
-                .value = "ACTIVE";
-
-
-            await loadCourses();
-
+/* ================= CREATE COURSE ================= */
+
+document.getElementById("courseForm").addEventListener("submit", async function(event) {
+
+    event.preventDefault();
+
+    const submitButton = document.getElementById("submitCourseButton");
+    submitButton.disabled = true;
+    submitButton.textContent = "Creating...";
+
+    const { error } =
+        await supabaseClient.from("courses").insert({
+            code: document.getElementById("courseCode").value.trim(),
+            name: document.getElementById("courseName").value.trim(),
+            credits: Number(document.getElementById("credits").value) || 3,
+            description: document.getElementById("description").value.trim() || null,
+            status: "active"
         });
 
+    submitButton.disabled = false;
+    submitButton.textContent = "Create Course";
 
-/* ================= START ================= */
+    if (error) {
+        showMessage("Unable to create course: " + error.message, "error");
+        return;
+    }
 
-async function startPage() {
+    showMessage("Course created. Now attach it to a programme below.", "success");
+    document.getElementById("courseForm").reset();
+    document.getElementById("credits").value = 3;
 
-    await Promise.all([
+    await loadCoursesDropdown();
 
-        loadDepartments(),
-
-        loadLevels()
-
-    ]);
+});
 
 
-    await loadCourses();
+/* ================= LOAD DROPDOWNS ================= */
+
+async function loadCoursesDropdown() {
+
+    const select = document.getElementById("assignCourse");
+    select.innerHTML = `<option value="">Select course</option>`;
+
+    const { data, error } = await supabaseClient.from("courses").select("id, code, name").order("code");
+
+    if (error) {
+        console.error(error);
+        return;
+    }
+
+    data.forEach(c => {
+        const option = document.createElement("option");
+        option.value = c.id;
+        option.textContent = `${c.code} — ${c.name}`;
+        select.appendChild(option);
+    });
 
 }
 
+
+async function loadProgrammesDropdown() {
+
+    const select = document.getElementById("assignProgramme");
+
+    const { data, error } = await supabaseClient.from("programmes").select("id, code, name").order("name");
+
+    if (error) {
+        console.error(error);
+        return;
+    }
+
+    data.forEach(p => {
+        const option = document.createElement("option");
+        option.value = p.id;
+        option.textContent = `${p.code} — ${p.name}`;
+        select.appendChild(option);
+    });
+
+}
+
+
+document.getElementById("assignProgramme").addEventListener("change", async function() {
+
+    const programmeId = this.value;
+    const levelSelect = document.getElementById("assignLevel");
+
+    levelSelect.innerHTML = `<option value="">Loading...</option>`;
+    levelSelect.disabled = true;
+
+    if (!programmeId) {
+        levelSelect.innerHTML = `<option value="">Select programme first</option>`;
+        return;
+    }
+
+    const { data, error } =
+        await supabaseClient
+            .from("academic_levels")
+            .select("id, name, level_number")
+            .eq("programme_id", programmeId)
+            .order("level_number");
+
+    if (error || !data || data.length === 0) {
+        levelSelect.innerHTML = `<option value="">No years set up for this programme</option>`;
+        return;
+    }
+
+    levelSelect.innerHTML = `<option value="">Select year</option>`;
+    data.forEach(l => {
+        const option = document.createElement("option");
+        option.value = l.id;
+        option.textContent = l.name;
+        levelSelect.appendChild(option);
+    });
+
+    levelSelect.disabled = false;
+
+});
+
+
+/* ================= ATTACH COURSE TO PROGRAMME ================= */
+
+async function attachCourse() {
+
+    const courseId = document.getElementById("assignCourse").value;
+    const programmeId = document.getElementById("assignProgramme").value;
+    const levelId = document.getElementById("assignLevel").value;
+    const term = document.getElementById("assignTerm").value;
+    const isCore = document.getElementById("assignCore").checked;
+
+    if (!courseId || !programmeId || !levelId) {
+        showMessage("Please select a course, programme, and year.", "error");
+        return;
+    }
+
+    const { error } =
+        await supabaseClient.from("programme_courses").insert({
+            course_id: courseId,
+            programme_id: programmeId,
+            academic_level_id: levelId,
+            semester: Number(term),
+            is_core: isCore
+        });
+
+    if (error) {
+        showMessage("Unable to attach course: " + error.message, "error");
+        return;
+    }
+
+    showMessage("Course attached to programme successfully.", "success");
+    await loadAssignments();
+
+}
+
+
+/* ================= LOAD ASSIGNMENTS TABLE ================= */
+
+async function loadAssignments() {
+
+    const tbody = document.getElementById("assignmentsTableBody");
+
+    const { data, error } =
+        await supabaseClient
+            .from("programme_courses")
+            .select(`
+                id, semester, is_core,
+                courses ( code, name ),
+                programmes ( code, name ),
+                academic_levels ( name )
+            `)
+            .order("id", { ascending: false });
+
+    if (error) {
+        tbody.innerHTML = `<tr><td colspan="7">Unable to load: ${escapeHtml(error.message)}</td></tr>`;
+        return;
+    }
+
+    if (!data || data.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="7">No courses attached to any programme yet.</td></tr>`;
+        return;
+    }
+
+    tbody.innerHTML = data.map(row => {
+        const course = row.courses;
+        const programme = row.programmes;
+        const level = row.academic_levels;
+        return `
+            <tr>
+                <td>${course ? escapeHtml(course.code) : "-"}</td>
+                <td>${course ? escapeHtml(course.name) : "-"}</td>
+                <td>${programme ? escapeHtml(programme.code) : "-"}</td>
+                <td>${level ? escapeHtml(level.name) : "-"}</td>
+                <td>Term ${row.semester}</td>
+                <td>${row.is_core ? `<span class="core-tag">CORE</span>` : `<span class="elective-tag">ELECTIVE</span>`}</td>
+                <td><button class="action-button delete-button" onclick="removeAssignment('${row.id}')">Remove</button></td>
+            </tr>
+        `;
+    }).join("");
+
+}
+
+
+async function removeAssignment(id) {
+
+    const confirmed = confirm("Remove this course from this programme?");
+    if (!confirmed) return;
+
+    const { error } = await supabaseClient.from("programme_courses").delete().eq("id", id);
+
+    if (error) {
+        showMessage("Unable to remove: " + error.message, "error");
+        return;
+    }
+
+    showMessage("Removed.", "success");
+    await loadAssignments();
+
+}
+
+
+/* ================= INIT ================= */
+
+async function startPage() {
+    await loadCoursesDropdown();
+    await loadProgrammesDropdown();
+    await loadAssignments();
+}
 
 startPage();
 
-
 </script>
 
-
 </body>
-
 </html>
