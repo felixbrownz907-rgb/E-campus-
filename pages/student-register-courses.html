@@ -150,21 +150,19 @@ async function startPage() {
 
     studentProfile = profile;
 
-    const now = new Date().toISOString();
-
     const { data: terms, error: termError } =
         await supabaseClient
             .from("academic_terms")
-            .select("id, name, term_number, registration_start, registration_end")
-            .lte("registration_start", now)
-            .gte("registration_end", now);
+            .select("id, name, term_number")
+            .eq("status", "open")
+            .order("created_at", { ascending: false });
 
     const select = document.getElementById("termSelect");
 
     openTerms = terms || [];
 
     if (termError || openTerms.length === 0) {
-        select.innerHTML = `<option value="">No terms are currently open for registration</option>`;
+        select.innerHTML = `<option value="">No terms are currently open for registration. Please contact admissions.</option>`;
     } else {
         select.innerHTML = `<option value="">Select an open term</option>`;
         openTerms.forEach(t => {
@@ -190,6 +188,11 @@ document.getElementById("termSelect").addEventListener("change", async function(
         return;
     }
 
+    if (!studentProfile.programme_id || !studentProfile.current_level_id) {
+        area.innerHTML = `<p class="empty-note">Your profile is missing a Programme or Year Level. Please contact admissions to fix this.</p>`;
+        return;
+    }
+
     area.innerHTML = `<p class="empty-note">Loading courses...</p>`;
 
     const selectedTerm = openTerms.find(t => t.id === termId);
@@ -212,7 +215,7 @@ document.getElementById("termSelect").addEventListener("change", async function(
             .eq("semester", termNumber);
 
     if (error || !programmeCourses || programmeCourses.length === 0) {
-        area.innerHTML = `<p class="empty-note">No courses are set up for your programme/year/term yet. Please contact admissions.</p>`;
+        area.innerHTML = `<p class="empty-note">No courses are set up for your Programme/Year/Term yet. Please contact admissions.</p>`;
         return;
     }
 
