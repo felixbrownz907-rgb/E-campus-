@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>My Course Content | Lecturer Portal</title>
+
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: Arial, Helvetica, sans-serif; background: #f4f6f9; color: #172033; }
+
+.header { background: #0e7490; color: white; padding: 18px 25px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+.brand { display: flex; align-items: center; gap: 14px; }
+.logo { width: 55px; height: 55px; object-fit: contain; background: white; border-radius: 8px; }
+.brand h1 { font-size: 22px; }
+.brand p { color: #cffafe; margin-top: 3px; font-size: 13px; }
+.back-button { background: white; color: #0e7490; text-decoration: none; padding: 10px 16px; border-radius: 8px; font-weight: bold; font-size: 13px; }
+
+.container { max-width: 1000px; margin: 25px auto; padding: 0 20px; }
+.page-title { margin-bottom: 20px; }
+.page-title h2 { font-size: 28px; margin-bottom: 6px; }
+.page-title p { color: #6b7280; }
+
+.message { padding: 14px; border-radius: 8px; margin-bottom: 20px; display: none; }
+.message.success { display: block; background: #dcfce7; color: #166534; }
+.message.error { display: block; background: #fee2e2; color: #991b1b; }
+
+.card { background: white; padding: 22px; border-radius: 14px; margin-bottom: 18px; box-shadow: 0 3px 12px rgba(0,0,0,0.06); }
+.card h3 { font-size: 18px; margin-bottom: 14px; }
+
+select, input, textarea {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    font-size: 14px;
+    margin-bottom: 12px;
+}
+
+textarea { min-height: 90px; resize: vertical; }
+
+.small-button {
+    background: #0e7490;
+    color: white;
+    border: none;
+    padding: 10px 16px;
+    border-radius: 8px;
+    font-weight: bold;
+    font-size: 14px;
+    cursor: pointer;
+}
+
+.format-hint {
+    background: #f4f6f9;
+    border-radius: 8px;
+    padding: 12px;
+    font-family: monospace;
+    font-size: 12px;
+    white-space: pre-wrap;
+    margin-bottom: 12px;
+    color: #374151;
+}
+
+.unit-block { border: 1px solid #e5e7eb; border-radius: 10px; padding: 14px; margin-bottom: 12px; }
+.unit-block h4 { font-size: 15px; margin-bottom: 8px; }
+.topic-row { display: flex; justify-content: space-between; padding: 8px 10px; background: #f9fafb; border-radius: 6px; margin-bottom: 6px; font-size: 13px; }
+.video-tag { color: #1d4ed8; font-size: 11px; font-weight: bold; }
+
+.empty-note { color: #9ca3af; text-align: center; padding: 20px 0; }
+</style>
+</head>
+
+
+<body>
+
+<header class="header">
+    <div class="brand">
+        <img src="https://pub-b3e2d39712e84119875e84c5ec5f5c09.r2.dev/Logo/IMG-20260816-WA0050(1).jpg" alt="Sunningdale University Logo" class="logo">
+        <div>
+            <h1>E-Campus</h1>
+            <p>Lecturer Portal</p>
+        </div>
+    </div>
+    <a href="lecturer-dashboard.html" class="back-button">← Dashboard</a>
+</header>
+
+
+<main class="container">
+
+    <section class="page-title">
+        <h2>My Course Content</h2>
+        <p>Create Units and paste your notes to quickly add Topics for your students. Add exams for a Unit from Manage Exams.</p>
+    </section>
+
+    <div id="message" class="message"></div>
+
+    <section class="card">
+        <h3>1. Select Course</h3>
+        <select id="courseSelect"><option value="">Select course</option></select>
+    </section>
+
+    <section class="card">
+        <h3>2. Create a Unit</h3>
+        <input type="text" id="unitTitle" placeholder="Unit title, e.g. Network Fundamentals">
+        <input type="number" id="unitNumber" placeholder="Unit number, e.g. 1" min="1">
+        <button class="small-button" onclick="createUnit()">Create Unit</button>
+    </section>
+
+    <section class="card">
+        <h3>3. Add Topics to a Unit</h3>
+        <select id="unitSelect"><option value="">Select a unit first</option></select>
+
+        <div style="margin-top:14px;">
+            <p style="font-size:13px; color:#6b7280; margin-bottom:8px;">Paste your notes below. Separate each Topic with a line containing only <strong>===</strong>. Start each Topic with <strong>TITLE:</strong>. Optionally add a <strong>VIDEO:</strong> line with a YouTube link to embed a video for that topic.</p>
+            <div class="format-hint">TITLE: Introduction to Networks
+VIDEO: https://www.youtube.com/watch?v=xxxxxxxxxxx
+This is the full content of the topic...
+can be multiple paragraphs...
+===
+TITLE: OSI Model
+More content here, no video needed for this one...
+===</div>
+            <textarea id="bulkNotes" placeholder="Paste your notes here..." style="min-height:200px;"></textarea>
+            <button class="small-button" onclick="importTopics()">Convert & Add Topics</button>
+        </div>
+    </section>
+
+    <section class="card">
+        <h3>My Units & Topics</h3>
+        <div id="unitsContainer"><p class="empty-note">Select a course to view its content.</p></div>
+    </section>
+
+</main>
+
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../supabase-config.js"></script>
+
+
+<script>
+
+const message = document.getElementById("message");
+let currentCourseId = null;
+let currentUnits = [];
+
+
+function showMessage(text, type) {
+    message.textContent = text;
+    message.className = "message " + type;
+}
+
+
+function escapeHtml(value) {
+    return String(value ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+}
+
+
+async function startPage() {
+
+    const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
+
+    if (authError || !user) {
+        window.location.href = "lecturer-login.html";
+        return;
+    }
+
+    const { data: lecturerProfile } =
+        await supabaseClient.from("lecturer_profiles").select("id").eq("user_id", user.id).single();
+
+    if (!lecturerProfile) {
+        showMessage("Unable to load your lecturer profile.", "error");
+        return;
+    }
+
+    const { data: assignments } =
+        await supabaseClient
+            .from("course_lecturers")
+            .select("courses ( id, code, name )")
+            .eq("lecturer_id", lecturerProfile.id);
+
+    const courses = (assignments || []).map(a => a.courses).filter(Boolean);
+    const select = document.getElementById("courseSelect");
+
+    if (courses.length === 0) {
+        select.innerHTML = `<option value="">No courses assigned</option>`;
+        return;
+    }
+
+    courses.forEach(c => {
+        const option = document.createElement("option");
+        option.value = c.id;
+        option.textContent = `${c.code} — ${c.name}`;
+        select.appendChild(option);
+    });
+
+}
+
+
+document.getElementById("courseSelect").addEventListener("change", async function() {
+    currentCourseId = this.value;
+    if (currentCourseId) {
+        await loadUnits();
+    } else {
+        document.getElementById("unitsContainer").innerHTML = `<p class="empty-note">Select a course to view its content.</p>`;
+        document.getElementById("unitSelect").innerHTML = `<option value="">Select a unit first</option>`;
+    }
+});
+
+
+async function createUnit() {
+
+    if (!currentCourseId) {
+        showMessage("Please select a course first.", "error");
+        return;
+    }
+
+    const title = document.getElementById("unitTitle").value.trim();
+    const number = document.getElementById("unitNumber").value;
+
+    if (!title || !number) {
+        showMessage("Please enter both a unit title and number.", "error");
+        return;
+    }
+
+    const { error } =
+        await supabaseClient.from("course_modules").insert({
+            course_id: currentCourseId,
+            module_number: Number(number),
+            title: title
+        });
+
+    if (error) {
+        showMessage("Unable to create unit: " + error.message, "error");
+        return;
+    }
+
+    showMessage("Unit created.", "success");
+    document.getElementById("unitTitle").value = "";
+    document.getElementById("unitNumber").value = "";
+    await loadUnits();
+
+}
+
+
+async function loadUnits() {
+
+    const container = document.getElementById("unitsContainer");
+    const unitSelect = document.getElementById("unitSelect");
+
+    const { data: units, error } =
+        await supabaseClient
+            .from("course_modules")
+            .select("id, module_number, title")
+            .eq("course_id", currentCourseId)
+            .order("module_number");
+
+    if (error || !units || units.length === 0) {
+        container.innerHTML = `<p class="empty-note">No units created for this course yet.</p>`;
+        unitSelect.innerHTML = `<option value="">Create a unit first</option>`;
+        return;
+    }
+
+    currentUnits = units;
+
+    unitSelect.innerHTML = `<option value="">Select a unit</option>`;
+    units.forEach(u => {
+        const option = document.createElement("option");
+        option.value = u.id;
+        option.textContent = `Unit ${u.module_number} — ${u.title}`;
+        unitSelect.appendChild(option);
+    });
+
+    const { data: lessons } =
+        await supabaseClient
+            .from("lessons")
+            .select("id, module_id, lesson_number, title, video_url")
+            .in("module_id", units.map(u => u.id))
+            .order("lesson_number");
+
+    container.innerHTML = units.map(unit => {
+        const topics = (lessons || []).filter(l => l.module_id === unit.id);
+        return `
+            <div class="unit-block">
+                <h4>Unit ${unit.module_number} — ${escapeHtml(unit.title)}</h4>
+                ${topics.length === 0
+                    ? `<p style="color:#9ca3af; font-size:13px;">No topics added yet.</p>`
+                    : topics.map(t => `<div class="topic-row"><span>Topic ${t.lesson_number} — ${escapeHtml(t.title)}</span>${t.video_url ? `<span class="video-tag">🎥 has video</span>` : ""}</div>`).join("")
+                }
+            </div>
+        `;
+    }).join("");
+
+}
+
+
+function parseBulkTopics(rawText) {
+
+    const blocks = rawText.split(/^===\s*$/m).map(b => b.trim()).filter(Boolean);
+    const parsed = [];
+
+    blocks.forEach(block => {
+
+        const lines = block.split("\n");
+        const firstLine = lines[0] || "";
+        const titleMatch = firstLine.match(/^TITLE:\s*(.*)/i);
+
+        if (!titleMatch) return;
+
+        const title = titleMatch[1].trim();
+
+        let videoUrl = null;
+        let contentLines = lines.slice(1);
+
+        // Check if the next line is a VIDEO: line
+        if (contentLines.length > 0) {
+            const videoMatch = contentLines[0].match(/^VIDEO:\s*(.*)/i);
+            if (videoMatch) {
+                videoUrl = videoMatch[1].trim() || null;
+                contentLines = contentLines.slice(1);
+            }
+        }
+
+        const content = contentLines.join("\n").trim();
+
+        if (title) {
+            parsed.push({ title, content, video_url: videoUrl });
+        }
+
+    });
+
+    return parsed;
+
+}
+
+
+async function importTopics() {
+
+    const unitId = document.getElementById("unitSelect").value;
+    const rawText = document.getElementById("bulkNotes").value;
+
+    if (!unitId) {
+        showMessage("Please select a unit first.", "error");
+        return;
+    }
+
+    if (!rawText.trim()) {
+        showMessage("Please paste your notes first.", "error");
+        return;
+    }
+
+    const parsedTopics = parseBulkTopics(rawText);
+
+    if (parsedTopics.length === 0) {
+        showMessage("Unable to detect any topics. Please check the format (each topic must start with TITLE: and be separated by ===).", "error");
+        return;
+    }
+
+    const { data: existingLessons } =
+        await supabaseClient.from("lessons").select("lesson_number").eq("module_id", unitId).order("lesson_number", { ascending: false }).limit(1);
+
+    let nextNumber = existingLessons && existingLessons.length > 0 ? existingLessons[0].lesson_number + 1 : 1;
+
+    const rowsToInsert = parsedTopics.map(t => ({
+        module_id: unitId,
+        lesson_number: nextNumber++,
+        title: t.title,
+        content: t.content || null,
+        video_url: t.video_url || null
+    }));
+
+    const { error } = await supabaseClient.from("lessons").insert(rowsToInsert);
+
+    if (error) {
+        showMessage("Unable to import topics: " + error.message, "error");
+        return;
+    }
+
+    showMessage(`${parsedTopics.length} topic(s) added successfully.`, "success");
+    document.getElementById("bulkNotes").value = "";
+    await loadUnits();
+
+}
+
+
+startPage();
+
+</script>
+
+</body>
+</html>
