@@ -64,6 +64,15 @@ body { font-family: Arial, Helvetica, sans-serif; background: #f4f6f9; color: #1
     font-weight: bold;
 }
 
+.final-tag {
+    background: #dbeafe;
+    color: #1d4ed8;
+    padding: 3px 9px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: bold;
+}
+
 .status-badge {
     padding: 4px 10px;
     border-radius: 20px;
@@ -220,7 +229,7 @@ body { font-family: Arial, Helvetica, sans-serif; background: #f4f6f9; color: #1
 
     <section class="page-title">
         <h2>Quizzes & Exams</h2>
-        <p>Complete each Unit's Assessment Test (70%+) to unlock the next Unit. Exams are single-attempt and locked once you begin.</p>
+        <p>Complete each Unit's CA (70%+) to unlock the next Unit. Pass all 3 CAs to unlock the Final Exam. Exams are single-attempt and locked once you begin.</p>
     </section>
 
     <div id="quizzesContainer">
@@ -312,7 +321,8 @@ async function loadQuizzes() {
         await supabaseClient
             .from("enrollments")
             .select("courses ( id, code, name )")
-            .eq("student_id", studentProfileId);
+            .eq("student_id", studentProfileId)
+            .eq("status", "enrolled");
 
     const courseIds = (enrollments || []).map(e => e.courses?.id).filter(Boolean);
     const courseMap = {};
@@ -335,15 +345,17 @@ async function loadQuizzes() {
     const moduleToCourse = {};
     allModules.forEach(m => moduleToCourse[m.id] = m.course_id);
 
-    if (moduleIds.length === 0) {
-        container.innerHTML = `<div class="card"><p class="empty-note">No quizzes or exams available yet.</p></div>`;
-        return;
-    }
+    const { data: unitQuizzes } =
+        moduleIds.length > 0
+        ? await supabaseClient.from("quizzes").select("*").in("module_id", moduleIds)
+        : { data: [] };
 
-    const { data: quizzes, error: quizError } =
-        await supabaseClient.from("quizzes").select("*").in("module_id", moduleIds).order("due_date");
+    const { data: finalExams } =
+        await supabaseClient.from("quizzes").select("*").in("course_id", courseIds).eq("is_final_exam", true);
 
-    if (quizError || !quizzes || quizzes.length === 0) {
+    const quizzes = [...(unitQuizzes || []), ...(finalExams || [])];
+
+    if (quizzes.length === 0) {
         container.innerHTML = `<div class="card"><p class="empty-note">No quizzes or exams available yet.</p></div>`;
         return;
     }
@@ -363,7 +375,6 @@ async function loadQuizzes() {
         attemptsByQuiz[a.quiz_id].push(a);
     });
 
-    // Determine which modules are "passed" (best score >= threshold on their quiz)
     const bestScoreByQuiz = {};
     (attempts || []).forEach(a => {
         if (a.score === null) return;
@@ -373,14 +384,13 @@ async function loadQuizzes() {
     });
 
     const passedModuleIds = new Set();
-    quizzes.forEach(q => {
+    (unitQuizzes || []).forEach(q => {
         const best = bestScoreByQuiz[q.id];
         if (best !== undefined && best >= PASS_THRESHOLD) {
             passedModuleIds.add(q.module_id);
         }
     });
 
-    // Build ordered module list per course, to know each quiz's "previous module"
     const modulesByCourse = {};
     allModules.forEach(m => {
         if (!modulesByCourse[m.course_id]) modulesByCourse[m.course_id] = [];
@@ -394,6 +404,19 @@ async function loadQuizzes() {
 
 
 function getUnitLockInfo(quiz, moduleToCourse, modulesByCourse, passedModuleIds) {
+
+    if (quiz.is_final_exam) {
+
+        const orderedModules = modulesByCourse[quiz.course_id] || [];
+        const allUnitsPassed = orderedModules.length > 0 && orderedModules.every(m => passedModuleIds.has(m.id));
+
+        if (allUnitsPassed) {
+            return { locked: false };
+        }
+
+        return { locked: true, reason: `Complete and pass all 3 Units' CA Assessments (70%+ each) before attempting the Final Exam.` };
+
+    }
 
     const courseId = moduleToCourse[quiz.module_id];
     const orderedModules = modulesByCourse[courseId] || [];
@@ -422,7 +445,7 @@ function renderQuizzes(quizzes, moduleToCourse, courseMap, attemptsByQuiz, modul
 
     quizzes.forEach(quiz => {
 
-        const courseId = moduleToCourse[quiz.module_id];
+        const courseId = quiz.is_final_exam ? quiz.course_id : moduleToCourse[quiz.module_id];
         const course = courseMap[courseId];
         const attempts = attemptsByQuiz[quiz.id] || [];
         const hasAttempted = attempts.length > 0;
@@ -436,9 +459,9 @@ function renderQuizzes(quizzes, moduleToCourse, courseMap, attemptsByQuiz, modul
 
         if (lockInfo.locked) {
 
-            statusLabel = "Unit Locked";
+            statusLabel = quiz.is_final_exam ? "Final Exam Locked" : "Unit Locked";
             statusClass = "locked";
-            buttonText = "Previous Unit Not Passed";
+            buttonText = quiz.is_final_exam ? "Complete All CAs First" : "Previous Unit Not Passed";
 
         } else if (quiz.is_exam) {
 
@@ -450,7 +473,7 @@ function renderQuizzes(quizzes, moduleToCourse, courseMap, attemptsByQuiz, modul
                 statusLabel = "Open Now";
                 statusClass = "open";
                 buttonDisabled = false;
-                buttonText = "Start Exam";
+                buttonText = quiz.is_final_exam ? "Start Final Exam" : "Start Exam";
             } else {
                 statusLabel = "Not Yet Open";
                 buttonText = "Waiting for exam window";
@@ -475,7 +498,7 @@ function renderQuizzes(quizzes, moduleToCourse, courseMap, attemptsByQuiz, modul
         card.innerHTML = `
             <div class="card-top">
                 <div>
-                    <div class="course-tag">${course ? escapeHtml(course.code) : ""} ${quiz.is_exam ? `<span class="exam-tag">EXAM</span>` : ""}</div>
+                    <div class="course-tag">${course ? escapeHtml(course.code) : ""} ${quiz.is_final_exam ? `<span class="final-tag">FINAL EXAM</span>` : ""} ${quiz.is_exam ? `<span class="exam-tag">EXAM</span>` : ""}</div>
                     <h3>${escapeHtml(quiz.title)}</h3>
                     <div class="meta">${quiz.duration_minutes ? "Duration: " + quiz.duration_minutes + " min" : (quiz.due_date ? "Due: " + new Date(quiz.due_date).toLocaleString() : "No due date")}${bestScore !== null ? ` • Best score: ${bestScore}%` : ""}</div>
                 </div>
