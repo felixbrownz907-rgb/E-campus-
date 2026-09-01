@@ -89,6 +89,13 @@ body { font-family: Arial, Helvetica, sans-serif; background: #f4f6f9; color: #1
 
 .start-button:disabled { opacity: 0.5; cursor: not-allowed; }
 
+.locked-reason {
+    margin-top: 10px;
+    font-size: 12px;
+    color: #991b1b;
+    font-weight: bold;
+}
+
 .empty-note { color: #9ca3af; text-align: center; padding: 30px 0; }
 
 /* ============ EXAM ROOM (full screen) ============ */
@@ -181,7 +188,6 @@ body { font-family: Arial, Helvetica, sans-serif; background: #f4f6f9; color: #1
     background: #991b1b;
     color: white;
     z-index: 1000;
-    display: none;
     align-items: center;
     justify-content: center;
     text-align: center;
@@ -214,7 +220,7 @@ body { font-family: Arial, Helvetica, sans-serif; background: #f4f6f9; color: #1
 
     <section class="page-title">
         <h2>Quizzes & Exams</h2>
-        <p>Practice quizzes can be retaken. Exams are single-attempt and locked once you begin.</p>
+        <p>Complete each Unit's Assessment Test (70%+) to unlock the next Unit. Exams are single-attempt and locked once you begin.</p>
     </section>
 
     <div id="quizzesContainer">
@@ -255,6 +261,8 @@ body { font-family: Arial, Helvetica, sans-serif; background: #f4f6f9; color: #1
 
 
 <script>
+
+const PASS_THRESHOLD = 70;
 
 let authUserId = null;
 let studentProfileId = null;
@@ -316,11 +324,16 @@ async function loadQuizzes() {
     }
 
     const { data: modules } =
-        await supabaseClient.from("course_modules").select("id, course_id").in("course_id", courseIds);
+        await supabaseClient
+            .from("course_modules")
+            .select("id, course_id, module_number")
+            .in("course_id", courseIds)
+            .order("module_number");
 
-    const moduleIds = (modules || []).map(m => m.id);
+    const allModules = modules || [];
+    const moduleIds = allModules.map(m => m.id);
     const moduleToCourse = {};
-    (modules || []).forEach(m => moduleToCourse[m.id] = m.course_id);
+    allModules.forEach(m => moduleToCourse[m.id] = m.course_id);
 
     if (moduleIds.length === 0) {
         container.innerHTML = `<div class="card"><p class="empty-note">No quizzes or exams available yet.</p></div>`;
@@ -350,12 +363,59 @@ async function loadQuizzes() {
         attemptsByQuiz[a.quiz_id].push(a);
     });
 
-    renderQuizzes(quizzes, moduleToCourse, courseMap, attemptsByQuiz);
+    // Determine which modules are "passed" (best score >= threshold on their quiz)
+    const bestScoreByQuiz = {};
+    (attempts || []).forEach(a => {
+        if (a.score === null) return;
+        if (!bestScoreByQuiz[a.quiz_id] || a.score > bestScoreByQuiz[a.quiz_id]) {
+            bestScoreByQuiz[a.quiz_id] = a.score;
+        }
+    });
+
+    const passedModuleIds = new Set();
+    quizzes.forEach(q => {
+        const best = bestScoreByQuiz[q.id];
+        if (best !== undefined && best >= PASS_THRESHOLD) {
+            passedModuleIds.add(q.module_id);
+        }
+    });
+
+    // Build ordered module list per course, to know each quiz's "previous module"
+    const modulesByCourse = {};
+    allModules.forEach(m => {
+        if (!modulesByCourse[m.course_id]) modulesByCourse[m.course_id] = [];
+        modulesByCourse[m.course_id].push(m);
+    });
+    Object.values(modulesByCourse).forEach(list => list.sort((a, b) => a.module_number - b.module_number));
+
+    renderQuizzes(quizzes, moduleToCourse, courseMap, attemptsByQuiz, modulesByCourse, passedModuleIds);
 
 }
 
 
-function renderQuizzes(quizzes, moduleToCourse, courseMap, attemptsByQuiz) {
+function getUnitLockInfo(quiz, moduleToCourse, modulesByCourse, passedModuleIds) {
+
+    const courseId = moduleToCourse[quiz.module_id];
+    const orderedModules = modulesByCourse[courseId] || [];
+    const myIndex = orderedModules.findIndex(m => m.id === quiz.module_id);
+
+    if (myIndex <= 0) {
+        return { locked: false };
+    }
+
+    const previousModule = orderedModules[myIndex - 1];
+    const previousPassed = passedModuleIds.has(previousModule.id);
+
+    if (previousPassed) {
+        return { locked: false };
+    }
+
+    return { locked: true, reason: `Complete Unit ${previousModule.module_number}'s Assessment Test first (70%+ required).` };
+
+}
+
+
+function renderQuizzes(quizzes, moduleToCourse, courseMap, attemptsByQuiz, modulesByCourse, passedModuleIds) {
 
     const container = document.getElementById("quizzesContainer");
     container.innerHTML = "";
@@ -367,12 +427,20 @@ function renderQuizzes(quizzes, moduleToCourse, courseMap, attemptsByQuiz) {
         const attempts = attemptsByQuiz[quiz.id] || [];
         const hasAttempted = attempts.length > 0;
 
+        const lockInfo = getUnitLockInfo(quiz, moduleToCourse, modulesByCourse, passedModuleIds);
+
         let statusLabel = "Locked";
         let statusClass = "locked";
         let buttonDisabled = true;
         let buttonText = "Locked";
 
-        if (quiz.is_exam) {
+        if (lockInfo.locked) {
+
+            statusLabel = "Unit Locked";
+            statusClass = "locked";
+            buttonText = "Previous Unit Not Passed";
+
+        } else if (quiz.is_exam) {
 
             if (hasAttempted) {
                 statusLabel = "Completed";
@@ -409,11 +477,12 @@ function renderQuizzes(quizzes, moduleToCourse, courseMap, attemptsByQuiz) {
                 <div>
                     <div class="course-tag">${course ? escapeHtml(course.code) : ""} ${quiz.is_exam ? `<span class="exam-tag">EXAM</span>` : ""}</div>
                     <h3>${escapeHtml(quiz.title)}</h3>
-                    <div class="meta">${quiz.due_date ? "Due: " + new Date(quiz.due_date).toLocaleString() : "No due date"}${bestScore !== null ? ` • Best score: ${bestScore}%` : ""}</div>
+                    <div class="meta">${quiz.duration_minutes ? "Duration: " + quiz.duration_minutes + " min" : (quiz.due_date ? "Due: " + new Date(quiz.due_date).toLocaleString() : "No due date")}${bestScore !== null ? ` • Best score: ${bestScore}%` : ""}</div>
                 </div>
                 <span class="status-badge ${statusClass}">${statusLabel}</span>
             </div>
             <button class="start-button" ${buttonDisabled ? "disabled" : ""} onclick="beginQuiz('${quiz.id}')">${buttonText}</button>
+            ${lockInfo.locked ? `<div class="locked-reason">🔒 ${escapeHtml(lockInfo.reason)}</div>` : ""}
         `;
 
         container.appendChild(card);
