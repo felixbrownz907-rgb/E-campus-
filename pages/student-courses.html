@@ -125,6 +125,7 @@
         .lesson-content-panel p { margin-bottom: 10px; color: #374151; white-space: pre-wrap; }
         .video-embed { margin-bottom: 12px; }
         .video-embed a { color: #1d4ed8; font-weight: bold; font-size: 13px; }
+        .video-embed iframe { display: block; }
 
         .complete-button { background: #111827; color: white; border: none; padding: 9px 16px; border-radius: 8px; font-weight: 700; font-size: 13px; cursor: pointer; }
         .complete-button:disabled { opacity: 0.6; cursor: not-allowed; }
@@ -246,6 +247,13 @@
         }
 
 
+        function getYoutubeEmbedUrl(url) {
+            if (!url) return null;
+            const match = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})/);
+            return match ? `https://www.youtube.com/embed/${match[1]}` : null;
+        }
+
+
         function daysBetween(a, b) {
             return Math.ceil((b - a) / (1000 * 60 * 60 * 24));
         }
@@ -300,6 +308,7 @@
                             academic_terms ( id, name, start_date, end_date )
                         `)
                         .eq("student_id", studentProfileId)
+                        .eq("status", "enrolled")
                         .order("enrollment_date", { ascending: false });
 
                 if (enrollError) throw enrollError;
@@ -311,7 +320,7 @@
                         <div class="empty-state">
                             <div class="empty-icon">📚</div>
                             <h4>No registered courses</h4>
-                            <p>You currently have no courses registered.</p>
+                            <p>You currently have no confirmed courses. Register for courses to get started.</p>
                         </div>
                     `;
                     return;
@@ -546,6 +555,14 @@
                     moduleLessons.forEach(lesson => {
 
                         const done = completedLessonIds.has(lesson.id);
+                        const embedUrl = getYoutubeEmbedUrl(lesson.video_url);
+
+                        let videoHtml = "";
+                        if (lesson.video_url) {
+                            videoHtml = embedUrl
+                                ? `<div class="video-embed"><iframe width="100%" height="220" src="${embedUrl}" frameborder="0" allowfullscreen style="border-radius:10px;"></iframe></div>`
+                                : `<div class="video-embed"><a href="${escapeHtml(lesson.video_url)}" target="_blank">🎥 Watch video for this topic</a></div>`;
+                        }
 
                         html += `
                             <div class="lesson-row ${done ? "done" : ""}" onclick="toggleLesson('${lesson.id}')">
@@ -554,9 +571,9 @@
                             </div>
                             <div class="lesson-content-panel" id="panel-${lesson.id}">
                                 <h6>${escapeHtml(lesson.title)}</h6>
+                                ${videoHtml}
                                 <p>${escapeHtml(lesson.description || "No description provided.")}</p>
                                 ${lesson.content ? `<p>${escapeHtml(lesson.content)}</p>` : ""}
-                                ${lesson.video_url ? `<div class="video-embed"><a href="${escapeHtml(lesson.video_url)}" target="_blank">🎥 Watch video for this topic</a></div>` : ""}
                                 <button class="complete-button" id="btn-${lesson.id}" onclick="event.stopPropagation(); markComplete('${lesson.id}')" ${done ? "disabled" : ""}>
                                     ${done ? "✓ Completed" : "Mark as Complete"}
                                 </button>
