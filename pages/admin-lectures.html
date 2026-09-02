@@ -149,11 +149,15 @@ tr:hover { background: #f9fafb; }
     font-weight: bold;
     cursor: pointer;
     margin-right: 5px;
+    margin-bottom: 5px;
     font-size: 13px;
 }
 
 .suspend-button { background: #fee2e2; color: #991b1b; }
 .reactivate-button { background: #dcfce7; color: #166534; }
+.delete-button { background: #fee2e2; color: #991b1b; }
+
+.assignments-note { color: #6b7280; font-size: 13px; margin-bottom: 14px; }
 
 @media (max-width: 700px) {
     .header { flex-direction: column; align-items: flex-start; gap: 15px; }
@@ -252,7 +256,7 @@ tr:hover { background: #f9fafb; }
 
                 <div class="form-group">
                     <label for="department">Department</label>
-                    <select id="department" required>
+                    <select id="department">
                         <option value="">Select department</option>
                     </select>
                 </div>
@@ -331,9 +335,11 @@ tr:hover { background: #f9fafb; }
 
         <button class="submit-button" onclick="assignLecturerToCourse()">Assign to Course</button>
 
-        <div id="assignmentsList" style="margin-top:20px;"></div>
+        <div class="assignments-note" style="margin-top:18px;">Current course assignments:</div>
+        <div id="assignmentsList"></div>
 
     </section>
+
 
     <section class="card">
 
@@ -538,6 +544,7 @@ document.getElementById("lecturerForm").addEventListener("submit", async functio
         document.getElementById("country").value = "Zambia";
 
         await loadLecturers();
+        await loadAssignDropdowns();
 
     } catch (err) {
 
@@ -554,112 +561,15 @@ document.getElementById("lecturerForm").addEventListener("submit", async functio
 });
 
 
-/* ================= LOAD LECTURERS ================= */
-
-async function loadLecturers() {
-
-    const tbody = document.getElementById("lecturerTableBody");
-
-    const { data, error } =
-        await supabaseClient
-            .from("lecturer_profiles")
-            .select(`
-                id,
-                employee_number,
-                status,
-                specialization,
-                user_profiles ( first_name, last_name, email ),
-                departments ( name )
-            `)
-            .order("employee_number");
-
-    if (error) {
-        console.error(error);
-        tbody.innerHTML = `<tr><td colspan="7">Unable to load lecturers: ${escapeHtml(error.message)}</td></tr>`;
-        return;
-    }
-
-    allLecturers = data || [];
-    renderLecturers(allLecturers);
-
-}
-
-
-function renderLecturers(list) {
-
-    const tbody = document.getElementById("lecturerTableBody");
-
-    if (!list || list.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="7">No lecturers found.</td></tr>`;
-        return;
-    }
-
-    tbody.innerHTML = "";
-
-    list.forEach(lecturer => {
-
-        const profile = lecturer.user_profiles;
-        const department = lecturer.departments;
-        const status = lecturer.status || "active";
-
-        const row = document.createElement("tr");
-
-        row.innerHTML = `
-
-            <td>${escapeHtml(lecturer.employee_number)}</td>
-            <td>${profile ? escapeHtml(profile.first_name + " " + profile.last_name) : "-"}</td>
-            <td>${profile ? escapeHtml(profile.email || "-") : "-"}</td>
-            <td>${department ? escapeHtml(department.name) : "-"}</td>
-            <td>${escapeHtml(lecturer.specialization || "-")}</td>
-
-            <td>
-                <span class="status-badge ${status}">${escapeHtml(status)}</span>
-            </td>
-
-            <td>
-                ${
-                    status === "suspended"
-                    ? `<button class="action-button reactivate-button" onclick="toggleStatus('${lecturer.id}', 'active')">Reactivate</button>`
-                    : `<button class="action-button suspend-button" onclick="toggleStatus('${lecturer.id}', 'suspended')">Suspend</button>`
-                }
-            </td>
-
-        `;
-
-        tbody.appendChild(row);
-
-    });
-
-}
-
-
-async function toggleStatus(lecturerId, newStatus) {
-
-    const { error } =
-        await supabaseClient
-            .from("lecturer_profiles")
-            .update({ status: newStatus })
-            .eq("id", lecturerId);
-
-    if (error) {
-        showMessage("Unable to update status: " + error.message, "error");
-        return;
-    }
-
-    showMessage(
-        newStatus === "suspended" ? "Lecturer suspended." : "Lecturer reactivated.",
-        "success"
-    );
-
-    await loadLecturers();
-
-}
-
+/* ================= ASSIGN LECTURER TO COURSE ================= */
 
 async function loadAssignDropdowns() {
 
     const lecturerSelect = document.getElementById("assignLecturer");
     const courseSelect = document.getElementById("assignCourse");
+
+    lecturerSelect.innerHTML = `<option value="">Select lecturer</option>`;
+    courseSelect.innerHTML = `<option value="">Select course</option>`;
 
     const { data: lecturers } =
         await supabaseClient
@@ -760,6 +670,133 @@ async function removeAssignment(id) {
 
     showMessage("Assignment removed.", "success");
     await loadAssignments();
+
+}
+
+
+/* ================= LOAD LECTURERS ================= */
+
+async function loadLecturers() {
+
+    const tbody = document.getElementById("lecturerTableBody");
+
+    const { data, error } =
+        await supabaseClient
+            .from("lecturer_profiles")
+            .select(`
+                id,
+                user_id,
+                employee_number,
+                status,
+                specialization,
+                user_profiles ( first_name, last_name, email ),
+                departments ( name )
+            `)
+            .order("employee_number");
+
+    if (error) {
+        console.error(error);
+        tbody.innerHTML = `<tr><td colspan="7">Unable to load lecturers: ${escapeHtml(error.message)}</td></tr>`;
+        return;
+    }
+
+    allLecturers = data || [];
+    renderLecturers(allLecturers);
+
+}
+
+
+function renderLecturers(list) {
+
+    const tbody = document.getElementById("lecturerTableBody");
+
+    if (!list || list.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="7">No lecturers found.</td></tr>`;
+        return;
+    }
+
+    tbody.innerHTML = "";
+
+    list.forEach(lecturer => {
+
+        const profile = lecturer.user_profiles;
+        const department = lecturer.departments;
+        const status = lecturer.status || "active";
+
+        const row = document.createElement("tr");
+
+        row.innerHTML = `
+
+            <td>${escapeHtml(lecturer.employee_number)}</td>
+            <td>${profile ? escapeHtml(profile.first_name + " " + profile.last_name) : "-"}</td>
+            <td>${profile ? escapeHtml(profile.email || "-") : "-"}</td>
+            <td>${department ? escapeHtml(department.name) : "-"}</td>
+            <td>${escapeHtml(lecturer.specialization || "-")}</td>
+
+            <td>
+                <span class="status-badge ${status}">${escapeHtml(status)}</span>
+            </td>
+
+            <td>
+                ${
+                    status === "suspended"
+                    ? `<button class="action-button reactivate-button" onclick="toggleStatus('${lecturer.id}', 'active')">Reactivate</button>`
+                    : `<button class="action-button suspend-button" onclick="toggleStatus('${lecturer.id}', 'suspended')">Suspend</button>`
+                }
+                <button class="action-button delete-button" onclick="deleteLecturer('${lecturer.id}', '${lecturer.user_id}')">Delete</button>
+            </td>
+
+        `;
+
+        tbody.appendChild(row);
+
+    });
+
+}
+
+
+async function toggleStatus(lecturerId, newStatus) {
+
+    const { error } =
+        await supabaseClient
+            .from("lecturer_profiles")
+            .update({ status: newStatus })
+            .eq("id", lecturerId);
+
+    if (error) {
+        showMessage("Unable to update status: " + error.message, "error");
+        return;
+    }
+
+    showMessage(
+        newStatus === "suspended" ? "Lecturer suspended." : "Lecturer reactivated.",
+        "success"
+    );
+
+    await loadLecturers();
+
+}
+
+
+async function deleteLecturer(lecturerId, userId) {
+
+    const confirmed = confirm("Permanently delete this lecturer? This will remove their account data, profile, and course assignments. This cannot be undone.");
+    if (!confirmed) return;
+
+    await supabaseClient.from("course_lecturers").delete().eq("lecturer_id", lecturerId);
+    await supabaseClient.from("lecturer_profiles").delete().eq("id", lecturerId);
+    await supabaseClient.from("user_roles").delete().eq("user_id", userId);
+    const { error } = await supabaseClient.from("user_profiles").delete().eq("id", userId);
+
+    if (error) {
+        showMessage("Unable to fully delete: " + error.message, "error");
+        await loadLecturers();
+        return;
+    }
+
+    showMessage("Lecturer deleted from the system. Note: their login account may still need manual removal in Supabase Authentication if you want to reuse their email.", "success");
+    await loadLecturers();
+    await loadAssignDropdowns();
 
 }
 
