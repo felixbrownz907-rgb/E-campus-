@@ -197,7 +197,7 @@ tr:hover { background: #f9fafb; }
 
     <section class="page-title">
         <h2>Exams & Quizzes</h2>
-        <p>Create Unit CAs and course Final Exams for your assigned courses.</p>
+        <p>Create Unit CAs and course Final Exams for your assigned courses. Publish results when ready for students to see.</p>
     </section>
 
     <div id="message" class="message"></div>
@@ -278,7 +278,6 @@ tr:hover { background: #f9fafb; }
         <h3>My Quizzes & Exams</h3>
 
         <div class="table-container">
-
             <table>
                 <thead>
                     <tr>
@@ -295,7 +294,6 @@ tr:hover { background: #f9fafb; }
                     <tr><td colspan="6">Loading...</td></tr>
                 </tbody>
             </table>
-
         </div>
 
     </section>
@@ -459,6 +457,7 @@ document.getElementById("quizForm").addEventListener("submit", async function(ev
         status: "active",
         is_exam: isExam,
         is_open: false,
+        is_published: false,
         scheduled_start: isExam && scheduledValue ? scheduledValue : null
     };
 
@@ -501,7 +500,7 @@ async function loadQuizzes() {
         ? await supabaseClient
             .from("quizzes")
             .select(`
-                id, title, is_exam, is_open, is_final_exam, duration_minutes, scheduled_start, module_id, course_id,
+                id, title, is_exam, is_open, is_final_exam, is_published, duration_minutes, scheduled_start, module_id, course_id,
                 course_modules ( course_id, courses ( code, name ) )
             `)
             .in("module_id", moduleIds)
@@ -511,7 +510,7 @@ async function loadQuizzes() {
         await supabaseClient
             .from("quizzes")
             .select(`
-                id, title, is_exam, is_open, is_final_exam, duration_minutes, scheduled_start, module_id, course_id,
+                id, title, is_exam, is_open, is_final_exam, is_published, duration_minutes, scheduled_start, module_id, course_id,
                 courses ( code, name )
             `)
             .in("course_id", myCourseIds)
@@ -545,7 +544,7 @@ async function loadQuizzes() {
 
         row.innerHTML = `
             <td>${course ? escapeHtml(course.code) : "-"}</td>
-            <td>${escapeHtml(quiz.title)} ${quiz.is_final_exam ? `<span class="final-tag">FINAL</span>` : ""} ${quiz.is_exam ? `<span class="exam-tag">EXAM</span>` : ""}</td>
+            <td>${escapeHtml(quiz.title)} ${quiz.is_final_exam ? `<span class="final-tag">FINAL</span>` : ""} ${quiz.is_exam ? `<span class="exam-tag">EXAM</span>` : ""} ${quiz.is_published ? `<span class="final-tag" style="background:#dcfce7; color:#166534;">PUBLISHED</span>` : ""}</td>
             <td>${quiz.scheduled_start ? new Date(quiz.scheduled_start).toLocaleString() : "-"}</td>
             <td>${quiz.duration_minutes ? quiz.duration_minutes + " min" : "-"}</td>
             <td>${count || 0}</td>
@@ -557,6 +556,11 @@ async function loadQuizzes() {
                         : `<button class="action-button open-exam-button" onclick="toggleExamOpen('${quiz.id}', true)">Open Exam Room</button>`
                       )
                     : ""
+                }
+                ${
+                    quiz.is_published
+                    ? `<button class="action-button close-exam-button" onclick="togglePublish('${quiz.id}', false)">Unpublish Results</button>`
+                    : `<button class="action-button open-exam-button" onclick="togglePublish('${quiz.id}', true)">Publish Results</button>`
                 }
                 <button class="action-button questions-button" onclick="toggleQuestions('${quiz.id}')">Manage Questions</button>
                 <button class="action-button attempts-button" onclick="toggleAttempts('${quiz.id}')">View Attempts</button>
@@ -585,6 +589,21 @@ async function toggleExamOpen(quizId, openState) {
     }
 
     showMessage(openState ? "Exam room opened." : "Exam room closed.", "success");
+    await loadQuizzes();
+
+}
+
+
+async function togglePublish(quizId, publishState) {
+
+    const { error } = await supabaseClient.from("quizzes").update({ is_published: publishState }).eq("id", quizId);
+
+    if (error) {
+        showMessage("Unable to update: " + error.message, "error");
+        return;
+    }
+
+    showMessage(publishState ? "Results published. Students can now see this score." : "Results unpublished.", "success");
     await loadQuizzes();
 
 }
