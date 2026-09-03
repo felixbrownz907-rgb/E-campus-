@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>My CA Record | E-Campus</title>
+
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: Arial, Helvetica, sans-serif; background: #f4f6f9; color: #172033; }
+
+.header { background: #111827; color: white; padding: 18px 25px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+.brand { display: flex; align-items: center; gap: 14px; }
+.logo { width: 55px; height: 55px; object-fit: contain; background: white; border-radius: 8px; }
+.brand h1 { font-size: 22px; }
+.brand p { color: #d4af37; margin-top: 3px; font-size: 13px; }
+.back-button { background: #d4af37; color: #111827; text-decoration: none; padding: 10px 16px; border-radius: 8px; font-weight: bold; font-size: 13px; }
+
+.container { max-width: 1000px; margin: 25px auto; padding: 0 20px; }
+.page-title { margin-bottom: 20px; }
+.page-title h2 { font-size: 28px; margin-bottom: 6px; }
+.page-title p { color: #6b7280; }
+
+.card { background: white; padding: 22px; border-radius: 14px; margin-bottom: 18px; box-shadow: 0 3px 12px rgba(0,0,0,0.06); }
+.card h3 { font-size: 18px; margin-bottom: 4px; }
+.course-tag { color: #d4af37; font-size: 12px; font-weight: bold; }
+
+.ca-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+    margin: 14px 0;
+}
+
+.ca-box {
+    background: #f9fafb;
+    border-radius: 10px;
+    padding: 12px;
+    text-align: center;
+}
+
+.ca-box.passed { background: #dcfce7; }
+.ca-box.pending { background: #fef3c7; }
+.ca-box .label { font-size: 11px; color: #6b7280; margin-bottom: 4px; font-weight: bold; }
+.ca-box .score { font-size: 18px; font-weight: bold; }
+.ca-box .score.not-published { font-size: 12px; color: #9ca3af; font-weight: normal; }
+
+.overall-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 14px;
+    background: #111827;
+    color: white;
+    border-radius: 10px;
+    margin-top: 10px;
+}
+
+.overall-row .label { font-size: 13px; color: #d4af37; }
+.overall-row .value { font-size: 22px; font-weight: bold; }
+
+.weighting-note { font-size: 12px; color: #9ca3af; margin-top: 8px; }
+
+.empty-note { color: #9ca3af; text-align: center; padding: 30px 0; }
+
+@media (max-width: 600px) {
+    .ca-grid { grid-template-columns: repeat(2, 1fr); }
+}
+</style>
+</head>
+
+
+<body>
+
+<header class="header">
+    <div class="brand">
+        <img src="https://pub-b3e2d39712e84119875e84c5ec5f5c09.r2.dev/Logo/IMG-20260816-WA0050(1).jpg" alt="Sunningdale University Logo" class="logo">
+        <div>
+            <h1>E-Campus</h1>
+            <p>Sunningdale University</p>
+        </div>
+    </div>
+    <a href="student-dashboard.html" class="back-button">← Dashboard</a>
+</header>
+
+
+<main class="container">
+
+    <section class="page-title">
+        <h2>My CA Record</h2>
+        <p>Your Continuous Assessment scores (CA1, CA2, CA3) and Final Exam per course. Results only appear here once your lecturer publishes them. Overall grade = CA average (40%) + Final Exam (60%).</p>
+    </section>
+
+    <div id="recordContainer">
+        <div class="card"><p class="empty-note">Loading...</p></div>
+    </div>
+
+</main>
+
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../supabase-config.js"></script>
+
+
+<script>
+
+function escapeHtml(value) {
+    return String(value ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+}
+
+
+async function loadRecord() {
+
+    const container = document.getElementById("recordContainer");
+
+    const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
+
+    if (authError || !user) {
+        window.location.href = "student-login.html";
+        return;
+    }
+
+    const { data: studentProfile } =
+        await supabaseClient.from("student_profiles").select("id").eq("user_id", user.id).single();
+
+    if (!studentProfile) {
+        container.innerHTML = `<div class="card"><p class="empty-note">Unable to load your student profile.</p></div>`;
+        return;
+    }
+
+    const { data: enrollments } =
+        await supabaseClient
+            .from("enrollments")
+            .select("courses ( id, code, name )")
+            .eq("student_id", studentProfile.id)
+            .eq("status", "enrolled");
+
+    const courses = (enrollments || []).map(e => e.courses).filter(Boolean);
+
+    if (courses.length === 0) {
+        container.innerHTML = `<div class="card"><p class="empty-note">You have no confirmed course enrollments yet.</p></div>`;
+        return;
+    }
+
+    const courseIds = courses.map(c => c.id);
+
+    const { data: modules } =
+        await supabaseClient
+            .from("course_modules")
+            .select("id, course_id, module_number, title")
+            .in("course_id", courseIds)
+            .order("module_number");
+
+    const allModules = modules || [];
+    const moduleIds = allModules.map(m => m.id);
+
+    let unitQuizzes = [];
+    if (moduleIds.length > 0) {
+        const { data } = await supabaseClient
+            .from("quizzes")
+            .select("id, module_id, title, is_published")
+            .in("module_id", moduleIds);
+        unitQuizzes = data || [];
+    }
+
+    const { data: finalExams } =
+        await supabaseClient
+            .from("quizzes")
+            .select("id, course_id, title, is_published")
+            .in("course_id", courseIds)
+            .eq("is_final_exam", true);
+
+    const allQuizIds = [...unitQuizzes.map(q => q.id), ...(finalExams || []).map(q => q.id)];
+
+    let attempts = [];
+    if (allQuizIds.length > 0) {
+        const { data } = await supabaseClient
+            .from("quiz_attempts")
+            .select("quiz_id, score")
+            .eq("student_id", user.id)
+            .in("quiz_id", allQuizIds);
+        attempts = data || [];
+    }
+
+    const bestScoreByQuiz = {};
+    attempts.forEach(a => {
+        if (a.score === null) return;
+        if (!bestScoreByQuiz[a.quiz_id] || a.score > bestScoreByQuiz[a.quiz_id]) {
+            bestScoreByQuiz[a.quiz_id] = a.score;
+        }
+    });
+
+    container.innerHTML = courses.map(course => {
+
+        const courseModules = allModules
+            .filter(m => m.course_id === course.id)
+            .sort((a, b) => a.module_number - b.module_number)
+            .slice(0, 3);
+
+        const caScores = courseModules.map((mod, idx) => {
+            const quiz = unitQuizzes.find(q => q.module_id === mod.id);
+            const isPublished = quiz ? quiz.is_published : false;
+            const score = (quiz && isPublished) ? bestScoreByQuiz[quiz.id] : undefined;
+            return { label: `CA${idx + 1}`, score: score, hasQuiz: !!quiz, published: isPublished };
+        });
+
+        while (caScores.length < 3) {
+            caScores.push({ label: `CA${caScores.length + 1}`, score: undefined, hasQuiz: false, published: false });
+        }
+
+        const finalExam = (finalExams || []).find(q => q.course_id === course.id);
+        const finalPublished = finalExam ? finalExam.is_published : false;
+        const finalScore = (finalExam && finalPublished) ? bestScoreByQuiz[finalExam.id] : undefined;
+
+        const validCaScores = caScores.filter(c => c.score !== undefined).map(c => c.score);
+        const caAverage = validCaScores.length === 3
+            ? Math.round(validCaScores.reduce((a, b) => a + b, 0) / validCaScores.length)
+            : null;
+
+        let overallGrade = null;
+        if (caAverage !== null && finalScore !== undefined) {
+            overallGrade = Math.round((caAverage * 0.4) + (finalScore * 0.6));
+        }
+
+        return `
+            <div class="card">
+                <div class="course-tag">${escapeHtml(course.code)}</div>
+                <h3>${escapeHtml(course.name)}</h3>
+
+                <div class="ca-grid">
+                    ${caScores.map(c => {
+
+                        let displayText;
+                        if (c.score !== undefined) {
+                            displayText = `<span class="score">${c.score}%</span>`;
+                        } else if (!c.hasQuiz) {
+                            displayText = `<span class="score not-published">—</span>`;
+                        } else if (!c.published) {
+                            displayText = `<span class="score not-published">Not published</span>`;
+                        } else {
+                            displayText = `<span class="score not-published">Not attempted</span>`;
+                        }
+
+                        return `
+                            <div class="ca-box ${c.score !== undefined ? (c.score >= 70 ? "passed" : "pending") : ""}">
+                                <div class="label">${c.label}</div>
+                                ${displayText}
+                            </div>
+                        `;
+
+                    }).join("")}
+
+                    <div class="ca-box ${finalScore !== undefined ? (finalScore >= 50 ? "passed" : "pending") : ""}">
+                        <div class="label">Final Exam</div>
+                        ${
+                            finalScore !== undefined
+                            ? `<span class="score">${finalScore}%</span>`
+                            : (!finalExam
+                                ? `<span class="score not-published">—</span>`
+                                : (!finalPublished
+                                    ? `<span class="score not-published">Not published</span>`
+                                    : `<span class="score not-published">Not attempted</span>`
+                                  )
+                              )
+                        }
+                    </div>
+                </div>
+
+                <div class="overall-row">
+                    <span class="label">Overall Course Grade</span>
+                    <span class="value">${overallGrade !== null ? overallGrade + "%" : "Not yet complete"}</span>
+                </div>
+                <div class="weighting-note">CA average (40%) + Final Exam (60%). All 3 CAs and the Final Exam must be completed and published for an overall grade.</div>
+            </div>
+        `;
+
+    }).join("");
+
+}
+
+
+loadRecord();
+
+</script>
+
+</body>
+</html>
