@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Academic Records | E-Campus</title>
+
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: Arial, Helvetica, sans-serif; background: #f4f6f9; color: #172033; }
+
+.header { background: #111827; color: white; padding: 18px 25px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+.brand { display: flex; align-items: center; gap: 14px; }
+.logo { width: 55px; height: 55px; object-fit: contain; background: white; border-radius: 8px; }
+.brand h1 { font-size: 22px; }
+.brand p { color: #d4af37; margin-top: 3px; font-size: 13px; }
+.back-button { background: #d4af37; color: #111827; text-decoration: none; padding: 10px 16px; border-radius: 8px; font-weight: bold; font-size: 13px; }
+
+.container { max-width: 900px; margin: 25px auto; padding: 0 20px; }
+.page-title { margin-bottom: 20px; }
+.page-title h2 { font-size: 28px; margin-bottom: 6px; }
+.page-title p { color: #6b7280; }
+
+.term-block { margin-bottom: 24px; }
+.term-heading { font-size: 16px; font-weight: bold; margin-bottom: 10px; color: #374151; }
+
+.course-card { background: white; border-radius: 14px; padding: 18px; margin-bottom: 12px; box-shadow: 0 3px 12px rgba(0,0,0,0.06); }
+.course-top { display: flex; justify-content: space-between; align-items: start; gap: 12px; flex-wrap: wrap; }
+.course-code { color: #d4af37; font-size: 12px; font-weight: bold; }
+.course-name { font-size: 16px; font-weight: bold; margin: 4px 0; }
+.credits-note { color: #6b7280; font-size: 12px; }
+
+.score-box { text-align: right; }
+.score-box .score { font-size: 24px; font-weight: bold; }
+.score-box .score.pass { color: #166534; }
+.score-box .score.fail { color: #991b1b; }
+.score-box .comment { font-size: 12px; font-weight: bold; padding: 3px 10px; border-radius: 20px; margin-top: 4px; display: inline-block; }
+.comment.Clear-Pass { background: #dcfce7; color: #166534; }
+.comment.Repeat { background: #fee2e2; color: #991b1b; }
+.comment.Supplementary { background: #fef3c7; color: #92400e; }
+.comment.Fail { background: #fee2e2; color: #991b1b; }
+
+.pending-note { color: #9ca3af; font-size: 13px; margin-top: 10px; font-style: italic; }
+
+.summary-card {
+    background: #111827;
+    color: white;
+    border-radius: 14px;
+    padding: 20px;
+    margin-bottom: 24px;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px;
+    text-align: center;
+}
+
+.summary-card .value { font-size: 24px; font-weight: bold; color: #d4af37; }
+.summary-card .label { font-size: 12px; color: #d1d5db; margin-top: 4px; }
+
+.empty-note { color: #9ca3af; text-align: center; padding: 30px 0; }
+</style>
+</head>
+
+
+<body>
+
+<header class="header">
+    <div class="brand">
+        <img src="https://pub-b3e2d39712e84119875e84c5ec5f5c09.r2.dev/Logo/IMG-20260816-WA0050(1).jpg" alt="Sunningdale University Logo" class="logo">
+        <div>
+            <h1>E-Campus</h1>
+            <p>Sunningdale University</p>
+        </div>
+    </div>
+    <a href="student-dashboard.html" class="back-button">← Dashboard</a>
+</header>
+
+
+<main class="container">
+
+    <section class="page-title">
+        <h2>Academic Records</h2>
+        <p>Your published final results, grouped by term. Results only appear here once your lecturer publishes them.</p>
+    </section>
+
+    <div id="summaryContainer"></div>
+
+    <div id="recordsContainer">
+        <p class="empty-note">Loading your records...</p>
+    </div>
+
+</main>
+
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../supabase-config.js"></script>
+
+
+<script>
+
+function escapeHtml(value) {
+    return String(value ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+}
+
+
+async function loadRecords() {
+
+    const container = document.getElementById("recordsContainer");
+    const summaryContainer = document.getElementById("summaryContainer");
+
+    const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
+
+    if (authError || !user) {
+        container.innerHTML = `<p class="empty-note">Please log in to view your records.</p>`;
+        return;
+    }
+
+    const { data: studentProfile } =
+        await supabaseClient.from("student_profiles").select("id").eq("user_id", user.id).single();
+
+    if (!studentProfile) {
+        container.innerHTML = `<p class="empty-note">Unable to load your student profile.</p>`;
+        return;
+    }
+
+    const { data: enrollments, error } =
+        await supabaseClient
+            .from("enrollments")
+            .select(`
+                id, final_score, results_comment, results_published,
+                courses ( code, name, credits ),
+                academic_terms ( name )
+            `)
+            .eq("student_id", studentProfile.id)
+            .eq("status", "enrolled")
+            .order("created_at", { ascending: false });
+
+    if (error) {
+        container.innerHTML = `<p class="empty-note">Unable to load records: ${escapeHtml(error.message)}</p>`;
+        return;
+    }
+
+    if (!enrollments || enrollments.length === 0) {
+        container.innerHTML = `<p class="empty-note">You have no course records yet.</p>`;
+        return;
+    }
+
+    const publishedResults = enrollments.filter(e => e.results_published && e.final_score !== null);
+
+    if (publishedResults.length > 0) {
+
+        const average = Math.round(publishedResults.reduce((sum, e) => sum + e.final_score, 0) / publishedResults.length);
+        const passCount = publishedResults.filter(e => e.results_comment === "Clear Pass").length;
+        const totalCredits = publishedResults.reduce((sum, e) => sum + (e.courses?.credits || 0), 0);
+
+        summaryContainer.innerHTML = `
+            <div class="summary-card">
+                <div><div class="value">${average}%</div><div class="label">Overall Average</div></div>
+                <div><div class="value">${passCount}/${publishedResults.length}</div><div class="label">Courses Passed</div></div>
+                <div><div class="value">${totalCredits}</div><div class="label">Credits Earned</div></div>
+            </div>
+        `;
+
+    }
+
+    const groupedByTerm = {};
+    enrollments.forEach(e => {
+        const termName = e.academic_terms?.name || "Term Not Set";
+        if (!groupedByTerm[termName]) groupedByTerm[termName] = [];
+        groupedByTerm[termName].push(e);
+    });
+
+    let html = "";
+
+    Object.keys(groupedByTerm).forEach(termName => {
+
+        html += `<div class="term-block"><div class="term-heading">${escapeHtml(termName)}</div>`;
+
+        groupedByTerm[termName].forEach(e => {
+
+            const course = e.courses;
+            const isPublished = e.results_published && e.final_score !== null;
+            const commentClass = (e.results_comment || "").replace(/\s+/g, "-");
+            const scoreClass = e.final_score !== null && e.final_score >= 50 ? "pass" : "fail";
+
+            html += `
+                <div class="course-card">
+                    <div class="course-top">
+                        <div>
+                            <div class="course-code">${course ? escapeHtml(course.code) : "-"}</div>
+                            <div class="course-name">${course ? escapeHtml(course.name) : "-"}</div>
+                            <div class="credits-note">${course?.credits || 0} credits</div>
+                        </div>
+                        ${
+                            isPublished
+                            ? `
+                                <div class="score-box">
+                                    <div class="score ${scoreClass}">${e.final_score}%</div>
+                                    ${e.results_comment ? `<div class="comment ${commentClass}">${escapeHtml(e.results_comment)}</div>` : ""}
+                                </div>
+                            `
+                            : `<div class="pending-note">Results not yet published</div>`
+                        }
+                    </div>
+                </div>
+            `;
+
+        });
+
+        html += `</div>`;
+
+    });
+
+    container.innerHTML = html;
+
+}
+
+
+loadRecords();
+
+</script>
+
+</body>
+</html>
