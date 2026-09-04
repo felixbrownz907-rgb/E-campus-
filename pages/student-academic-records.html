@@ -25,22 +25,37 @@ body { font-family: Arial, Helvetica, sans-serif; background: #f4f6f9; color: #1
 .term-heading { font-size: 16px; font-weight: bold; margin-bottom: 10px; color: #374151; }
 
 .course-card { background: white; border-radius: 14px; padding: 18px; margin-bottom: 12px; box-shadow: 0 3px 12px rgba(0,0,0,0.06); }
-.course-top { display: flex; justify-content: space-between; align-items: start; gap: 12px; flex-wrap: wrap; }
 .course-code { color: #d4af37; font-size: 12px; font-weight: bold; }
 .course-name { font-size: 16px; font-weight: bold; margin: 4px 0; }
-.credits-note { color: #6b7280; font-size: 12px; }
+.credits-note { color: #6b7280; font-size: 12px; margin-bottom: 12px; }
 
-.score-box { text-align: right; }
-.score-box .score { font-size: 24px; font-weight: bold; }
-.score-box .score.pass { color: #166534; }
-.score-box .score.fail { color: #991b1b; }
-.score-box .comment { font-size: 12px; font-weight: bold; padding: 3px 10px; border-radius: 20px; margin-top: 4px; display: inline-block; }
+.assessment-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 12px; }
+
+.assessment-box { background: #f9fafb; border-radius: 8px; padding: 10px; text-align: center; }
+.assessment-box .label { font-size: 11px; color: #6b7280; font-weight: bold; margin-bottom: 4px; }
+.assessment-box .score { font-size: 16px; font-weight: bold; }
+.assessment-box .score.not-published { font-size: 11px; color: #9ca3af; font-weight: normal; }
+
+.overall-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px;
+    background: #111827;
+    color: white;
+    border-radius: 10px;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.overall-row .score { font-size: 22px; font-weight: bold; color: #d4af37; }
+.overall-row .comment { font-size: 12px; font-weight: bold; padding: 3px 10px; border-radius: 20px; }
 .comment.Clear-Pass { background: #dcfce7; color: #166534; }
 .comment.Repeat { background: #fee2e2; color: #991b1b; }
 .comment.Supplementary { background: #fef3c7; color: #92400e; }
 .comment.Fail { background: #fee2e2; color: #991b1b; }
 
-.pending-note { color: #9ca3af; font-size: 13px; margin-top: 10px; font-style: italic; }
+.pending-note { color: #9ca3af; font-size: 13px; text-align: center; padding: 10px 0; }
 
 .summary-card {
     background: #111827;
@@ -58,6 +73,10 @@ body { font-family: Arial, Helvetica, sans-serif; background: #f4f6f9; color: #1
 .summary-card .label { font-size: 12px; color: #d1d5db; margin-top: 4px; }
 
 .empty-note { color: #9ca3af; text-align: center; padding: 30px 0; }
+
+@media (max-width: 600px) {
+    .assessment-grid { grid-template-columns: 1fr 1fr 1fr; gap: 6px; }
+}
 </style>
 </head>
 
@@ -80,7 +99,7 @@ body { font-family: Arial, Helvetica, sans-serif; background: #f4f6f9; color: #1
 
     <section class="page-title">
         <h2>Academic Records</h2>
-        <p>Your published final results, grouped by term. Results only appear here once your lecturer publishes them.</p>
+        <p>Your CA1, CA2, Final Exam, and Overall results — each appears here only once your lecturer publishes it.</p>
     </section>
 
     <div id="summaryContainer"></div>
@@ -133,6 +152,8 @@ async function loadRecords() {
             .from("enrollments")
             .select(`
                 id, final_score, results_comment, results_published,
+                ca1_score, ca1_published, ca2_score, ca2_published,
+                final_exam_score, final_exam_published,
                 courses ( code, name, credits ),
                 academic_terms ( name )
             `)
@@ -150,18 +171,18 @@ async function loadRecords() {
         return;
     }
 
-    const publishedResults = enrollments.filter(e => e.results_published && e.final_score !== null);
+    const publishedOverall = enrollments.filter(e => e.results_published && e.final_score !== null);
 
-    if (publishedResults.length > 0) {
+    if (publishedOverall.length > 0) {
 
-        const average = Math.round(publishedResults.reduce((sum, e) => sum + e.final_score, 0) / publishedResults.length);
-        const passCount = publishedResults.filter(e => e.results_comment === "Clear Pass").length;
-        const totalCredits = publishedResults.reduce((sum, e) => sum + (e.courses?.credits || 0), 0);
+        const average = Math.round(publishedOverall.reduce((sum, e) => sum + e.final_score, 0) / publishedOverall.length);
+        const passCount = publishedOverall.filter(e => e.results_comment === "Clear Pass").length;
+        const totalCredits = publishedOverall.reduce((sum, e) => sum + (e.courses?.credits || 0), 0);
 
         summaryContainer.innerHTML = `
             <div class="summary-card">
                 <div><div class="value">${average}%</div><div class="label">Overall Average</div></div>
-                <div><div class="value">${passCount}/${publishedResults.length}</div><div class="label">Courses Passed</div></div>
+                <div><div class="value">${passCount}/${publishedOverall.length}</div><div class="label">Courses Passed</div></div>
                 <div><div class="value">${totalCredits}</div><div class="label">Credits Earned</div></div>
             </div>
         `;
@@ -184,29 +205,41 @@ async function loadRecords() {
         groupedByTerm[termName].forEach(e => {
 
             const course = e.courses;
-            const isPublished = e.results_published && e.final_score !== null;
             const commentClass = (e.results_comment || "").replace(/\s+/g, "-");
-            const scoreClass = e.final_score !== null && e.final_score >= 50 ? "pass" : "fail";
+            const overallPublished = e.results_published && e.final_score !== null;
 
             html += `
                 <div class="course-card">
-                    <div class="course-top">
-                        <div>
-                            <div class="course-code">${course ? escapeHtml(course.code) : "-"}</div>
-                            <div class="course-name">${course ? escapeHtml(course.name) : "-"}</div>
-                            <div class="credits-note">${course?.credits || 0} credits</div>
+                    <div class="course-code">${course ? escapeHtml(course.code) : "-"}</div>
+                    <div class="course-name">${course ? escapeHtml(course.name) : "-"}</div>
+                    <div class="credits-note">${course?.credits || 0} credits</div>
+
+                    <div class="assessment-grid">
+                        <div class="assessment-box">
+                            <div class="label">CA1</div>
+                            ${e.ca1_published && e.ca1_score !== null ? `<div class="score">${e.ca1_score}%</div>` : `<div class="score not-published">Not published</div>`}
                         </div>
-                        ${
-                            isPublished
-                            ? `
-                                <div class="score-box">
-                                    <div class="score ${scoreClass}">${e.final_score}%</div>
-                                    ${e.results_comment ? `<div class="comment ${commentClass}">${escapeHtml(e.results_comment)}</div>` : ""}
-                                </div>
-                            `
-                            : `<div class="pending-note">Results not yet published</div>`
-                        }
+                        <div class="assessment-box">
+                            <div class="label">CA2</div>
+                            ${e.ca2_published && e.ca2_score !== null ? `<div class="score">${e.ca2_score}%</div>` : `<div class="score not-published">Not published</div>`}
+                        </div>
+                        <div class="assessment-box">
+                            <div class="label">Final Exam</div>
+                            ${e.final_exam_published && e.final_exam_score !== null ? `<div class="score">${e.final_exam_score}%</div>` : `<div class="score not-published">Not published</div>`}
+                        </div>
                     </div>
+
+                    ${
+                        overallPublished
+                        ? `
+                            <div class="overall-row">
+                                <span>Overall Total</span>
+                                <span class="score">${e.final_score}%</span>
+                                ${e.results_comment ? `<span class="comment ${commentClass}">${escapeHtml(e.results_comment)}</span>` : ""}
+                            </div>
+                        `
+                        : `<div class="pending-note">Overall result not yet published</div>`
+                    }
                 </div>
             `;
 
