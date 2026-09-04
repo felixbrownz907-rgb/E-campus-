@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Publish Results | Lecturer Portal</title>
+
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: Arial, Helvetica, sans-serif; background: #f4f6f9; color: #172033; }
+
+.header { background: #0e7490; color: white; padding: 18px 25px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+.brand { display: flex; align-items: center; gap: 14px; }
+.logo { width: 55px; height: 55px; object-fit: contain; background: white; border-radius: 8px; }
+.brand h1 { font-size: 22px; }
+.brand p { color: #cffafe; margin-top: 3px; font-size: 13px; }
+.back-button { background: white; color: #0e7490; text-decoration: none; padding: 10px 16px; border-radius: 8px; font-weight: bold; font-size: 13px; }
+
+.container { max-width: 1000px; margin: 25px auto; padding: 0 20px; }
+.page-title { margin-bottom: 20px; }
+.page-title h2 { font-size: 28px; margin-bottom: 6px; }
+.page-title p { color: #6b7280; }
+
+.message { padding: 14px; border-radius: 8px; margin-bottom: 20px; display: none; }
+.message.success { display: block; background: #dcfce7; color: #166534; }
+.message.error { display: block; background: #fee2e2; color: #991b1b; }
+
+select { width: 100%; padding: 12px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 14px; margin-bottom: 18px; }
+
+.student-card { background: white; border-radius: 14px; padding: 18px; margin-bottom: 14px; box-shadow: 0 3px 12px rgba(0,0,0,0.06); }
+.student-name { font-weight: bold; font-size: 16px; margin-bottom: 4px; }
+.student-number { color: #6b7280; font-size: 12px; margin-bottom: 12px; }
+
+.ref-scores { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+.ref-pill { background: #f4f6f9; padding: 5px 10px; border-radius: 20px; font-size: 12px; font-weight: bold; }
+
+.result-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+
+input, .comment-select {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    font-size: 14px;
+}
+
+.publish-row { display: flex; justify-content: space-between; align-items: center; margin-top: 12px; }
+
+.status-badge { padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: bold; }
+.status-badge.published { background: #dcfce7; color: #166534; }
+.status-badge.draft { background: #fef3c7; color: #92400e; }
+
+.save-button {
+    background: #0e7490;
+    color: white;
+    border: none;
+    padding: 10px 16px;
+    border-radius: 8px;
+    font-weight: bold;
+    font-size: 13px;
+    cursor: pointer;
+}
+
+.publish-button { background: #166534; }
+.unpublish-button { background: #991b1b; }
+
+.empty-note { color: #9ca3af; text-align: center; padding: 30px 0; }
+</style>
+</head>
+
+
+<body>
+
+<header class="header">
+    <div class="brand">
+        <img src="https://pub-b3e2d39712e84119875e84c5ec5f5c09.r2.dev/Logo/IMG-20260816-WA0050(1).jpg" alt="Sunningdale University Logo" class="logo">
+        <div>
+            <h1>E-Campus</h1>
+            <p>Lecturer Portal</p>
+        </div>
+    </div>
+    <a href="lecturer-dashboard.html" class="back-button">← Dashboard</a>
+</header>
+
+
+<main class="container">
+
+    <section class="page-title">
+        <h2>Publish Final Results</h2>
+        <p>Review each student's total, add a comment, and publish when ready. Students only see this once published.</p>
+    </section>
+
+    <div id="message" class="message"></div>
+
+    <select id="courseSelect"><option value="">Select course</option></select>
+
+    <div id="studentsContainer">
+        <p class="empty-note">Select a course to view students.</p>
+    </div>
+
+</main>
+
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../supabase-config.js"></script>
+
+
+<script>
+
+const message = document.getElementById("message");
+
+function showMessage(text, type) {
+    message.textContent = text;
+    message.className = "message " + type;
+}
+
+function escapeHtml(value) {
+    return String(value ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+}
+
+
+async function startPage() {
+
+    const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
+
+    if (authError || !user) {
+        window.location.href = "lecturer-login.html";
+        return;
+    }
+
+    const { data: lecturerProfile } =
+        await supabaseClient.from("lecturer_profiles").select("id").eq("user_id", user.id).single();
+
+    if (!lecturerProfile) {
+        showMessage("Unable to load your lecturer profile.", "error");
+        return;
+    }
+
+    const { data: assignments } =
+        await supabaseClient
+            .from("course_lecturers")
+            .select("courses ( id, code, name )")
+            .eq("lecturer_id", lecturerProfile.id);
+
+    const courses = (assignments || []).map(a => a.courses).filter(Boolean);
+    const select = document.getElementById("courseSelect");
+
+    if (courses.length === 0) {
+        select.innerHTML = `<option value="">No courses assigned</option>`;
+        return;
+    }
+
+    courses.forEach(c => {
+        const option = document.createElement("option");
+        option.value = c.id;
+        option.textContent = `${c.code} — ${c.name}`;
+        select.appendChild(option);
+    });
+
+}
+
+
+document.getElementById("courseSelect").addEventListener("change", async function() {
+
+    const courseId = this.value;
+    const container = document.getElementById("studentsContainer");
+
+    if (!courseId) {
+        container.innerHTML = `<p class="empty-note">Select a course to view students.</p>`;
+        return;
+    }
+
+    container.innerHTML = `<p class="empty-note">Loading students...</p>`;
+
+    const { data: enrollments, error } =
+        await supabaseClient
+            .from("enrollments")
+            .select(`
+                id, final_score, final_grade, results_published, results_comment,
+                student_profiles ( id, user_id, student_number, user_profiles ( first_name, last_name ) )
+            `)
+            .eq("course_id", courseId)
+            .eq("status", "enrolled");
+
+    if (error || !enrollments || enrollments.length === 0) {
+        container.innerHTML = `<p class="empty-note">No students enrolled in this course yet.</p>`;
+        return;
+    }
+
+    const { data: modules } =
+        await supabaseClient.from("course_modules").select("id, module_number").eq("course_id", courseId).order("module_number");
+
+    const moduleIds = (modules || []).map(m => m.id);
+
+    const { data: unitQuizzes } =
+        moduleIds.length > 0
+        ? await supabaseClient.from("quizzes").select("id, module_id, is_published").in("module_id", moduleIds)
+        : { data: [] };
+
+    const { data: finalExam } =
+        await supabaseClient.from("quizzes").select("id, is_published").eq("course_id", courseId).eq("is_final_exam", true).maybeSingle();
+
+    const quizIds = [...(unitQuizzes || []).map(q => q.id), finalExam?.id].filter(Boolean);
+
+    container.innerHTML = "";
+
+    for (const enrollment of enrollments) {
+
+        const student = enrollment.student_profiles;
+        const name = student?.user_profiles ? `${student.user_profiles.first_name} ${student.user_profiles.last_name}` : "Unknown";
+
+        let refScoresHtml = "";
+        let caAverage = null;
+        let finalExamScore = null;
+
+        if (quizIds.length > 0) {
+
+            const { data: attempts } =
+                await supabaseClient
+                    .from("quiz_attempts")
+                    .select("quiz_id, score")
+                    .eq("student_id", student.user_id)
+                    .in("quiz_id", quizIds);
+
+            const bestByQuiz = {};
+            (attempts || []).forEach(a => {
+                if (a.score === null) return;
+                if (!bestByQuiz[a.quiz_id] || a.score > bestByQuiz[a.quiz_id]) bestByQuiz[a.quiz_id] = a.score;
+            });
+
+            const caScores = (unitQuizzes || []).filter(q => q.is_published).map(q => bestByQuiz[q.id]).filter(v => v !== undefined);
+            if (caScores.length > 0) {
+                caAverage = Math.round(caScores.reduce((a, b) => a + b, 0) / caScores.length);
+                refScoresHtml += `<span class="ref-pill">CA avg: ${caAverage}%</span>`;
+            }
+
+            if (finalExam && finalExam.is_published && bestByQuiz[finalExam.id] !== undefined) {
+                finalExamScore = bestByQuiz[finalExam.id];
+                refScoresHtml += `<span class="ref-pill">Final Exam: ${finalExamScore}%</span>`;
+            }
+
+        }
+
+        if (!refScoresHtml) refScoresHtml = `<span class="ref-pill" style="color:#9ca3af;">No published CA/Exam scores yet</span>`;
+
+        const suggestedTotal = (caAverage !== null && finalExamScore !== null)
+            ? Math.round((caAverage * 0.4) + (finalExamScore * 0.6))
+            : "";
+
+        const card = document.createElement("div");
+        card.className = "student-card";
+
+        card.innerHTML = `
+            <div class="student-name">${escapeHtml(name)}</div>
+            <div class="student-number">${escapeHtml(student?.student_number || "-")}</div>
+
+            <div class="ref-scores">${refScoresHtml}</div>
+
+            <div class="result-row">
+                <div>
+                    <label style="font-size:12px; font-weight:bold;">Total Mark (%)</label>
+                    <input type="number" id="total-${enrollment.id}" min="0" max="100" value="${enrollment.final_score ?? suggestedTotal}">
+                </div>
+                <div>
+                    <label style="font-size:12px; font-weight:bold;">Comment</label>
+                    <select class="comment-select" id="comment-${enrollment.id}">
+                        <option value="">Select comment</option>
+                        <option value="Clear Pass" ${enrollment.results_comment === "Clear Pass" ? "selected" : ""}>Clear Pass</option>
+                        <option value="Repeat" ${enrollment.results_comment === "Repeat" ? "selected" : ""}>Repeat</option>
+                        <option value="Supplementary" ${enrollment.results_comment === "Supplementary" ? "selected" : ""}>Supplementary</option>
+                        <option value="Fail" ${enrollment.results_comment === "Fail" ? "selected" : ""}>Fail</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="publish-row">
+                <span class="status-badge ${enrollment.results_published ? "published" : "draft"}">
+                    ${enrollment.results_published ? "✓ Published" : "Draft — not visible to student"}
+                </span>
+                <div>
+                    <button class="save-button" onclick="saveResult('${enrollment.id}', false)">Save Draft</button>
+                    ${
+                        enrollment.results_published
+                        ? `<button class="save-button unpublish-button" onclick="saveResult('${enrollment.id}', false, true)">Unpublish</button>`
+                        : `<button class="save-button publish-button" onclick="saveResult('${enrollment.id}', true)">Publish</button>`
+                    }
+                </div>
+            </div>
+        `;
+
+        container.appendChild(card);
+
+    }
+
+});
+
+
+async function saveResult(enrollmentId, publish, forceUnpublish) {
+
+    const totalValue = document.getElementById(`total-${enrollmentId}`).value;
+    const commentValue = document.getElementById(`comment-${enrollmentId}`).value;
+
+    if (publish && (!totalValue || !commentValue)) {
+        showMessage("Please enter a total mark and select a comment before publishing.", "error");
+        return;
+    }
+
+    const updates = {
+        final_score: totalValue === "" ? null : Number(totalValue),
+        results_comment: commentValue || null
+    };
+
+    if (publish) updates.results_published = true;
+    if (forceUnpublish) updates.results_published = false;
+
+    const { error } = await supabaseClient.from("enrollments").update(updates).eq("id", enrollmentId);
+
+    if (error) {
+        showMessage("Unable to save: " + error.message, "error");
+        return;
+    }
+
+    showMessage(publish ? "Result published. The student can now see it." : (forceUnpublish ? "Result unpublished." : "Draft saved."), "success");
+    document.getElementById("courseSelect").dispatchEvent(new Event("change"));
+
+}
+
+
+startPage();
+
+</script>
+
+</body>
+</html>
