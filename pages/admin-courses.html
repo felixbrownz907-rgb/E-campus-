@@ -55,14 +55,14 @@ body {
 .message.error { display: block; background: #fee2e2; color: #991b1b; }
 
 .debug-box {
-    background: #f4f6f9;
-    border: 1px solid #d1d5db;
+    background: #1f2937;
+    color: #d1fae5;
     border-radius: 8px;
     padding: 12px;
     margin-bottom: 20px;
     font-family: monospace;
     font-size: 12px;
-    color: #374151;
+    white-space: pre-wrap;
     word-break: break-all;
     display: none;
 }
@@ -104,6 +104,25 @@ input:focus, select:focus, textarea:focus {
     border-color: #d4af37;
 }
 
+.day-checkboxes {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.day-checkboxes label {
+    font-weight: normal;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    background: #f4f6f9;
+    padding: 8px 12px;
+    border-radius: 8px;
+    margin-bottom: 0;
+}
+
+.day-checkboxes input { width: auto; }
+
 .submit-button {
     margin-top: 20px;
     background: #d4af37;
@@ -117,15 +136,6 @@ input:focus, select:focus, textarea:focus {
 }
 
 .submit-button:hover { background: #c29d24; }
-
-.checkbox-row {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
-
-.checkbox-row input { width: auto; }
-.checkbox-row label { margin-bottom: 0; font-weight: normal; }
 
 .table-container { overflow-x: auto; }
 
@@ -190,7 +200,7 @@ tr:hover { background: #f9fafb; }
 
     <section class="page-title">
         <h2>Course Management</h2>
-        <p>Create courses and attach each one to the Programme, Year and Term it belongs to.</p>
+        <p>Create courses, set which days each course runs, and attach each one to the Programme, Year and Term it belongs to.</p>
     </section>
 
     <div id="message" class="message"></div>
@@ -229,6 +239,18 @@ tr:hover { background: #f9fafb; }
                         <option value="PRACTICAL">Practical</option>
                         <option value="PROJECT">Project</option>
                     </select>
+                </div>
+
+                <div class="form-group full">
+                    <label>Class Days</label>
+                    <div class="day-checkboxes">
+                        <label><input type="checkbox" class="classDay" value="Monday"> Mon</label>
+                        <label><input type="checkbox" class="classDay" value="Tuesday"> Tue</label>
+                        <label><input type="checkbox" class="classDay" value="Wednesday"> Wed</label>
+                        <label><input type="checkbox" class="classDay" value="Thursday"> Thu</label>
+                        <label><input type="checkbox" class="classDay" value="Friday"> Fri</label>
+                        <label><input type="checkbox" class="classDay" value="Saturday"> Sat</label>
+                    </div>
                 </div>
 
                 <div class="form-group full">
@@ -281,9 +303,9 @@ tr:hover { background: #f9fafb; }
             </div>
 
             <div class="form-group">
-                <div class="checkbox-row" style="margin-top:14px;">
-                    <input type="checkbox" id="assignCore" checked>
-                    <label for="assignCore">This is a Core (compulsory) course</label>
+                <div class="checkbox-row" style="margin-top:14px; display:flex; align-items:center; gap:10px;">
+                    <input type="checkbox" id="assignCore" checked style="width:auto;">
+                    <label for="assignCore" style="margin-bottom:0; font-weight:normal;">This is a Core (compulsory) course</label>
                 </div>
             </div>
 
@@ -316,6 +338,28 @@ tr:hover { background: #f9fafb; }
         </div>
     </section>
 
+
+    <section class="card">
+        <h3>All Courses & Class Days</h3>
+
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Code</th>
+                        <th>Name</th>
+                        <th>Credits</th>
+                        <th>Type</th>
+                        <th>Class Days</th>
+                    </tr>
+                </thead>
+                <tbody id="coursesTableBody">
+                    <tr><td colspan="5">Loading...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+
 </main>
 
 
@@ -332,12 +376,6 @@ const debugBox = document.getElementById("debugBox");
 function showMessage(text, type) {
     message.textContent = text;
     message.className = "message " + type;
-}
-
-
-function showDebug(obj) {
-    debugBox.style.display = "block";
-    debugBox.textContent = JSON.stringify(obj, null, 2);
 }
 
 
@@ -361,16 +399,17 @@ document.getElementById("courseForm").addEventListener("submit", async function(
     submitButton.disabled = true;
     submitButton.textContent = "Creating...";
 
+    const selectedDays = Array.from(document.querySelectorAll(".classDay:checked")).map(cb => cb.value);
+
     const payload = {
         code: document.getElementById("courseCode").value.trim(),
         name: document.getElementById("courseName").value.trim(),
         credits: Number(document.getElementById("credits").value) || 3,
         course_type: document.getElementById("courseType").value,
+        class_days: selectedDays.length > 0 ? selectedDays : null,
         description: document.getElementById("description").value.trim() || null,
         status: "active"
     };
-
-    showDebug({ sending: payload });
 
     const { error } = await supabaseClient.from("courses").insert(payload);
 
@@ -379,7 +418,8 @@ document.getElementById("courseForm").addEventListener("submit", async function(
 
     if (error) {
         showMessage("Unable to create course: " + error.message, "error");
-        showDebug({ sent: payload, error: error });
+        debugBox.style.display = "block";
+        debugBox.textContent = JSON.stringify({ sent: payload, error: error }, null, 2);
         return;
     }
 
@@ -387,9 +427,9 @@ document.getElementById("courseForm").addEventListener("submit", async function(
     debugBox.style.display = "none";
     document.getElementById("courseForm").reset();
     document.getElementById("credits").value = 3;
-    document.getElementById("courseType").value = "CORE";
 
     await loadCoursesDropdown();
+    await loadCoursesTable();
 
 });
 
@@ -577,12 +617,44 @@ async function removeAssignment(id) {
 }
 
 
+/* ================= LOAD COURSES TABLE (with class days) ================= */
+
+async function loadCoursesTable() {
+
+    const tbody = document.getElementById("coursesTableBody");
+
+    const { data, error } = await supabaseClient.from("courses").select("*").order("code");
+
+    if (error) {
+        tbody.innerHTML = `<tr><td colspan="5">Unable to load: ${escapeHtml(error.message)}</td></tr>`;
+        return;
+    }
+
+    if (!data || data.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="5">No courses created yet.</td></tr>`;
+        return;
+    }
+
+    tbody.innerHTML = data.map(c => `
+        <tr>
+            <td>${escapeHtml(c.code)}</td>
+            <td>${escapeHtml(c.name)}</td>
+            <td>${c.credits || "-"}</td>
+            <td>${escapeHtml(c.course_type || "-")}</td>
+            <td>${c.class_days && c.class_days.length > 0 ? c.class_days.map(d => d.slice(0, 3)).join(", ") : "-"}</td>
+        </tr>
+    `).join("");
+
+}
+
+
 /* ================= INIT ================= */
 
 async function startPage() {
     await loadCoursesDropdown();
     await loadProgrammesDropdown();
     await loadAssignments();
+    await loadCoursesTable();
 }
 
 startPage();
