@@ -27,42 +27,69 @@ body { font-family: Arial, Helvetica, sans-serif; background: #f4f6f9; color: #1
 
 select { width: 100%; padding: 12px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 14px; margin-bottom: 18px; }
 
-.student-card { background: white; border-radius: 14px; padding: 18px; margin-bottom: 14px; box-shadow: 0 3px 12px rgba(0,0,0,0.06); }
+.student-card { background: white; border-radius: 14px; padding: 18px; margin-bottom: 16px; box-shadow: 0 3px 12px rgba(0,0,0,0.06); }
 .student-name { font-weight: bold; font-size: 16px; margin-bottom: 4px; }
-.student-number { color: #6b7280; font-size: 12px; margin-bottom: 12px; }
+.student-number { color: #6b7280; font-size: 12px; margin-bottom: 14px; }
 
-.ref-scores { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
-.ref-pill { background: #f4f6f9; padding: 5px 10px; border-radius: 20px; font-size: 12px; font-weight: bold; }
-
-.result-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
-
-input, .comment-select {
-    width: 100%;
-    padding: 10px;
-    border: 1px solid #d1d5db;
-    border-radius: 8px;
-    font-size: 14px;
+.assessment-block {
+    background: #f9fafb;
+    border-radius: 10px;
+    padding: 14px;
+    margin-bottom: 10px;
 }
 
-.publish-row { display: flex; justify-content: space-between; align-items: center; margin-top: 12px; }
+.assessment-block .block-title { font-weight: bold; font-size: 13px; margin-bottom: 8px; }
+
+.assessment-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+
+.assessment-row input {
+    width: 90px;
+    padding: 8px;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    font-size: 14px;
+}
 
 .status-badge { padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: bold; }
 .status-badge.published { background: #dcfce7; color: #166534; }
 .status-badge.draft { background: #fef3c7; color: #92400e; }
 
-.save-button {
+.mini-button {
     background: #0e7490;
     color: white;
     border: none;
-    padding: 10px 16px;
-    border-radius: 8px;
+    padding: 7px 12px;
+    border-radius: 6px;
     font-weight: bold;
-    font-size: 13px;
+    font-size: 12px;
     cursor: pointer;
 }
 
-.publish-button { background: #166534; }
-.unpublish-button { background: #991b1b; }
+.mini-button.unpublish { background: #991b1b; }
+
+.overall-block {
+    background: #111827;
+    color: white;
+    border-radius: 10px;
+    padding: 14px;
+    margin-top: 12px;
+}
+
+.overall-block .block-title { color: #d4af37; font-weight: bold; font-size: 13px; margin-bottom: 10px; }
+
+.overall-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+
+.overall-row input, .overall-row select {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #374151;
+    border-radius: 8px;
+    font-size: 14px;
+    background: #1f2937;
+    color: white;
+}
+
+.overall-publish-row { display: flex; justify-content: space-between; align-items: center; margin-top: 10px; }
 
 .empty-note { color: #9ca3af; text-align: center; padding: 30px 0; }
 </style>
@@ -86,8 +113,8 @@ input, .comment-select {
 <main class="container">
 
     <section class="page-title">
-        <h2>Publish Final Results</h2>
-        <p>Review each student's total, add a comment, and publish when ready. Students only see this once published.</p>
+        <h2>Publish Results</h2>
+        <p>Mark and publish CA1, CA2, and the Final/End-of-Term Exam independently. Then set the overall total and comment.</p>
     </section>
 
     <div id="message" class="message"></div>
@@ -181,8 +208,10 @@ document.getElementById("courseSelect").addEventListener("change", async functio
         await supabaseClient
             .from("enrollments")
             .select(`
-                id, final_score, final_grade, results_published, results_comment,
-                student_profiles ( id, user_id, student_number, user_profiles ( first_name, last_name ) )
+                id, final_score, results_comment, results_published,
+                ca1_score, ca1_published, ca2_score, ca2_published,
+                final_exam_score, final_exam_published,
+                student_profiles ( student_number, user_profiles ( first_name, last_name ) )
             `)
             .eq("course_id", courseId)
             .eq("status", "enrolled");
@@ -192,115 +221,106 @@ document.getElementById("courseSelect").addEventListener("change", async functio
         return;
     }
 
-    const { data: modules } =
-        await supabaseClient.from("course_modules").select("id, module_number").eq("course_id", courseId).order("module_number");
-
-    const moduleIds = (modules || []).map(m => m.id);
-
-    const { data: unitQuizzes } =
-        moduleIds.length > 0
-        ? await supabaseClient.from("quizzes").select("id, module_id, is_published").in("module_id", moduleIds)
-        : { data: [] };
-
-    const { data: finalExam } =
-        await supabaseClient.from("quizzes").select("id, is_published").eq("course_id", courseId).eq("is_final_exam", true).maybeSingle();
-
-    const quizIds = [...(unitQuizzes || []).map(q => q.id), finalExam?.id].filter(Boolean);
-
-    container.innerHTML = "";
-
-    for (const enrollment of enrollments) {
-
-        const student = enrollment.student_profiles;
-        const name = student?.user_profiles ? `${student.user_profiles.first_name} ${student.user_profiles.last_name}` : "Unknown";
-
-        let refScoresHtml = "";
-        let caAverage = null;
-        let finalExamScore = null;
-
-        if (quizIds.length > 0) {
-
-            const { data: attempts } =
-                await supabaseClient
-                    .from("quiz_attempts")
-                    .select("quiz_id, score")
-                    .eq("student_id", student.user_id)
-                    .in("quiz_id", quizIds);
-
-            const bestByQuiz = {};
-            (attempts || []).forEach(a => {
-                if (a.score === null) return;
-                if (!bestByQuiz[a.quiz_id] || a.score > bestByQuiz[a.quiz_id]) bestByQuiz[a.quiz_id] = a.score;
-            });
-
-            const caScores = (unitQuizzes || []).filter(q => q.is_published).map(q => bestByQuiz[q.id]).filter(v => v !== undefined);
-            if (caScores.length > 0) {
-                caAverage = Math.round(caScores.reduce((a, b) => a + b, 0) / caScores.length);
-                refScoresHtml += `<span class="ref-pill">CA avg: ${caAverage}%</span>`;
-            }
-
-            if (finalExam && finalExam.is_published && bestByQuiz[finalExam.id] !== undefined) {
-                finalExamScore = bestByQuiz[finalExam.id];
-                refScoresHtml += `<span class="ref-pill">Final Exam: ${finalExamScore}%</span>`;
-            }
-
-        }
-
-        if (!refScoresHtml) refScoresHtml = `<span class="ref-pill" style="color:#9ca3af;">No published CA/Exam scores yet</span>`;
-
-        const suggestedTotal = (caAverage !== null && finalExamScore !== null)
-            ? Math.round((caAverage * 0.4) + (finalExamScore * 0.6))
-            : "";
-
-        const card = document.createElement("div");
-        card.className = "student-card";
-
-        card.innerHTML = `
-            <div class="student-name">${escapeHtml(name)}</div>
-            <div class="student-number">${escapeHtml(student?.student_number || "-")}</div>
-
-            <div class="ref-scores">${refScoresHtml}</div>
-
-            <div class="result-row">
-                <div>
-                    <label style="font-size:12px; font-weight:bold;">Total Mark (%)</label>
-                    <input type="number" id="total-${enrollment.id}" min="0" max="100" value="${enrollment.final_score ?? suggestedTotal}">
-                </div>
-                <div>
-                    <label style="font-size:12px; font-weight:bold;">Comment</label>
-                    <select class="comment-select" id="comment-${enrollment.id}">
-                        <option value="">Select comment</option>
-                        <option value="Clear Pass" ${enrollment.results_comment === "Clear Pass" ? "selected" : ""}>Clear Pass</option>
-                        <option value="Repeat" ${enrollment.results_comment === "Repeat" ? "selected" : ""}>Repeat</option>
-                        <option value="Supplementary" ${enrollment.results_comment === "Supplementary" ? "selected" : ""}>Supplementary</option>
-                        <option value="Fail" ${enrollment.results_comment === "Fail" ? "selected" : ""}>Fail</option>
-                    </select>
-                </div>
-            </div>
-
-            <div class="publish-row">
-                <span class="status-badge ${enrollment.results_published ? "published" : "draft"}">
-                    ${enrollment.results_published ? "✓ Published" : "Draft — not visible to student"}
-                </span>
-                <div>
-                    <button class="save-button" onclick="saveResult('${enrollment.id}', false)">Save Draft</button>
-                    ${
-                        enrollment.results_published
-                        ? `<button class="save-button unpublish-button" onclick="saveResult('${enrollment.id}', false, true)">Unpublish</button>`
-                        : `<button class="save-button publish-button" onclick="saveResult('${enrollment.id}', true)">Publish</button>`
-                    }
-                </div>
-            </div>
-        `;
-
-        container.appendChild(card);
-
-    }
+    container.innerHTML = enrollments.map(e => renderStudentCard(e)).join("");
 
 });
 
 
-async function saveResult(enrollmentId, publish, forceUnpublish) {
+function renderStudentCard(e) {
+
+    const student = e.student_profiles;
+    const name = student?.user_profiles ? `${student.user_profiles.first_name} ${student.user_profiles.last_name}` : "Unknown";
+
+    return `
+        <div class="student-card">
+            <div class="student-name">${escapeHtml(name)}</div>
+            <div class="student-number">${escapeHtml(student?.student_number || "-")}</div>
+
+            ${renderAssessmentBlock(e.id, "ca1", "CA1", e.ca1_score, e.ca1_published)}
+            ${renderAssessmentBlock(e.id, "ca2", "CA2", e.ca2_score, e.ca2_published)}
+            ${renderAssessmentBlock(e.id, "final_exam", "Final / End-of-Term Exam", e.final_exam_score, e.final_exam_published)}
+
+            <div class="overall-block">
+                <div class="block-title">Overall Total & Comment</div>
+                <div class="overall-row">
+                    <input type="number" id="total-${e.id}" placeholder="Total Mark (%)" min="0" max="100" value="${e.final_score ?? ""}">
+                    <select id="comment-${e.id}">
+                        <option value="">Select comment</option>
+                        <option value="Clear Pass" ${e.results_comment === "Clear Pass" ? "selected" : ""}>Clear Pass</option>
+                        <option value="Repeat" ${e.results_comment === "Repeat" ? "selected" : ""}>Repeat</option>
+                        <option value="Supplementary" ${e.results_comment === "Supplementary" ? "selected" : ""}>Supplementary</option>
+                        <option value="Fail" ${e.results_comment === "Fail" ? "selected" : ""}>Fail</option>
+                    </select>
+                </div>
+                <div class="overall-publish-row">
+                    <span class="status-badge ${e.results_published ? "published" : "draft"}">
+                        ${e.results_published ? "✓ Published" : "Draft"}
+                    </span>
+                    <div>
+                        <button class="mini-button" onclick="saveOverall('${e.id}', false)">Save Draft</button>
+                        ${
+                            e.results_published
+                            ? `<button class="mini-button unpublish" onclick="saveOverall('${e.id}', false, true)">Unpublish</button>`
+                            : `<button class="mini-button" onclick="saveOverall('${e.id}', true)">Publish Overall</button>`
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+
+}
+
+
+function renderAssessmentBlock(enrollmentId, fieldPrefix, label, score, published) {
+
+    return `
+        <div class="assessment-block">
+            <div class="block-title">${label} ${published ? `<span class="status-badge published">Published</span>` : `<span class="status-badge draft">Draft</span>`}</div>
+            <div class="assessment-row">
+                <input type="number" id="${fieldPrefix}-${enrollmentId}" placeholder="%" min="0" max="100" value="${score ?? ""}">
+                <button class="mini-button" onclick="saveAssessment('${enrollmentId}', '${fieldPrefix}', false)">Save</button>
+                ${
+                    published
+                    ? `<button class="mini-button unpublish" onclick="saveAssessment('${enrollmentId}', '${fieldPrefix}', false, true)">Unpublish</button>`
+                    : `<button class="mini-button" onclick="saveAssessment('${enrollmentId}', '${fieldPrefix}', true)">Publish ${label}</button>`
+                }
+            </div>
+        </div>
+    `;
+
+}
+
+
+async function saveAssessment(enrollmentId, fieldPrefix, publish, forceUnpublish) {
+
+    const scoreValue = document.getElementById(`${fieldPrefix}-${enrollmentId}`).value;
+
+    if (publish && scoreValue === "") {
+        showMessage("Please enter a score before publishing.", "error");
+        return;
+    }
+
+    const updates = {};
+    updates[`${fieldPrefix}_score`] = scoreValue === "" ? null : Number(scoreValue);
+
+    if (publish) updates[`${fieldPrefix}_published`] = true;
+    if (forceUnpublish) updates[`${fieldPrefix}_published`] = false;
+
+    const { error } = await supabaseClient.from("enrollments").update(updates).eq("id", enrollmentId);
+
+    if (error) {
+        showMessage("Unable to save: " + error.message, "error");
+        return;
+    }
+
+    showMessage(publish ? "Published. The student can now see this score." : (forceUnpublish ? "Unpublished." : "Saved."), "success");
+    document.getElementById("courseSelect").dispatchEvent(new Event("change"));
+
+}
+
+
+async function saveOverall(enrollmentId, publish, forceUnpublish) {
 
     const totalValue = document.getElementById(`total-${enrollmentId}`).value;
     const commentValue = document.getElementById(`comment-${enrollmentId}`).value;
@@ -325,7 +345,7 @@ async function saveResult(enrollmentId, publish, forceUnpublish) {
         return;
     }
 
-    showMessage(publish ? "Result published. The student can now see it." : (forceUnpublish ? "Result unpublished." : "Draft saved."), "success");
+    showMessage(publish ? "Overall result published." : (forceUnpublish ? "Overall result unpublished." : "Draft saved."), "success");
     document.getElementById("courseSelect").dispatchEvent(new Event("change"));
 
 }
