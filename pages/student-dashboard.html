@@ -86,6 +86,62 @@ body {
 .welcome-card h2 { font-size: 24px; margin-bottom: 6px; }
 .welcome-card p { color: #d4af37; font-size: 14px; }
 
+/* ===== FEES SUMMARY CARD (prominent, near top) ===== */
+
+.fees-summary-card {
+    background: white;
+    border-radius: 14px;
+    padding: 20px;
+    margin-bottom: 20px;
+    box-shadow: 0 3px 12px rgba(0,0,0,0.06);
+    border: 2px solid #f3f4f6;
+}
+
+.fees-summary-card.has-balance { border-color: #fca5a5; }
+.fees-summary-card.cleared { border-color: #86efac; }
+
+.fees-summary-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 12px;
+}
+
+.fees-summary-title { font-size: 16px; font-weight: bold; }
+.fees-summary-term { font-size: 12px; color: #6b7280; }
+
+.fees-summary-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 12px; }
+
+.fees-mini-box { background: #f9fafb; border-radius: 8px; padding: 10px; text-align: center; }
+.fees-mini-box .label { font-size: 11px; color: #6b7280; font-weight: bold; margin-bottom: 4px; }
+.fees-mini-box .value { font-size: 16px; font-weight: bold; }
+.fees-mini-box.paid .value { color: #166534; }
+.fees-mini-box.balance .value { color: #991b1b; }
+.fees-mini-box.balance.cleared .value { color: #166534; }
+
+.fees-summary-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.fees-due-note { font-size: 12px; color: #6b7280; }
+.fees-due-note.overdue { color: #991b1b; font-weight: bold; }
+
+.fees-view-link {
+    background: #111827;
+    color: white;
+    text-decoration: none;
+    padding: 9px 16px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: bold;
+}
+
 .stat-grid {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
@@ -261,6 +317,7 @@ body {
 
 @media (max-width: 800px) {
     .stat-grid { grid-template-columns: repeat(2, 1fr); }
+    .fees-summary-grid { grid-template-columns: 1fr; }
 }
 
 </style>
@@ -294,6 +351,10 @@ body {
         <h2 id="welcomeName">Welcome back, Student</h2>
         <p id="studentMeta">Loading your details...</p>
     </section>
+
+
+    <div id="feesSummaryContainer"></div>
+
 
     <div class="stat-grid">
         <div class="stat-card"><div class="value" id="statCourses">0</div><div class="label">📚 Courses</div></div>
@@ -449,6 +510,92 @@ function average(numbers) {
 }
 
 
+async function loadFeesSummary(studentProfileId) {
+
+    const container = document.getElementById("feesSummaryContainer");
+
+    const { data: feeRecords } =
+        await supabaseClient
+            .from("student_term_fees")
+            .select(`
+                id, fee_type, total_fee, due_date,
+                academic_terms ( id, name, created_at )
+            `)
+            .eq("student_id", studentProfileId)
+            .order("created_at", { ascending: false });
+
+    if (!feeRecords || feeRecords.length === 0) {
+        container.innerHTML = "";
+        return;
+    }
+
+    // Find the most recent term that has fee records
+    const mostRecentTermId = feeRecords[0].academic_terms?.id;
+    const currentTermName = feeRecords[0].academic_terms?.name || "Current Term";
+    const currentTermRecords = feeRecords.filter(r => r.academic_terms?.id === mostRecentTermId);
+
+    let totalFee = 0;
+    let totalPaid = 0;
+    let earliestDueDate = null;
+
+    for (const record of currentTermRecords) {
+
+        const { data: payments } =
+            await supabaseClient.from("fee_payments").select("amount").eq("student_fee_id", record.id);
+
+        const paidForThis = (payments || []).reduce((sum, p) => sum + Number(p.amount), 0);
+
+        totalFee += Number(record.total_fee);
+        totalPaid += paidForThis;
+
+        if (record.due_date && (!earliestDueDate || new Date(record.due_date) < new Date(earliestDueDate))) {
+            earliestDueDate = record.due_date;
+        }
+
+    }
+
+    const balance = totalFee - totalPaid;
+    const isCleared = balance <= 0;
+    const today = new Date();
+    const isOverdue = earliestDueDate && new Date(earliestDueDate) < today && !isCleared;
+
+    container.innerHTML = `
+        <div class="fees-summary-card ${isCleared ? "cleared" : "has-balance"}">
+            <div class="fees-summary-top">
+                <div class="fees-summary-title">💳 My Fees</div>
+                <div class="fees-summary-term">${escapeHtml(currentTermName)}</div>
+            </div>
+
+            <div class="fees-summary-grid">
+                <div class="fees-mini-box">
+                    <div class="label">Total Fee</div>
+                    <div class="value">K${totalFee}</div>
+                </div>
+                <div class="fees-mini-box paid">
+                    <div class="label">Paid</div>
+                    <div class="value">K${totalPaid}</div>
+                </div>
+                <div class="fees-mini-box balance ${isCleared ? "cleared" : ""}">
+                    <div class="label">Balance</div>
+                    <div class="value">K${balance > 0 ? balance : 0}</div>
+                </div>
+            </div>
+
+            <div class="fees-summary-footer">
+                <div class="fees-due-note ${isOverdue ? "overdue" : ""}">
+                    ${isCleared
+                        ? "✓ Fully paid for this term"
+                        : (earliestDueDate ? "Next due date: " + new Date(earliestDueDate).toLocaleDateString() + (isOverdue ? " — OVERDUE" : "") : "No due date set")
+                    }
+                </div>
+                <a href="student-fees.html" class="fees-view-link">View Full Breakdown</a>
+            </div>
+        </div>
+    `;
+
+}
+
+
 async function startDashboard() {
 
     const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
@@ -486,6 +633,8 @@ async function startDashboard() {
     document.getElementById("welcomeName").textContent = `Welcome back, ${firstName} ${lastName}`;
     document.getElementById("studentMeta").textContent =
         `${studentProfile.student_number} • ${programmeName} • ${levelName} • Status: ${status}`;
+
+    await loadFeesSummary(studentProfile.id);
 
 
     // ===== ENROLLMENTS =====
