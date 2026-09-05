@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>My Fees | E-Campus</title>
+
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: Arial, Helvetica, sans-serif; background: #f4f6f9; color: #172033; }
+
+.header { background: #111827; color: white; padding: 18px 25px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+.brand { display: flex; align-items: center; gap: 14px; }
+.logo { width: 55px; height: 55px; object-fit: contain; background: white; border-radius: 8px; }
+.brand h1 { font-size: 22px; }
+.brand p { color: #d4af37; margin-top: 3px; font-size: 13px; }
+.back-button { background: #d4af37; color: #111827; text-decoration: none; padding: 10px 16px; border-radius: 8px; font-weight: bold; font-size: 13px; }
+
+.container { max-width: 900px; margin: 25px auto; padding: 0 20px; }
+.page-title { margin-bottom: 20px; }
+.page-title h2 { font-size: 28px; margin-bottom: 6px; }
+.page-title p { color: #6b7280; }
+
+.card { background: white; padding: 20px; border-radius: 14px; margin-bottom: 16px; box-shadow: 0 3px 12px rgba(0,0,0,0.06); }
+.term-name { font-size: 16px; font-weight: bold; margin-bottom: 12px; }
+
+.fee-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 12px; }
+.fee-box { background: #f9fafb; border-radius: 8px; padding: 12px; text-align: center; }
+.fee-box .label { font-size: 11px; color: #6b7280; font-weight: bold; margin-bottom: 4px; }
+.fee-box .value { font-size: 16px; font-weight: bold; }
+.fee-box.paid .value { color: #166534; }
+.fee-box.balance .value { color: #991b1b; }
+.fee-box.balance.cleared .value { color: #166534; }
+
+.due-note { font-size: 13px; color: #6b7280; }
+.due-note.overdue { color: #991b1b; font-weight: bold; }
+
+.cleared-badge { background: #dcfce7; color: #166534; padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: bold; display: inline-block; margin-top: 8px; }
+
+.empty-note { color: #9ca3af; text-align: center; padding: 30px 0; }
+</style>
+</head>
+
+
+<body>
+
+<header class="header">
+    <div class="brand">
+        <img src="https://pub-b3e2d39712e84119875e84c5ec5f5c09.r2.dev/Logo/IMG-20260816-WA0050(1).jpg" alt="Sunningdale University Logo" class="logo">
+        <div><h1>E-Campus</h1><p>Sunningdale University</p></div>
+    </div>
+    <a href="student-dashboard.html" class="back-button">← Dashboard</a>
+</header>
+
+
+<main class="container">
+
+    <section class="page-title">
+        <h2>My Fees</h2>
+        <p>Your tuition fees, payments made, and balance per term.</p>
+    </section>
+
+    <div id="feesContainer">
+        <div class="card"><p class="empty-note">Loading...</p></div>
+    </div>
+
+</main>
+
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../supabase-config.js"></script>
+
+
+<script>
+
+function escapeHtml(value) {
+    return String(value ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+}
+
+
+async function loadFees() {
+
+    const container = document.getElementById("feesContainer");
+
+    const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
+
+    if (authError || !user) {
+        window.location.href = "student-login.html";
+        return;
+    }
+
+    const { data: studentProfile } =
+        await supabaseClient.from("student_profiles").select("id").eq("user_id", user.id).single();
+
+    if (!studentProfile) {
+        container.innerHTML = `<div class="card"><p class="empty-note">Unable to load your student profile.</p></div>`;
+        return;
+    }
+
+    const { data: feeRecords, error } =
+        await supabaseClient
+            .from("student_term_fees")
+            .select(`
+                id, total_fee, due_date,
+                academic_terms ( name )
+            `)
+            .eq("student_id", studentProfile.id)
+            .order("due_date", { ascending: false });
+
+    if (error || !feeRecords || feeRecords.length === 0) {
+        container.innerHTML = `<div class="card"><p class="empty-note">No fee records have been set up for you yet. Please contact admissions.</p></div>`;
+        return;
+    }
+
+    const today = new Date();
+
+    let html = "";
+
+    for (const record of feeRecords) {
+
+        const { data: payments } =
+            await supabaseClient.from("fee_payments").select("amount").eq("student_fee_id", record.id);
+
+        const totalPaid = (payments || []).reduce((sum, p) => sum + Number(p.amount), 0);
+        const balance = record.total_fee - totalPaid;
+        const isCleared = balance <= 0;
+        const isOverdue = record.due_date && new Date(record.due_date) < today && !isCleared;
+
+        html += `
+            <div class="card">
+                <div class="term-name">${record.academic_terms ? escapeHtml(record.academic_terms.name) : "Term"}</div>
+
+                <div class="fee-grid">
+                    <div class="fee-box">
+                        <div class="label">Total Fee</div>
+                        <div class="value">K${record.total_fee}</div>
+                    </div>
+                    <div class="fee-box paid">
+                        <div class="label">Amount Paid</div>
+                        <div class="value">K${totalPaid}</div>
+                    </div>
+                    <div class="fee-box balance ${isCleared ? "cleared" : ""}">
+                        <div class="label">Balance</div>
+                        <div class="value">K${balance > 0 ? balance : 0}</div>
+                    </div>
+                </div>
+
+                <div class="due-note ${isOverdue ? "overdue" : ""}">
+                    ${record.due_date ? "Due date: " + new Date(record.due_date).toLocaleDateString() : "No due date set"}
+                    ${isOverdue ? " — OVERDUE" : ""}
+                </div>
+
+                ${isCleared ? `<div class="cleared-badge">✓ Fully Paid</div>` : ""}
+            </div>
+        `;
+
+    }
+
+    container.innerHTML = html;
+
+}
+
+
+loadFees();
+
+</script>
+
+</body>
+</html>
