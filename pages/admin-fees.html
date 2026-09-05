@@ -16,7 +16,7 @@ body { font-family: Arial, Helvetica, sans-serif; background: #f4f6f9; color: #1
 .brand p { color: #d4af37; margin-top: 4px; }
 .back-button { background: #d4af37; color: #111827; text-decoration: none; padding: 11px 18px; border-radius: 8px; font-weight: bold; }
 
-.container { max-width: 1000px; margin: 30px auto; padding: 0 20px; }
+.container { max-width: 1100px; margin: 30px auto; padding: 0 20px; }
 .page-title { margin-bottom: 25px; }
 .page-title h2 { font-size: 30px; margin-bottom: 7px; }
 .page-title p { color: #6b7280; }
@@ -38,20 +38,60 @@ input, select { width: 100%; padding: 13px; border: 1px solid #d1d5db; border-ra
 
 .submit-button { margin-top: 20px; background: #d4af37; color: #111827; border: none; padding: 13px 20px; border-radius: 8px; font-weight: bold; cursor: pointer; width: 100%; }
 
-.fee-summary {
+.category-card {
     background: #f9fafb;
-    border-radius: 10px;
-    padding: 16px;
-    margin-top: 16px;
-    display: none;
+    border-radius: 12px;
+    padding: 18px;
+    margin-bottom: 16px;
+    border: 1px solid #e5e7eb;
 }
 
-.fee-summary-row { display: flex; justify-content: space-between; padding: 6px 0; font-size: 14px; }
-.fee-summary-row.balance { font-weight: bold; font-size: 16px; padding-top: 10px; border-top: 1px solid #e5e7eb; margin-top: 6px; }
-.balance-owed { color: #991b1b; }
-.balance-paid { color: #166534; }
+.category-title { font-weight: bold; font-size: 15px; margin-bottom: 12px; }
 
-.payment-item { display: flex; justify-content: space-between; padding: 10px; background: white; border-radius: 8px; margin-bottom: 6px; font-size: 13px; border: 1px solid #e5e7eb; }
+.category-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
+.category-fields input { padding: 10px; font-size: 14px; }
+
+.mini-button {
+    background: #0e7490;
+    color: white;
+    border: none;
+    padding: 9px 14px;
+    border-radius: 6px;
+    font-weight: bold;
+    font-size: 13px;
+    cursor: pointer;
+    width: 100%;
+    margin-bottom: 10px;
+}
+
+.category-summary { font-size: 13px; color: #374151; margin-bottom: 10px; }
+.category-summary .paid { color: #166534; font-weight: bold; }
+.category-summary .owed { color: #991b1b; font-weight: bold; }
+
+.payment-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+
+.payment-row input, .payment-row select { padding: 9px; font-size: 13px; }
+
+.payment-item { display: flex; justify-content: space-between; padding: 8px; background: white; border-radius: 6px; margin-bottom: 5px; font-size: 12px; border: 1px solid #e5e7eb; }
+
+.total-outstanding-box {
+    background: #111827;
+    color: white;
+    border-radius: 12px;
+    padding: 18px;
+    margin-top: 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.total-outstanding-box .label { color: #d4af37; font-size: 13px; }
+.total-outstanding-box .value { font-size: 24px; font-weight: bold; }
 
 .empty-note { color: #9ca3af; text-align: center; padding: 20px 0; }
 </style>
@@ -73,74 +113,27 @@ input, select { width: 100%; padding: 13px; border: 1px solid #d1d5db; border-ra
 
     <section class="page-title">
         <h2>Fees Management</h2>
-        <p>Set each student's fee per term, record payments, and track their balance.</p>
+        <p>Set and record Tuition, Registration, and Exam Fee separately for each student per term.</p>
     </section>
 
     <div id="message" class="message"></div>
 
     <section class="card">
-        <h3>1. Select Student & Term</h3>
-        <div class="sub">Search by student number or name to load their fee record for a term.</div>
-
+        <h3>Select Student & Term</h3>
         <div class="form-grid">
-            <div class="form-group full">
+            <div class="form-group">
                 <label for="studentSelect">Student</label>
                 <select id="studentSelect"><option value="">Select student</option></select>
             </div>
-            <div class="form-group full">
+            <div class="form-group">
                 <label for="termSelect">Academic Term</label>
                 <select id="termSelect"><option value="">Select term</option></select>
             </div>
         </div>
-
-        <button class="submit-button" onclick="loadFeeRecord()">Load Fee Record</button>
-
-        <div class="fee-summary" id="feeSummary"></div>
+        <button class="submit-button" onclick="loadAllCategories()">Load Fee Record</button>
     </section>
 
-    <section class="card" id="setFeeCard" style="display:none;">
-        <h3>2. Set Total Fee & Due Date</h3>
-        <div class="form-grid">
-            <div class="form-group">
-                <label for="totalFee">Total Fee Due (K)</label>
-                <input type="number" id="totalFee" min="0">
-            </div>
-            <div class="form-group">
-                <label for="dueDate">Due Date</label>
-                <input type="date" id="dueDate">
-            </div>
-        </div>
-        <button class="submit-button" onclick="saveFeeRecord()">Save Fee Record</button>
-    </section>
-
-    <section class="card" id="paymentCard" style="display:none;">
-        <h3>3. Record a Payment</h3>
-        <div class="form-grid">
-            <div class="form-group">
-                <label for="paymentAmount">Amount (K)</label>
-                <input type="number" id="paymentAmount" min="0">
-            </div>
-            <div class="form-group">
-                <label for="paymentMethod">Payment Method</label>
-                <select id="paymentMethod">
-                    <option value="Cash">Cash</option>
-                    <option value="Mobile Money">Mobile Money</option>
-                    <option value="Bank Deposit">Bank Deposit</option>
-                    <option value="Other">Other</option>
-                </select>
-            </div>
-            <div class="form-group full">
-                <label for="paymentNotes">Notes (optional)</label>
-                <input type="text" id="paymentNotes" placeholder="e.g. Reference number">
-            </div>
-        </div>
-        <button class="submit-button" onclick="recordPayment()">Record Payment</button>
-
-        <div style="margin-top:20px;">
-            <div class="sub" style="margin-bottom:10px;">Payment History</div>
-            <div id="paymentHistory"><p class="empty-note">No payments recorded yet.</p></div>
-        </div>
-    </section>
+    <div id="categoriesContainer"></div>
 
 </main>
 
@@ -151,8 +144,8 @@ input, select { width: 100%; padding: 13px; border: 1px solid #d1d5db; border-ra
 
 <script>
 
+const FEE_CATEGORIES = ["Tuition", "Registration", "Exam Fee"];
 const message = document.getElementById("message");
-let currentStudentFeeId = null;
 
 function showMessage(text, type) {
     message.textContent = text;
@@ -200,7 +193,7 @@ async function startPage() {
 }
 
 
-async function loadFeeRecord() {
+async function loadAllCategories() {
 
     const studentId = document.getElementById("studentSelect").value;
     const termId = document.getElementById("termSelect").value;
@@ -210,92 +203,136 @@ async function loadFeeRecord() {
         return;
     }
 
-    const { data: feeRecord, error } =
-        await supabaseClient
-            .from("student_term_fees")
-            .select("*")
-            .eq("student_id", studentId)
-            .eq("academic_term_id", termId)
-            .maybeSingle();
+    const container = document.getElementById("categoriesContainer");
+    container.innerHTML = "";
 
-    document.getElementById("setFeeCard").style.display = "block";
+    let totalOutstanding = 0;
 
-    if (feeRecord) {
+    for (const category of FEE_CATEGORIES) {
 
-        currentStudentFeeId = feeRecord.id;
-        document.getElementById("totalFee").value = feeRecord.total_fee;
-        document.getElementById("dueDate").value = feeRecord.due_date || "";
-        document.getElementById("paymentCard").style.display = "block";
-        await loadPayments();
-        await renderSummary(feeRecord);
+        const { data: feeRecord } =
+            await supabaseClient
+                .from("student_term_fees")
+                .select("*")
+                .eq("student_id", studentId)
+                .eq("academic_term_id", termId)
+                .eq("fee_type", category)
+                .maybeSingle();
 
-    } else {
+        let totalPaid = 0;
+        let payments = [];
 
-        currentStudentFeeId = null;
-        document.getElementById("totalFee").value = "";
-        document.getElementById("dueDate").value = "";
-        document.getElementById("paymentCard").style.display = "none";
-        document.getElementById("feeSummary").style.display = "none";
-        showMessage("No fee record exists yet for this student/term. Set one below.", "success");
+        if (feeRecord) {
+            const { data: paymentData } =
+                await supabaseClient.from("fee_payments").select("*").eq("student_fee_id", feeRecord.id).order("payment_date", { ascending: false });
+            payments = paymentData || [];
+            totalPaid = payments.reduce((sum, p) => sum + Number(p.amount), 0);
+        }
+
+        const totalFee = feeRecord ? Number(feeRecord.total_fee) : 0;
+        const balance = totalFee - totalPaid;
+        totalOutstanding += balance > 0 ? balance : 0;
+
+        const card = document.createElement("div");
+        card.className = "card category-card";
+
+        card.innerHTML = `
+            <div class="category-title">${category}</div>
+
+            <div class="category-fields">
+                <input type="number" id="totalFee-${category}" placeholder="Total ${category} Fee (K)" value="${feeRecord ? feeRecord.total_fee : ""}">
+                <input type="date" id="dueDate-${category}" value="${feeRecord ? (feeRecord.due_date || "") : ""}">
+            </div>
+
+            <button class="mini-button" onclick="saveCategory('${studentId}', '${termId}', '${category}', '${feeRecord ? feeRecord.id : ""}')">Save ${category} Fee</button>
+
+            <div class="category-summary">
+                Paid: <span class="paid">K${totalPaid}</span> &nbsp;|&nbsp;
+                Balance: <span class="${balance > 0 ? "owed" : "paid"}">K${balance > 0 ? balance : 0}</span>
+            </div>
+
+            ${feeRecord ? `
+                <div class="payment-row">
+                    <input type="number" id="paymentAmount-${category}" placeholder="Amount (K)">
+                    <select id="paymentMethod-${category}">
+                        <option value="Cash">Cash</option>
+                        <option value="Mobile Money">Mobile Money</option>
+                        <option value="Bank Deposit">Bank Deposit</option>
+                        <option value="Other">Other</option>
+                    </select>
+                    <button class="mini-button" style="margin-bottom:0;" onclick="recordPayment('${feeRecord.id}', '${category}', '${studentId}', '${termId}')">Record Payment</button>
+                </div>
+
+                <div id="paymentHistory-${category}">
+                    ${payments.length === 0
+                        ? `<p class="empty-note">No payments recorded yet.</p>`
+                        : payments.map(p => `
+                            <div class="payment-item">
+                                <span>K${p.amount} — ${escapeHtml(p.payment_method || "-")}</span>
+                                <span>${new Date(p.payment_date).toLocaleDateString()}</span>
+                            </div>
+                        `).join("")
+                    }
+                </div>
+            ` : `<p class="empty-note">Save this fee first to enable recording payments.</p>`}
+        `;
+
+        container.appendChild(card);
 
     }
+
+    const totalBox = document.createElement("div");
+    totalBox.className = "card total-outstanding-box";
+    totalBox.innerHTML = `
+        <span class="label">Total Outstanding Balance (All Categories)</span>
+        <span class="value">K${totalOutstanding}</span>
+    `;
+    container.appendChild(totalBox);
 
 }
 
 
-async function saveFeeRecord() {
+async function saveCategory(studentId, termId, category, existingId) {
 
-    const studentId = document.getElementById("studentSelect").value;
-    const termId = document.getElementById("termSelect").value;
-    const totalFee = document.getElementById("totalFee").value;
-    const dueDate = document.getElementById("dueDate").value;
+    const totalFee = document.getElementById(`totalFee-${category}`).value;
+    const dueDate = document.getElementById(`dueDate-${category}`).value;
 
-    if (!totalFee || !dueDate) {
-        showMessage("Please enter both the total fee and due date.", "error");
+    if (!totalFee) {
+        showMessage(`Please enter the ${category} fee amount.`, "error");
         return;
     }
 
     const payload = {
         student_id: studentId,
         academic_term_id: termId,
+        fee_type: category,
         total_fee: Number(totalFee),
-        due_date: dueDate
+        due_date: dueDate || null
     };
 
     let result;
 
-    if (currentStudentFeeId) {
-        result = await supabaseClient.from("student_term_fees").update(payload).eq("id", currentStudentFeeId);
+    if (existingId) {
+        result = await supabaseClient.from("student_term_fees").update(payload).eq("id", existingId);
     } else {
-        result = await supabaseClient.from("student_term_fees").insert(payload).select().single();
+        result = await supabaseClient.from("student_term_fees").insert(payload);
     }
 
     if (result.error) {
-        showMessage("Unable to save: " + result.error.message, "error");
+        showMessage(`Unable to save ${category}: ` + result.error.message, "error");
         return;
     }
 
-    if (!currentStudentFeeId && result.data) {
-        currentStudentFeeId = result.data.id;
-    }
-
-    showMessage("Fee record saved.", "success");
-    document.getElementById("paymentCard").style.display = "block";
-    await loadFeeRecord();
+    showMessage(`${category} fee saved.`, "success");
+    await loadAllCategories();
 
 }
 
 
-async function recordPayment() {
+async function recordPayment(feeId, category, studentId, termId) {
 
-    if (!currentStudentFeeId) {
-        showMessage("Please save the fee record first.", "error");
-        return;
-    }
-
-    const amount = document.getElementById("paymentAmount").value;
-    const method = document.getElementById("paymentMethod").value;
-    const notes = document.getElementById("paymentNotes").value.trim();
+    const amount = document.getElementById(`paymentAmount-${category}`).value;
+    const method = document.getElementById(`paymentMethod-${category}`).value;
 
     if (!amount) {
         showMessage("Please enter a payment amount.", "error");
@@ -306,10 +343,9 @@ async function recordPayment() {
 
     const { error } =
         await supabaseClient.from("fee_payments").insert({
-            student_fee_id: currentStudentFeeId,
+            student_fee_id: feeId,
             amount: Number(amount),
             payment_method: method,
-            notes: notes || null,
             recorded_by: user.id
         });
 
@@ -318,58 +354,8 @@ async function recordPayment() {
         return;
     }
 
-    showMessage("Payment recorded.", "success");
-    document.getElementById("paymentAmount").value = "";
-    document.getElementById("paymentNotes").value = "";
-    await loadPayments();
-    await loadFeeRecord();
-
-}
-
-
-async function loadPayments() {
-
-    const container = document.getElementById("paymentHistory");
-
-    const { data, error } =
-        await supabaseClient
-            .from("fee_payments")
-            .select("amount, payment_date, payment_method, notes")
-            .eq("student_fee_id", currentStudentFeeId)
-            .order("payment_date", { ascending: false });
-
-    if (error || !data || data.length === 0) {
-        container.innerHTML = `<p class="empty-note">No payments recorded yet.</p>`;
-        return;
-    }
-
-    container.innerHTML = data.map(p => `
-        <div class="payment-item">
-            <span>K${p.amount} — ${escapeHtml(p.payment_method || "-")} ${p.notes ? "(" + escapeHtml(p.notes) + ")" : ""}</span>
-            <span>${new Date(p.payment_date).toLocaleDateString()}</span>
-        </div>
-    `).join("");
-
-}
-
-
-async function renderSummary(feeRecord) {
-
-    const { data: payments } =
-        await supabaseClient.from("fee_payments").select("amount").eq("student_fee_id", feeRecord.id);
-
-    const totalPaid = (payments || []).reduce((sum, p) => sum + Number(p.amount), 0);
-    const balance = feeRecord.total_fee - totalPaid;
-
-    const summaryDiv = document.getElementById("feeSummary");
-    summaryDiv.style.display = "block";
-
-    summaryDiv.innerHTML = `
-        <div class="fee-summary-row"><span>Total Fee Due</span><span>K${feeRecord.total_fee}</span></div>
-        <div class="fee-summary-row"><span>Total Paid</span><span class="balance-paid">K${totalPaid}</span></div>
-        <div class="fee-summary-row balance"><span>Remaining Balance</span><span class="${balance > 0 ? "balance-owed" : "balance-paid"}">K${balance}</span></div>
-        <div class="fee-summary-row"><span>Due Date</span><span>${feeRecord.due_date ? new Date(feeRecord.due_date).toLocaleDateString() : "-"}</span></div>
-    `;
+    showMessage(`${category} payment recorded.`, "success");
+    await loadAllCategories();
 
 }
 
