@@ -40,19 +40,20 @@ body { font-family: Arial, Helvetica, sans-serif; background: #f4f6f9; color: #1
 
 .cleared-badge { background: #dcfce7; color: #166534; padding: 3px 9px; border-radius: 20px; font-size: 10px; font-weight: bold; display: inline-block; margin-top: 6px; }
 
-.total-box {
+.term-total-box {
     background: #111827;
     color: white;
-    border-radius: 14px;
-    padding: 20px;
+    border-radius: 12px;
+    padding: 16px;
+    margin-top: 4px;
     margin-bottom: 20px;
     display: flex;
     justify-content: space-between;
     align-items: center;
 }
 
-.total-box .label { color: #d4af37; font-size: 13px; }
-.total-box .value { font-size: 26px; font-weight: bold; }
+.term-total-box .label { color: #d4af37; font-size: 13px; }
+.term-total-box .value { font-size: 20px; font-weight: bold; }
 
 .empty-note { color: #9ca3af; text-align: center; padding: 30px 0; }
 
@@ -78,7 +79,7 @@ body { font-family: Arial, Helvetica, sans-serif; background: #f4f6f9; color: #1
 
     <section class="page-title">
         <h2>My Fees</h2>
-        <p>Your Tuition, Registration, and Exam Fee — amount paid, balance, and due date per term.</p>
+        <p>Your Tuition, Registration, and Exam Fee — amount paid, balance, and due date for each term.</p>
     </section>
 
     <div id="feesContainer">
@@ -147,7 +148,6 @@ async function loadFees() {
         groupedByTerm[termName].push(r);
     });
 
-    let overallOutstanding = 0;
     let html = "";
 
     for (const termName of Object.keys(groupedByTerm)) {
@@ -167,7 +167,6 @@ async function loadFees() {
             const isOverdue = record.due_date && new Date(record.due_date) < today && !isCleared;
 
             termOutstanding += balance > 0 ? balance : 0;
-            overallOutstanding += balance > 0 ? balance : 0;
 
             html += `
                 <div class="card">
@@ -199,17 +198,18 @@ async function loadFees() {
 
         }
 
+        html += `
+            <div class="term-total-box">
+                <span class="label">Total Balance — This Term</span>
+                <span class="value">K${termOutstanding}</span>
+            </div>
+        `;
+
         html += `</div>`;
 
     }
 
-    container.innerHTML = `
-        <div class="total-box">
-            <span class="label">Total Outstanding Balance (All Fees)</span>
-            <span class="value">K${overallOutstanding}</span>
-        </div>
-        ${html}
-    `;
+    container.innerHTML = html;
 
 }
 
