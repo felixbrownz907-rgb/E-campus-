@@ -404,7 +404,7 @@ body {
             <a href="student-attendance.html" class="service-link">📅 My Attendance</a>
             <a href="student-timetable.html" class="service-link">🗓️ My Timetable</a>
             <a href="#" class="service-link">🎓 Certificates</a>
-            <a href="#" class="service-link">💳 Fees & Payments</a>
+            <a href="student-fees.html" class="service-link">💳 Fees & Payments</a>
             <a href="#" class="service-link">📅 Academic Calendar</a>
             <a href="#" class="service-link">📢 Support / Help Desk</a>
         </div>
@@ -880,8 +880,7 @@ async function startDashboard() {
 
         tickerWrap.style.display = "block";
 
-        // Keep scroll speed constant no matter how much text there is
-        const PIXELS_PER_SECOND = 40; // lower number = slower scroll
+        const PIXELS_PER_SECOND = 40;
         const textWidth = tickerMove.scrollWidth;
         const totalDistance = textWidth + window.innerWidth;
         const duration = totalDistance / PIXELS_PER_SECOND;
