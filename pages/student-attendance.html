@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>My Attendance | E-Campus</title>
+
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: Arial, Helvetica, sans-serif; background: #f4f6f9; color: #172033; }
+
+.header { background: #111827; color: white; padding: 18px 25px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+.brand { display: flex; align-items: center; gap: 14px; }
+.logo { width: 55px; height: 55px; object-fit: contain; background: white; border-radius: 8px; }
+.brand h1 { font-size: 22px; }
+.brand p { color: #d4af37; margin-top: 3px; font-size: 13px; }
+.back-button { background: #d4af37; color: #111827; text-decoration: none; padding: 10px 16px; border-radius: 8px; font-weight: bold; font-size: 13px; }
+
+.container { max-width: 900px; margin: 25px auto; padding: 0 20px; }
+.page-title { margin-bottom: 20px; }
+.page-title h2 { font-size: 28px; margin-bottom: 6px; }
+.page-title p { color: #6b7280; }
+
+.section-heading { font-size: 16px; font-weight: bold; margin: 20px 0 10px; color: #374151; }
+
+.message { padding: 14px; border-radius: 8px; margin-bottom: 20px; display: none; }
+.message.success { display: block; background: #dcfce7; color: #166534; }
+.message.error { display: block; background: #fee2e2; color: #991b1b; }
+
+.card { background: white; padding: 22px; border-radius: 14px; margin-bottom: 18px; box-shadow: 0 3px 12px rgba(0,0,0,0.06); }
+.card.missed { border: 2px solid #fca5a5; }
+
+.course-tag { color: #d4af37; font-size: 12px; font-weight: bold; }
+.course-name { font-size: 16px; font-weight: bold; margin: 4px 0 12px; }
+.missed-date { color: #991b1b; font-weight: bold; font-size: 13px; margin-bottom: 10px; }
+
+.activity-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 14px; }
+.activity-box { background: #f9fafb; border-radius: 8px; padding: 10px; text-align: center; }
+.activity-box .num { font-size: 18px; font-weight: bold; }
+.activity-box .label { font-size: 11px; color: #6b7280; }
+
+textarea {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    font-size: 14px;
+    min-height: 70px;
+    margin-bottom: 12px;
+}
+
+.submit-button {
+    background: #d4af37;
+    color: #111827;
+    border: none;
+    padding: 12px 20px;
+    border-radius: 8px;
+    font-weight: bold;
+    cursor: pointer;
+    width: 100%;
+}
+
+.submit-button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.evidence-warning {
+    background: #fee2e2;
+    color: #991b1b;
+    padding: 10px;
+    border-radius: 8px;
+    font-size: 13px;
+    margin-bottom: 12px;
+    font-weight: bold;
+}
+
+.status-badge { padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: bold; display: inline-block; }
+.status-badge.pending { background: #fef3c7; color: #92400e; }
+.status-badge.present { background: #dcfce7; color: #166534; }
+.status-badge.late { background: #fef3c7; color: #92400e; }
+.status-badge.absent { background: #fee2e2; color: #991b1b; }
+
+.note-shown { font-size: 13px; color: #374151; margin-top: 8px; font-style: italic; }
+
+.history-row { display: flex; justify-content: space-between; padding: 10px; border-bottom: 1px solid #e5e7eb; font-size: 13px; align-items: center; }
+
+.empty-note { color: #9ca3af; text-align: center; padding: 30px 0; }
+</style>
+</head>
+
+
+<body>
+
+<header class="header">
+    <div class="brand">
+        <img src="https://pub-b3e2d39712e84119875e84c5ec5f5c09.r2.dev/Logo/IMG-20260816-WA0050(1).jpg" alt="Sunningdale University Logo" class="logo">
+        <div>
+            <h1>E-Campus</h1>
+            <p>Sunningdale University</p>
+        </div>
+    </div>
+    <a href="student-dashboard.html" class="back-button">← Dashboard</a>
+</header>
+
+
+<main class="container">
+
+    <section class="page-title">
+        <h2>My Attendance</h2>
+        <p>On days your course has a class, log what you did. Missed days must be caught up before you can continue in that course.</p>
+    </section>
+
+    <div id="message" class="message"></div>
+
+    <div id="missedSectionWrapper"></div>
+
+    <div class="section-heading">Today</div>
+    <div id="todayContainer">
+        <div class="card"><p class="empty-note">Loading...</p></div>
+    </div>
+
+    <section class="card">
+        <h3 style="margin-bottom:14px;">Recent History</h3>
+        <div id="historyContainer"><p class="empty-note">Loading...</p></div>
+    </section>
+
+</main>
+
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../supabase-config.js"></script>
+
+
+<script>
+
+const message = document.getElementById("message");
+let authUserId = null;
+let studentProfileId = null;
+
+const WEEKDAY_NAMES = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+
+
+function showMessage(text, type) {
+    message.textContent = text;
+    message.className = "message " + type;
+}
+
+
+function escapeHtml(value) {
+    return String(value ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+}
+
+
+function todayDateString() {
+    return new Date().toISOString().split("T")[0];
+}
+
+
+function getPastClassDates(classDays, enrollmentDate) {
+
+    if (!classDays || classDays.length === 0) return [];
+
+    const dates = [];
+    const start = new Date(enrollmentDate + "T00:00:00");
+    const today = new Date(todayDateString() + "T00:00:00");
+
+    for (let d = new Date(start); d < today; d.setDate(d.getDate() + 1)) {
+        const weekday = WEEKDAY_NAMES[d.getDay()];
+        if (classDays.includes(weekday)) {
+            dates.push(new Date(d).toISOString().split("T")[0]);
+        }
+    }
+
+    return dates;
+
+}
+
+
+async function startPage() {
+
+    const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
+
+    if (authError || !user) {
+        window.location.href = "student-login.html";
+        return;
+    }
+
+    authUserId = user.id;
+
+    const { data: studentProfile } =
+        await supabaseClient.from("student_profiles").select("id").eq("user_id", user.id).single();
+
+    if (!studentProfile) {
+        document.getElementById("todayContainer").innerHTML = `<div class="card"><p class="empty-note">Unable to load your student profile.</p></div>`;
+        return;
+    }
+
+    studentProfileId = studentProfile.id;
+
+    await loadMissedDays();
+    await loadTodayCards();
+    await loadHistory();
+
+}
+
+
+async function getActivityForDate(courseId, dateString) {
+
+    const { data: modules } =
+        await supabaseClient.from("course_modules").select("id").eq("course_id", courseId);
+
+    const moduleIds = (modules || []).map(m => m.id);
+
+    let lessonsCount = 0;
+    let quizzesCount = 0;
+    let assignmentsCount = 0;
+
+    if (moduleIds.length > 0) {
+
+        const { data: lessons } =
+            await supabaseClient.from("lessons").select("id").in("module_id", moduleIds);
+        const lessonIds = (lessons || []).map(l => l.id);
+
+        if (lessonIds.length > 0) {
+            const { count } = await supabaseClient
+                .from("lesson_progress")
+                .select("id", { count: "exact", head: true })
+                .eq("student_id", authUserId)
+                .in("lesson_id", lessonIds)
+                .gte("completed_at", dateString + "T00:00:00")
+                .lte("completed_at", dateString + "T23:59:59");
+            lessonsCount = count || 0;
+        }
+
+        const { data: quizzes } =
+            await supabaseClient.from("quizzes").select("id").in("module_id", moduleIds);
+        const quizIds = (quizzes || []).map(q => q.id);
+
+        if (quizIds.length > 0) {
+            const { count } = await supabaseClient
+                .from("quiz_attempts")
+                .select("id", { count: "exact", head: true })
+                .eq("student_id", authUserId)
+                .in("quiz_id", quizIds)
+                .gte("submitted_at", dateString + "T00:00:00")
+                .lte("submitted_at", dateString + "T23:59:59");
+            quizzesCount = count || 0;
+        }
+
+        const { data: assignmentsList } =
+            await supabaseClient.from("assignments").select("id").in("module_id", moduleIds);
+        const assignmentIds = (assignmentsList || []).map(a => a.id);
+
+        if (assignmentIds.length > 0) {
+            const { count } = await supabaseClient
+                .from("submissions")
+                .select("id", { count: "exact", head: true })
+                .eq("student_id", authUserId)
+                .in("assignment_id", assignmentIds)
+                .gte("submitted_at", dateString + "T00:00:00")
+                .lte("submitted_at", dateString + "T23:59:59");
+            assignmentsCount = count || 0;
+        }
+
+    }
+
+    return { lessons: lessonsCount, quizzes: quizzesCount, assignments: assignmentsCount };
+
+}
+
+
+/* ================= MISSED DAYS (CATCH-UP REQUIRED) ================= */
+
+async function loadMissedDays() {
+
+    const wrapper = document.getElementById("missedSectionWrapper");
+
+    const { data: enrollments } =
+        await supabaseClient
+            .from("enrollments")
+            .select("enrollment_date, courses ( id, code, name, class_days )")
+            .eq("student_id", studentProfileId)
+            .eq("status", "enrolled");
+
+    let missedCards = "";
+
+    for (const e of (enrollments || [])) {
+
+        const course = e.courses;
+        if (!course || !course.class_days) continue;
+
+        const pastDates = getPastClassDates(course.class_days, e.enrollment_date || "2020-01-01");
+
+        for (const dateStr of pastDates) {
+
+            const { data: existing } =
+                await supabaseClient
+                    .from("attendance")
+                    .select("*")
+                    .eq("student_id", studentProfileId)
+                    .eq("course_id", course.id)
+                    .eq("session_date", dateStr)
+                    .maybeSingle();
+
+            if (existing && existing.approval_status === "approved") continue;
+
+            const dateLabel = new Date(dateStr).toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" });
+
+            if (existing && existing.approval_status === "pending") {
+
+                missedCards += `
+                    <div class="card missed">
+                        <div class="course-tag">${escapeHtml(course.code)}</div>
+                        <div class="course-name">${escapeHtml(course.name)}</div>
+                        <div class="missed-date">Missed: ${dateLabel}</div>
+                        <span class="status-badge pending">⏳ Catch-up submitted — awaiting lecturer approval</span>
+                        ${existing.student_note ? `<div class="note-shown">Your note: "${escapeHtml(existing.student_note)}"</div>` : ""}
+                    </div>
+                `;
+
+            } else {
+
+                const todayActivity = await getActivityForDate(course.id, todayDateString());
+                const hasEvidence = todayActivity.lessons > 0 || todayActivity.quizzes > 0 || todayActivity.assignments > 0;
+                const fieldId = `catchup-${course.id}-${dateStr}`;
+
+                missedCards += `
+                    <div class="card missed">
+                        <div class="course-tag">${escapeHtml(course.code)}</div>
+                        <div class="course-name">${escapeHtml(course.name)}</div>
+                        <div class="missed-date">🔒 Missed: ${dateLabel} — you cannot continue in this course until this is caught up</div>
+
+                        ${!hasEvidence ? `<div class="evidence-warning">You haven't completed any course material today yet. Go complete some Topics, then come back here to submit your catch-up.</div>` : ""}
+
+                        <div class="activity-grid">
+                            <div class="activity-box"><div class="num">${todayActivity.lessons}</div><div class="label">Topics completed today</div></div>
+                            <div class="activity-box"><div class="num">${todayActivity.quizzes}</div><div class="label">Quizzes taken today</div></div>
+                            <div class="activity-box"><div class="num">${todayActivity.assignments}</div><div class="label">Assignments submitted today</div></div>
+                        </div>
+
+                        <textarea id="${fieldId}" placeholder="Explain how you caught up on this missed class..."></textarea>
+
+                        <button class="submit-button" ${!hasEvidence ? "disabled" : ""} onclick="submitCatchup('${course.id}', '${dateStr}', '${fieldId}')">
+                            Submit Catch-Up for ${escapeHtml(dateLabel)}
+                        </button>
+                    </div>
+                `;
+
+            }
+
+        }
+
+    }
+
+    wrapper.innerHTML = missedCards
+        ? `<div class="section-heading">⚠️ Missed Classes — Catch-Up Required</div>` + missedCards
+        : "";
+
+}
+
+
+async function submitCatchup(courseId, dateStr, fieldId) {
+
+    const note = document.getElementById(fieldId).value.trim();
+    const activity = await getActivityForDate(courseId, todayDateString());
+
+    const { error } =
+        await supabaseClient.from("attendance").insert({
+            student_id: studentProfileId,
+            course_id: courseId,
+            session_date: dateStr,
+            status: "present",
+            submitted_by_student: true,
+            approval_status: "pending",
+            student_note: note || null,
+            evidence_lessons: activity.lessons,
+            evidence_quizzes: activity.quizzes,
+            evidence_assignments: activity.assignments
+        });
+
+    if (error) {
+        showMessage("Unable to submit: " + error.message, "error");
+        return;
+    }
+
+    showMessage("Catch-up submitted. Your lecturer will review it before you can continue.", "success");
+    await loadMissedDays();
+    await loadHistory();
+
+}
+
+
+/* ================= TODAY'S LOG ================= */
+
+async function loadTodayCards() {
+
+    const container = document.getElementById("todayContainer");
+    const today = todayDateString();
+    const todayWeekday = WEEKDAY_NAMES[new Date().getDay()];
+
+    const { data: enrollments } =
+        await supabaseClient
+            .from("enrollments")
+            .select("courses ( id, code, name, class_days )")
+            .eq("student_id", studentProfileId)
+            .eq("status", "enrolled");
+
+    const coursesWithClassToday = (enrollments || [])
+        .map(e => e.courses)
+        .filter(c => c && c.class_days && c.class_days.includes(todayWeekday));
+
+    if (coursesWithClassToday.length === 0) {
+        container.innerHTML = `<div class="card"><p class="empty-note">No courses have a scheduled class today (${todayWeekday}).</p></div>`;
+        return;
+    }
+
+    container.innerHTML = "";
+
+    for (const course of coursesWithClassToday) {
+
+        const { data: existing } =
+            await supabaseClient
+                .from("attendance")
+                .select("*")
+                .eq("student_id", studentProfileId)
+                .eq("course_id", course.id)
+                .eq("session_date", today)
+                .maybeSingle();
+
+        const card = document.createElement("div");
+        card.className = "card";
+
+        if (existing) {
+
+            const statusClass = existing.approval_status === "pending" ? "pending" : existing.status;
+            const statusLabel = existing.approval_status === "pending"
+                ? "⏳ Submitted — awaiting lecturer review"
+                : `Confirmed: ${existing.status}`;
+
+            card.innerHTML = `
+                <div class="course-tag">${escapeHtml(course.code)}</div>
+                <div class="course-name">${escapeHtml(course.name)}</div>
+                <span class="status-badge ${statusClass}">${statusLabel}</span>
+                ${existing.student_note ? `<div class="note-shown">Your note: "${escapeHtml(existing.student_note)}"</div>` : ""}
+            `;
+
+        } else {
+
+            const activity = await getActivityForDate(course.id, today);
+
+            card.innerHTML = `
+                <div class="course-tag">${escapeHtml(course.code)}</div>
+                <div class="course-name">${escapeHtml(course.name)}</div>
+
+                <div class="activity-grid">
+                    <div class="activity-box"><div class="num">${activity.lessons}</div><div class="label">Topics completed today</div></div>
+                    <div class="activity-box"><div class="num">${activity.quizzes}</div><div class="label">Quizzes taken today</div></div>
+                    <div class="activity-box"><div class="num">${activity.assignments}</div><div class="label">Assignments submitted today</div></div>
+                </div>
+
+                <textarea id="note-${course.id}" placeholder="Optional note — e.g. 'Watched the recorded lecture and did the reading' or 'Attended the live session'"></textarea>
+
+                <button class="submit-button" onclick="submitLog('${course.id}')">Submit Today's Log</button>
+            `;
+
+        }
+
+        container.appendChild(card);
+
+    }
+
+}
+
+
+async function submitLog(courseId) {
+
+    const note = document.getElementById(`note-${courseId}`).value.trim();
+    const activity = await getActivityForDate(courseId, todayDateString());
+    const hadActivity = activity.lessons > 0 || activity.quizzes > 0 || activity.assignments > 0;
+
+    const { error } =
+        await supabaseClient.from("attendance").insert({
+            student_id: studentProfileId,
+            course_id: courseId,
+            session_date: todayDateString(),
+            status: hadActivity || note ? "present" : "absent",
+            submitted_by_student: true,
+            approval_status: "pending",
+            student_note: note || null,
+            evidence_lessons: activity.lessons,
+            evidence_quizzes: activity.quizzes,
+            evidence_assignments: activity.assignments
+        });
+
+    if (error) {
+        showMessage("Unable to submit: " + error.message, "error");
+        return;
+    }
+
+    showMessage("Submitted. Your lecturer will review and confirm it.", "success");
+    await loadTodayCards();
+    await loadHistory();
+
+}
+
+
+async function loadHistory() {
+
+    const container = document.getElementById("historyContainer");
+
+    const { data, error } =
+        await supabaseClient
+            .from("attendance")
+            .select(`
+                session_date, status, approval_status, student_note,
+                courses ( code, name )
+            `)
+            .eq("student_id", studentProfileId)
+            .order("session_date", { ascending: false })
+            .limit(15);
+
+    if (error || !data || data.length === 0) {
+        container.innerHTML = `<p class="empty-note">No attendance history yet.</p>`;
+        return;
+    }
+
+    container.innerHTML = data.map(r => {
+        const statusClass = r.approval_status === "pending" ? "pending" : r.status;
+        const label = r.approval_status === "pending" ? "Pending review" : r.status;
+        return `
+            <div class="history-row">
+                <span>${new Date(r.session_date).toLocaleDateString()} — ${r.courses ? escapeHtml(r.courses.code) : "-"}</span>
+                <span class="status-badge ${statusClass}">${escapeHtml(label)}</span>
+            </div>
+        `;
+    }).join("");
+
+}
+
+
+startPage();
+
+</script>
+
+</body>
+</html>
