@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Announcements | Lecturer Portal</title>
+
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: Arial, Helvetica, sans-serif; background: #f4f6f9; color: #172033; }
+
+.header { background: #0e7490; color: white; padding: 18px 25px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+.brand { display: flex; align-items: center; gap: 14px; }
+.logo { width: 55px; height: 55px; object-fit: contain; background: white; border-radius: 8px; }
+.brand h1 { font-size: 22px; }
+.brand p { color: #cffafe; margin-top: 3px; font-size: 13px; }
+.back-button { background: white; color: #0e7490; text-decoration: none; padding: 10px 16px; border-radius: 8px; font-weight: bold; font-size: 13px; }
+
+.container { max-width: 900px; margin: 25px auto; padding: 0 20px; }
+.page-title { margin-bottom: 20px; }
+.page-title h2 { font-size: 28px; margin-bottom: 6px; }
+.page-title p { color: #6b7280; }
+
+.message { padding: 14px; border-radius: 8px; margin-bottom: 20px; display: none; }
+.message.success { display: block; background: #dcfce7; color: #166534; }
+.message.error { display: block; background: #fee2e2; color: #991b1b; }
+
+.card { background: white; padding: 22px; border-radius: 14px; margin-bottom: 18px; box-shadow: 0 3px 12px rgba(0,0,0,0.06); }
+
+select, input, textarea { width: 100%; padding: 12px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 14px; margin-bottom: 12px; }
+textarea { min-height: 90px; resize: vertical; }
+
+.small-button { background: #0e7490; color: white; border: none; padding: 10px 16px; border-radius: 8px; font-weight: bold; font-size: 14px; cursor: pointer; }
+
+.announcement-item { padding: 14px; background: #f9fafb; border-radius: 10px; margin-bottom: 10px; }
+.announcement-item .title { font-weight: bold; margin-bottom: 4px; }
+.announcement-item .meta { font-size: 12px; color: #6b7280; margin-top: 6px; }
+
+.action-button { border: none; padding: 7px 11px; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 13px; }
+.delete-button { background: #fee2e2; color: #991b1b; }
+
+.empty-note { color: #9ca3af; text-align: center; padding: 20px 0; }
+</style>
+</head>
+
+
+<body>
+
+<header class="header">
+    <div class="brand">
+        <img src="https://pub-b3e2d39712e84119875e84c5ec5f5c09.r2.dev/Logo/IMG-20260816-WA0050(1).jpg" alt="Sunningdale University Logo" class="logo">
+        <div><h1>E-Campus</h1><p>Lecturer Portal</p></div>
+    </div>
+    <a href="lecturer-dashboard.html" class="back-button">← Dashboard</a>
+</header>
+
+
+<main class="container">
+
+    <section class="page-title">
+        <h2>Announcements</h2>
+        <p>Post announcements for students in your own courses.</p>
+    </section>
+
+    <div id="message" class="message"></div>
+
+    <section class="card">
+        <select id="courseSelect"><option value="">Select course</option></select>
+        <input type="text" id="title" placeholder="Announcement title">
+        <textarea id="messageBody" placeholder="Announcement message..."></textarea>
+        <button class="small-button" onclick="postAnnouncement()">Post Announcement</button>
+    </section>
+
+    <section class="card">
+        <h3 style="margin-bottom:14px;">My Announcements</h3>
+        <div id="announcementsList"><p class="empty-note">Select a course to view its announcements.</p></div>
+    </section>
+
+</main>
+
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../supabase-config.js"></script>
+
+
+<script>
+
+const message = document.getElementById("message");
+let lecturerProfileId = null;
+
+function showMessage(text, type) {
+    message.textContent = text;
+    message.className = "message " + type;
+}
+
+function escapeHtml(value) {
+    return String(value ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+}
+
+
+async function startPage() {
+
+    const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
+
+    if (authError || !user) {
+        window.location.href = "lecturer-login.html";
+        return;
+    }
+
+    const { data: lecturerProfile } =
+        await supabaseClient.from("lecturer_profiles").select("id").eq("user_id", user.id).single();
+
+    if (!lecturerProfile) {
+        showMessage("Unable to load your lecturer profile.", "error");
+        return;
+    }
+
+    lecturerProfileId = lecturerProfile.id;
+
+    const { data: assignments } =
+        await supabaseClient
+            .from("course_lecturers")
+            .select("courses ( id, code, name )")
+            .eq("lecturer_id", lecturerProfileId);
+
+    const courses = (assignments || []).map(a => a.courses).filter(Boolean);
+    const select = document.getElementById("courseSelect");
+
+    if (courses.length === 0) {
+        select.innerHTML = `<option value="">No courses assigned</option>`;
+        return;
+    }
+
+    courses.forEach(c => {
+        const option = document.createElement("option");
+        option.value = c.id;
+        option.textContent = `${c.code} — ${c.name}`;
+        select.appendChild(option);
+    });
+
+}
+
+
+document.getElementById("courseSelect").addEventListener("change", loadAnnouncements);
+
+
+async function postAnnouncement() {
+
+    const courseId = document.getElementById("courseSelect").value;
+    const title = document.getElementById("title").value.trim();
+    const messageBody = document.getElementById("messageBody").value.trim();
+
+    if (!courseId || !title || !messageBody) {
+        showMessage("Please select a course and fill in both fields.", "error");
+        return;
+    }
+
+    const { data: { user } } = await supabaseClient.auth.getUser();
+
+    const { error } =
+        await supabaseClient.from("notifications").insert({
+            title: title,
+            message: messageBody,
+            user_id: null,
+            course_id: courseId,
+            posted_by: user.id,
+            type: "announcement"
+        });
+
+    if (error) {
+        showMessage("Unable to post: " + error.message, "error");
+        return;
+    }
+
+    showMessage("Announcement posted.", "success");
+    document.getElementById("title").value = "";
+    document.getElementById("messageBody").value = "";
+    await loadAnnouncements();
+
+}
+
+
+async function loadAnnouncements() {
+
+    const container = document.getElementById("announcementsList");
+    const courseId = document.getElementById("courseSelect").value;
+
+    if (!courseId) {
+        container.innerHTML = `<p class="empty-note">Select a course to view its announcements.</p>`;
+        return;
+    }
+
+    const { data, error } =
+        await supabaseClient
+            .from("notifications")
+            .select("id, title, message, created_at")
+            .eq("course_id", courseId)
+            .order("created_at", { ascending: false });
+
+    if (error || !data || data.length === 0) {
+        container.innerHTML = `<p class="empty-note">No announcements posted for this course yet.</p>`;
+        return;
+    }
+
+    container.innerHTML = data.map(a => `
+        <div class="announcement-item">
+            <div class="title">📢 ${escapeHtml(a.title)}</div>
+            <div>${escapeHtml(a.message)}</div>
+            <div class="meta">${new Date(a.created_at).toLocaleString()}</div>
+            <button class="action-button delete-button" style="margin-top:8px;" onclick="deleteAnnouncement('${a.id}')">Delete</button>
+        </div>
+    `).join("");
+
+}
+
+
+async function deleteAnnouncement(id) {
+
+    const confirmed = confirm("Delete this announcement?");
+    if (!confirmed) return;
+
+    const { error } = await supabaseClient.from("notifications").delete().eq("id", id);
+
+    if (error) {
+        showMessage("Unable to delete: " + error.message, "error");
+        return;
+    }
+
+    showMessage("Deleted.", "success");
+    await loadAnnouncements();
+
+}
+
+
+startPage();
+
+</script>
+
+</body>
+</html>
