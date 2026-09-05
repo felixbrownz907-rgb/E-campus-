@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Announcements | E-Campus Admin</title>
+
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: Arial, Helvetica, sans-serif; background: #f4f6f9; color: #172033; }
+
+.header { background: #111827; color: white; padding: 18px 25px; display: flex; align-items: center; justify-content: space-between; }
+.brand { display: flex; align-items: center; gap: 14px; }
+.logo { width: 58px; height: 58px; object-fit: contain; background: white; border-radius: 8px; }
+.brand h1 { font-size: 24px; }
+.brand p { color: #d4af37; margin-top: 4px; }
+.back-button { background: #d4af37; color: #111827; text-decoration: none; padding: 11px 18px; border-radius: 8px; font-weight: bold; }
+
+.container { max-width: 900px; margin: 30px auto; padding: 0 20px; }
+.page-title { margin-bottom: 25px; }
+.page-title h2 { font-size: 30px; margin-bottom: 7px; }
+.page-title p { color: #6b7280; }
+
+.message { padding: 14px; border-radius: 8px; margin-bottom: 20px; display: none; }
+.message.success { display: block; background: #dcfce7; color: #166534; }
+.message.error { display: block; background: #fee2e2; color: #991b1b; }
+
+.card { background: white; padding: 25px; border-radius: 14px; margin-bottom: 25px; box-shadow: 0 5px 20px rgba(0,0,0,0.07); }
+.card h3 { margin-bottom: 20px; font-size: 22px; }
+
+input, textarea { width: 100%; padding: 13px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 15px; margin-bottom: 14px; }
+textarea { min-height: 90px; resize: vertical; }
+
+.submit-button { background: #d4af37; color: #111827; border: none; padding: 13px 20px; border-radius: 8px; font-weight: bold; cursor: pointer; width: 100%; }
+
+.announcement-item { padding: 14px; background: #f4f6f9; border-radius: 10px; margin-bottom: 10px; }
+.announcement-item .title { font-weight: bold; margin-bottom: 4px; }
+.announcement-item .meta { font-size: 12px; color: #6b7280; margin-top: 6px; }
+
+.action-button { border: none; padding: 7px 11px; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 13px; }
+.delete-button { background: #fee2e2; color: #991b1b; }
+
+.empty-note { color: #9ca3af; text-align: center; padding: 20px 0; }
+</style>
+</head>
+
+
+<body>
+
+<header class="header">
+    <div class="brand">
+        <img src="https://pub-b3e2d39712e84119875e84c5ec5f5c09.r2.dev/Logo/IMG-20260816-WA0050(1).jpg" alt="Sunningdale University Logo" class="logo">
+        <div><h1>E-Campus Administration</h1><p>Sunningdale University</p></div>
+    </div>
+    <a href="admin-dashboard.html" class="back-button">← Admin Dashboard</a>
+</header>
+
+
+<main class="container">
+
+    <section class="page-title">
+        <h2>Announcements</h2>
+        <p>Post university-wide announcements — these appear in the scrolling banner for all students.</p>
+    </section>
+
+    <div id="message" class="message"></div>
+
+    <section class="card">
+        <h3>Post New Announcement</h3>
+        <input type="text" id="title" placeholder="Announcement title" required>
+        <textarea id="messageBody" placeholder="Announcement message..." required></textarea>
+        <button class="submit-button" onclick="postAnnouncement()">Post Announcement</button>
+    </section>
+
+    <section class="card">
+        <h3>All Announcements</h3>
+        <div id="announcementsList"><p class="empty-note">Loading...</p></div>
+    </section>
+
+</main>
+
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../supabase-config.js"></script>
+
+
+<script>
+
+const message = document.getElementById("message");
+
+function showMessage(text, type) {
+    message.textContent = text;
+    message.className = "message " + type;
+}
+
+function escapeHtml(value) {
+    return String(value ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+}
+
+
+async function postAnnouncement() {
+
+    const title = document.getElementById("title").value.trim();
+    const messageBody = document.getElementById("messageBody").value.trim();
+
+    if (!title || !messageBody) {
+        showMessage("Please fill in both the title and message.", "error");
+        return;
+    }
+
+    const { data: { user } } = await supabaseClient.auth.getUser();
+
+    const { error } =
+        await supabaseClient.from("notifications").insert({
+            title: title,
+            message: messageBody,
+            user_id: null,
+            course_id: null,
+            posted_by: user.id,
+            type: "announcement"
+        });
+
+    if (error) {
+        showMessage("Unable to post: " + error.message, "error");
+        return;
+    }
+
+    showMessage("Announcement posted.", "success");
+    document.getElementById("title").value = "";
+    document.getElementById("messageBody").value = "";
+    await loadAnnouncements();
+
+}
+
+
+async function loadAnnouncements() {
+
+    const container = document.getElementById("announcementsList");
+
+    const { data, error } =
+        await supabaseClient
+            .from("notifications")
+            .select("id, title, message, created_at")
+            .is("course_id", null)
+            .order("created_at", { ascending: false })
+            .limit(20);
+
+    if (error || !data || data.length === 0) {
+        container.innerHTML = `<p class="empty-note">No announcements posted yet.</p>`;
+        return;
+    }
+
+    container.innerHTML = data.map(a => `
+        <div class="announcement-item">
+            <div class="title">📢 ${escapeHtml(a.title)}</div>
+            <div>${escapeHtml(a.message)}</div>
+            <div class="meta">${new Date(a.created_at).toLocaleString()}</div>
+            <button class="action-button delete-button" style="margin-top:8px;" onclick="deleteAnnouncement('${a.id}')">Delete</button>
+        </div>
+    `).join("");
+
+}
+
+
+async function deleteAnnouncement(id) {
+
+    const confirmed = confirm("Delete this announcement?");
+    if (!confirmed) return;
+
+    const { error } = await supabaseClient.from("notifications").delete().eq("id", id);
+
+    if (error) {
+        showMessage("Unable to delete: " + error.message, "error");
+        return;
+    }
+
+    showMessage("Deleted.", "success");
+    await loadAnnouncements();
+
+}
+
+
+loadAnnouncements();
+
+</script>
+
+</body>
+</html>
