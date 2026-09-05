@@ -93,6 +93,25 @@ input, select { width: 100%; padding: 13px; border: 1px solid #d1d5db; border-ra
 .total-outstanding-box .label { color: #d4af37; font-size: 13px; }
 .total-outstanding-box .value { font-size: 24px; font-weight: bold; }
 
+.summary-table { width: 100%; border-collapse: collapse; margin-bottom: 16px; }
+.summary-table th, .summary-table td { padding: 12px; text-align: left; border-bottom: 1px solid #e5e7eb; font-size: 14px; }
+.summary-table th { background: #111827; color: white; }
+.summary-table .owed-text { color: #991b1b; font-weight: bold; }
+.summary-table .paid-text { color: #166534; font-weight: bold; }
+
+.grand-total-box {
+    background: linear-gradient(135deg, #111827, #1f2937);
+    color: white;
+    border-radius: 12px;
+    padding: 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.grand-total-box .label { color: #d4af37; font-size: 14px; }
+.grand-total-box .value { font-size: 28px; font-weight: bold; }
+
 .empty-note { color: #9ca3af; text-align: center; padding: 20px 0; }
 </style>
 </head>
@@ -113,24 +132,30 @@ input, select { width: 100%; padding: 13px; border: 1px solid #d1d5db; border-ra
 
     <section class="page-title">
         <h2>Fees Management</h2>
-        <p>Set and record Tuition, Registration, and Exam Fee separately for each student per term.</p>
+        <p>Set and record Tuition, Registration, and Exam Fee separately for each student per term, and see their full-year balance.</p>
     </section>
 
     <div id="message" class="message"></div>
 
     <section class="card">
-        <h3>Select Student & Term</h3>
+        <h3>Select Student</h3>
         <div class="form-grid">
             <div class="form-group">
                 <label for="studentSelect">Student</label>
                 <select id="studentSelect"><option value="">Select student</option></select>
             </div>
             <div class="form-group">
-                <label for="termSelect">Academic Term</label>
+                <label for="termSelect">Academic Term (for editing fees below)</label>
                 <select id="termSelect"><option value="">Select term</option></select>
             </div>
         </div>
-        <button class="submit-button" onclick="loadAllCategories()">Load Fee Record</button>
+        <button class="submit-button" onclick="loadFullStudentView()">Load Student Fees</button>
+    </section>
+
+    <section class="card" id="fullSummaryCard" style="display:none;">
+        <h3>Full Academic Year Summary</h3>
+        <div class="sub">Outstanding balance across every term this student has fee records for.</div>
+        <div id="fullSummaryContainer"></div>
     </section>
 
     <div id="categoriesContainer"></div>
@@ -193,13 +218,126 @@ async function startPage() {
 }
 
 
+async function loadFullStudentView() {
+
+    const studentId = document.getElementById("studentSelect").value;
+
+    if (!studentId) {
+        showMessage("Please select a student.", "error");
+        return;
+    }
+
+    await loadFullYearSummary(studentId);
+    await loadAllCategories();
+
+}
+
+
+/* ================= FULL ACADEMIC YEAR SUMMARY (all terms) ================= */
+
+async function loadFullYearSummary(studentId) {
+
+    const summaryCard = document.getElementById("fullSummaryCard");
+    const container = document.getElementById("fullSummaryContainer");
+
+    summaryCard.style.display = "block";
+    container.innerHTML = `<p class="empty-note">Loading...</p>`;
+
+    const { data: allFees, error } =
+        await supabaseClient
+            .from("student_term_fees")
+            .select(`
+                id, total_fee, fee_type,
+                academic_terms ( id, name )
+            `)
+            .eq("student_id", studentId);
+
+    if (error || !allFees || allFees.length === 0) {
+        container.innerHTML = `<p class="empty-note">No fee records exist yet for this student in any term.</p>`;
+        return;
+    }
+
+    const groupedByTerm = {};
+    allFees.forEach(f => {
+        const termName = f.academic_terms?.name || "Unknown Term";
+        if (!groupedByTerm[termName]) groupedByTerm[termName] = [];
+        groupedByTerm[termName].push(f);
+    });
+
+    let grandTotalFee = 0;
+    let grandTotalPaid = 0;
+    let grandTotalOutstanding = 0;
+
+    let rowsHtml = "";
+
+    for (const termName of Object.keys(groupedByTerm)) {
+
+        const termFees = groupedByTerm[termName];
+        let termTotalFee = 0;
+        let termTotalPaid = 0;
+
+        for (const fee of termFees) {
+
+            const { data: payments } =
+                await supabaseClient.from("fee_payments").select("amount").eq("student_fee_id", fee.id);
+
+            const paidForThis = (payments || []).reduce((sum, p) => sum + Number(p.amount), 0);
+
+            termTotalFee += Number(fee.total_fee);
+            termTotalPaid += paidForThis;
+
+        }
+
+        const termBalance = termTotalFee - termTotalPaid;
+
+        grandTotalFee += termTotalFee;
+        grandTotalPaid += termTotalPaid;
+        grandTotalOutstanding += termBalance > 0 ? termBalance : 0;
+
+        rowsHtml += `
+            <tr>
+                <td>${escapeHtml(termName)}</td>
+                <td>K${termTotalFee}</td>
+                <td class="paid-text">K${termTotalPaid}</td>
+                <td class="${termBalance > 0 ? "owed-text" : "paid-text"}">K${termBalance > 0 ? termBalance : 0}</td>
+            </tr>
+        `;
+
+    }
+
+    container.innerHTML = `
+        <table class="summary-table">
+            <thead>
+                <tr>
+                    <th>Term</th>
+                    <th>Total Fee</th>
+                    <th>Paid</th>
+                    <th>Balance</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${rowsHtml}
+            </tbody>
+        </table>
+
+        <div class="grand-total-box">
+            <span class="label">Total Outstanding Balance — Whole Academic Year</span>
+            <span class="value">K${grandTotalOutstanding}</span>
+        </div>
+    `;
+
+}
+
+
+/* ================= PER-TERM CATEGORY EDITING ================= */
+
 async function loadAllCategories() {
 
     const studentId = document.getElementById("studentSelect").value;
     const termId = document.getElementById("termSelect").value;
 
     if (!studentId || !termId) {
-        showMessage("Please select both a student and a term.", "error");
+        document.getElementById("categoriesContainer").innerHTML = "";
         return;
     }
 
@@ -237,7 +375,7 @@ async function loadAllCategories() {
         card.className = "card category-card";
 
         card.innerHTML = `
-            <div class="category-title">${category}</div>
+            <div class="category-title">${category} — This Term</div>
 
             <div class="category-fields">
                 <input type="number" id="totalFee-${category}" placeholder="Total ${category} Fee (K)" value="${feeRecord ? feeRecord.total_fee : ""}">
@@ -284,7 +422,7 @@ async function loadAllCategories() {
     const totalBox = document.createElement("div");
     totalBox.className = "card total-outstanding-box";
     totalBox.innerHTML = `
-        <span class="label">Total Outstanding Balance (All Categories)</span>
+        <span class="label">Outstanding Balance — This Term Only</span>
         <span class="value">K${totalOutstanding}</span>
     `;
     container.appendChild(totalBox);
@@ -324,7 +462,7 @@ async function saveCategory(studentId, termId, category, existingId) {
     }
 
     showMessage(`${category} fee saved.`, "success");
-    await loadAllCategories();
+    await loadFullStudentView();
 
 }
 
@@ -355,7 +493,7 @@ async function recordPayment(feeId, category, studentId, termId) {
     }
 
     showMessage(`${category} payment recorded.`, "success");
-    await loadAllCategories();
+    await loadFullStudentView();
 
 }
 
