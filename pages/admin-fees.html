@@ -113,7 +113,7 @@ input, select { width: 100%; padding: 13px; border: 1px solid #d1d5db; border-ra
 
     <section class="page-title">
         <h2>Fees Management</h2>
-        <p>Set and record Tuition, Registration, and Exam Fee separately for each student, per term.</p>
+        <p>Set and record Tuition, Registration, Exam Fee, and Exemption Fee separately for each student, per term.</p>
     </section>
 
     <div id="message" class="message"></div>
@@ -144,7 +144,7 @@ input, select { width: 100%; padding: 13px; border: 1px solid #d1d5db; border-ra
 
 <script>
 
-const FEE_CATEGORIES = ["Tuition", "Registration", "Exam Fee"];
+const FEE_CATEGORIES = ["Tuition", "Registration", "Exam Fee", "Exemption Fee"];
 const message = document.getElementById("message");
 
 function showMessage(text, type) {
@@ -240,11 +240,11 @@ async function loadAllCategories() {
             <div class="category-title">${category}</div>
 
             <div class="category-fields">
-                <input type="number" id="totalFee-${category}" placeholder="Total ${category} Fee (K)" value="${feeRecord ? feeRecord.total_fee : ""}">
+                <input type="number" id="totalFee-${category}" placeholder="Total ${category} (K)" value="${feeRecord ? feeRecord.total_fee : ""}">
                 <input type="date" id="dueDate-${category}" value="${feeRecord ? (feeRecord.due_date || "") : ""}">
             </div>
 
-            <button class="mini-button" onclick="saveCategory('${studentId}', '${termId}', '${category}', '${feeRecord ? feeRecord.id : ""}')">Save ${category} Fee</button>
+            <button class="mini-button" onclick="saveCategory('${studentId}', '${termId}', '${category}', '${feeRecord ? feeRecord.id : ""}')">Save ${category}</button>
 
             <div class="category-summary">
                 Paid: <span class="paid">K${totalPaid}</span> &nbsp;|&nbsp;
@@ -298,7 +298,7 @@ async function saveCategory(studentId, termId, category, existingId) {
     const dueDate = document.getElementById(`dueDate-${category}`).value;
 
     if (!totalFee) {
-        showMessage(`Please enter the ${category} fee amount.`, "error");
+        showMessage(`Please enter the ${category} amount.`, "error");
         return;
     }
 
@@ -323,7 +323,7 @@ async function saveCategory(studentId, termId, category, existingId) {
         return;
     }
 
-    showMessage(`${category} fee saved.`, "success");
+    showMessage(`${category} saved.`, "success");
     await loadAllCategories();
 
 }
