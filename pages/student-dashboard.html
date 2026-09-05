@@ -45,6 +45,32 @@ body {
     cursor: pointer;
 }
 
+/* ===== SCROLLING ANNOUNCEMENT TICKER ===== */
+
+.ticker-wrap {
+    background: #d4af37;
+    color: #111827;
+    overflow: hidden;
+    white-space: nowrap;
+    padding: 10px 0;
+    display: none;
+}
+
+.ticker-move {
+    display: inline-block;
+    padding-left: 100%;
+    animation: tickerScroll 30s linear infinite;
+    font-weight: bold;
+    font-size: 14px;
+}
+
+.ticker-move span { margin-right: 60px; }
+
+@keyframes tickerScroll {
+    0% { transform: translateX(0); }
+    100% { transform: translateX(-100%); }
+}
+
 .container { max-width: 1300px; margin: 25px auto; padding: 0 20px; }
 
 .welcome-card {
@@ -85,6 +111,18 @@ body {
 }
 
 .card h3 { font-size: 19px; margin-bottom: 16px; }
+
+.today-lesson-item {
+    padding: 16px;
+    border: 1px solid #bfdbfe;
+    background: #eff6ff;
+    border-radius: 10px;
+    margin-bottom: 12px;
+}
+
+.today-lesson-item .course-tag { color: #1d4ed8; font-size: 12px; font-weight: bold; }
+.today-lesson-item h4 { font-size: 15px; margin: 4px 0 8px; }
+.today-lesson-item .topic-note { font-size: 13px; color: #374151; margin-bottom: 10px; }
 
 .course-item {
     padding: 15px;
@@ -229,6 +267,10 @@ body {
 
 <body>
 
+<div class="ticker-wrap" id="tickerWrap">
+    <div class="ticker-move" id="tickerMove"></div>
+</div>
+
 <header class="header">
     <div class="brand">
         <img src="https://pub-b3e2d39712e84119875e84c5ec5f5c09.r2.dev/Logo/IMG-20260816-WA0050(1).jpg" alt="Sunningdale University Logo" class="logo">
@@ -267,6 +309,12 @@ body {
 
 
     <section class="card">
+        <h3>📅 Today's Lesson</h3>
+        <div id="todayLessonContainer"><p class="empty-note">Loading...</p></div>
+    </section>
+
+
+    <section class="card">
         <h3>My Learning</h3>
         <div id="myLearningList"><p class="empty-note">Loading...</p></div>
     </section>
@@ -279,6 +327,7 @@ body {
             <a href="student-courses.html" class="quick-action">▶ Continue Learning</a>
             <a href="student-assignments.html" class="quick-action">📝 Complete Assignment</a>
             <a href="student-quizzes.html" class="quick-action">🎯 Take Quiz</a>
+            <a href="student-timetable.html" class="quick-action">🗓️ My Timetable</a>
         </div>
     </section>
 
@@ -351,6 +400,7 @@ body {
             <a href="student-ca-record.html" class="service-link">📊 My CA Record</a>
             <a href="acceptance-letter.html" class="service-link">🎓 Acceptance Letter</a>
             <a href="student-attendance.html" class="service-link">📅 My Attendance</a>
+            <a href="student-timetable.html" class="service-link">🗓️ My Timetable</a>
             <a href="#" class="service-link">🎓 Certificates</a>
             <a href="#" class="service-link">💳 Fees & Payments</a>
             <a href="#" class="service-link">📅 Academic Calendar</a>
@@ -378,6 +428,8 @@ body {
 
 
 <script>
+
+const WEEKDAY_NAMES = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
 function escapeHtml(value) {
     return String(value ?? "")
@@ -441,7 +493,7 @@ async function startDashboard() {
             .from("enrollments")
             .select(`
                 id, status, final_score, final_grade,
-                courses ( id, code, name, credits )
+                courses ( id, code, name, credits, class_days )
             `)
             .eq("student_id", studentProfile.id)
             .eq("status", "enrolled");
@@ -506,6 +558,55 @@ async function startDashboard() {
     document.getElementById("statProgress").textContent = overallProgress + "%";
     document.getElementById("perfProgress").textContent = overallProgress + "%";
     document.getElementById("statCompletedLessons").textContent = completedLessonIds.size;
+
+
+    // ===== TODAY'S LESSON WIDGET =====
+
+    const moduleToCourse = {};
+    modules.forEach(m => moduleToCourse[m.id] = m.course_id);
+
+    const lessonsByCourse = {};
+    lessons.forEach(l => {
+        const courseId = moduleToCourse[l.module_id];
+        if (!lessonsByCourse[courseId]) lessonsByCourse[courseId] = [];
+        lessonsByCourse[courseId].push(l);
+    });
+
+    Object.keys(lessonsByCourse).forEach(cid => {
+        lessonsByCourse[cid].sort((a, b) => a.lesson_number - b.lesson_number);
+    });
+
+    const todayWeekday = WEEKDAY_NAMES[new Date().getDay()];
+    const coursesWithClassToday = enrolledCourses.filter(c => c.class_days && c.class_days.includes(todayWeekday));
+
+    const todayLessonContainer = document.getElementById("todayLessonContainer");
+
+    if (coursesWithClassToday.length === 0) {
+        todayLessonContainer.innerHTML = `<p class="empty-note">No courses have a scheduled class today (${todayWeekday}).</p>`;
+    } else {
+
+        todayLessonContainer.innerHTML = coursesWithClassToday.map(course => {
+
+            const courseLessons = lessonsByCourse[course.id] || [];
+            const nextTopic = courseLessons.find(l => !completedLessonIds.has(l.id));
+
+            return `
+                <div class="today-lesson-item">
+                    <div class="course-tag">${escapeHtml(course.code)}</div>
+                    <h4>${escapeHtml(course.name)} — Class scheduled today</h4>
+                    <div class="topic-note">
+                        ${nextTopic
+                            ? `Next Topic to complete: <strong>Topic ${nextTopic.lesson_number} — ${escapeHtml(nextTopic.title)}</strong>`
+                            : `You've completed all available Topics in this course so far.`
+                        }
+                    </div>
+                    <a href="student-courses.html" class="small-button">Open Course</a>
+                </div>
+            `;
+
+        }).join("");
+
+    }
 
 
     // ===== ASSIGNMENTS + SUBMISSIONS =====
@@ -645,16 +746,6 @@ async function startDashboard() {
 
     // ===== MY LEARNING + MY COURSES =====
 
-    const moduleToCourse = {};
-    modules.forEach(m => moduleToCourse[m.id] = m.course_id);
-
-    const lessonsByCourse = {};
-    lessons.forEach(l => {
-        const courseId = moduleToCourse[l.module_id];
-        if (!lessonsByCourse[courseId]) lessonsByCourse[courseId] = [];
-        lessonsByCourse[courseId].push(l);
-    });
-
     const myLearningList = document.getElementById("myLearningList");
     const myCoursesList = document.getElementById("myCoursesList");
     const selector = document.getElementById("courseStructureSelector");
@@ -749,15 +840,20 @@ async function startDashboard() {
     }
 
 
-    // ===== ANNOUNCEMENTS =====
+    // ===== ANNOUNCEMENTS (list) + TICKER (scrolling banner) =====
+
+    const orConditions = [`user_id.eq.${user.id}`, `course_id.is.null`];
+    if (courseIds.length > 0) {
+        orConditions.push(`course_id.in.(${courseIds.join(",")})`);
+    }
 
     const { data: announcements } =
         await supabaseClient
             .from("notifications")
             .select("id, title, message, created_at")
-            .or(`user_id.eq.${user.id},user_id.is.null`)
+            .or(orConditions.join(","))
             .order("created_at", { ascending: false })
-            .limit(5);
+            .limit(10);
 
     const announcementsList = document.getElementById("announcementsList");
     if (!announcements || announcements.length === 0) {
@@ -769,6 +865,19 @@ async function startDashboard() {
                 <span style="color:#9ca3af; font-size:12px;">${new Date(a.created_at).toLocaleDateString()}</span>
             </div>
         `).join("");
+    }
+
+    if (announcements && announcements.length > 0) {
+
+        const tickerWrap = document.getElementById("tickerWrap");
+        const tickerMove = document.getElementById("tickerMove");
+
+        tickerMove.innerHTML = announcements.map(a =>
+            `<span>📢 ${escapeHtml(a.title)}: ${escapeHtml(a.message)}</span>`
+        ).join("");
+
+        tickerWrap.style.display = "block";
+
     }
 
 }
