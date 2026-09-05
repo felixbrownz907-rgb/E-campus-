@@ -20,8 +20,6 @@
             color: #172033;
         }
 
-        /* ================= HEADER ================= */
-
         .header {
             background: #111827;
             color: white;
@@ -69,8 +67,6 @@
             background: #c29d24;
         }
 
-        /* ================= CONTAINER ================= */
-
         .container {
             max-width: 1200px;
             margin: 30px auto;
@@ -90,8 +86,6 @@
             color: #6b7280;
         }
 
-        /* ================= MESSAGE ================= */
-
         .message {
             display: none;
             padding: 14px;
@@ -110,8 +104,6 @@
             background: #dcfce7;
             color: #166534;
         }
-
-        /* ================= STATISTICS ================= */
 
         .stats {
             display: grid;
@@ -142,8 +134,6 @@
         .stat-card p {
             color: #6b7280;
         }
-
-        /* ================= MANAGEMENT ================= */
 
         .section-title {
             margin-bottom: 18px;
@@ -197,8 +187,6 @@
             background: #c29d24;
         }
 
-        /* ================= MOBILE ================= */
-
         @media (max-width: 900px) {
 
             .stats {
@@ -237,8 +225,6 @@
 
 <body>
 
-    <!-- ================= HEADER ================= -->
-
     <header class="header">
 
         <div class="brand">
@@ -274,12 +260,8 @@
     </header>
 
 
-    <!-- ================= MAIN ================= -->
-
     <main class="container">
 
-
-        <!-- WELCOME -->
 
         <section class="welcome">
 
@@ -301,12 +283,8 @@
         ></div>
 
 
-        <!-- ================= STATISTICS ================= -->
-
         <section class="stats">
 
-
-            <!-- PROGRAMMES -->
 
             <div class="stat-card">
 
@@ -325,8 +303,6 @@
             </div>
 
 
-            <!-- COURSES -->
-
             <div class="stat-card">
 
                 <div class="icon">
@@ -344,8 +320,6 @@
             </div>
 
 
-            <!-- STUDENTS -->
-
             <div class="stat-card">
 
                 <div class="icon">
@@ -362,8 +336,6 @@
 
             </div>
 
-
-            <!-- LECTURERS -->
 
             <div class="stat-card">
 
@@ -385,8 +357,6 @@
         </section>
 
 
-        <!-- ================= MANAGEMENT ================= -->
-
         <h2 class="section-title">
             Academic Management
         </h2>
@@ -394,8 +364,6 @@
 
         <section class="management-grid">
 
-
-            <!-- PROGRAMMES -->
 
             <div class="management-card">
 
@@ -419,8 +387,6 @@
             </div>
 
 
-            <!-- COURSES -->
-
             <div class="management-card">
 
                 <div class="icon">
@@ -442,8 +408,6 @@
 
             </div>
 
-
-            <!-- COURSE MODULES -->
 
             <div class="management-card">
 
@@ -467,8 +431,6 @@
             </div>
 
 
-            <!-- ================= LECTURE MANAGEMENT ================= -->
-
             <div class="management-card">
 
                 <div class="icon">
@@ -490,8 +452,6 @@
 
             </div>
 
-
-            <!-- STUDENTS -->
 
             <div class="management-card">
 
@@ -515,8 +475,6 @@
             </div>
 
 
-            <!-- LECTURERS -->
-
             <div class="management-card">
 
                 <div class="icon">
@@ -538,8 +496,6 @@
 
             </div>
 
-
-            <!-- ENROLLMENTS -->
 
             <div class="management-card">
 
@@ -563,8 +519,6 @@
             </div>
 
 
-            <!-- ACADEMIC TERMS -->
-
             <div class="management-card">
 
                 <div class="icon">
@@ -586,8 +540,6 @@
 
             </div>
 
-
-            <!-- CAMPUSES -->
 
             <div class="management-card">
 
@@ -611,8 +563,6 @@
             </div>
 
 
-            <!-- DEPARTMENTS -->
-
             <div class="management-card">
 
                 <div class="icon">
@@ -634,8 +584,6 @@
 
             </div>
 
-
-            <!-- ANNOUNCEMENTS -->
 
             <div class="management-card">
 
@@ -659,26 +607,40 @@
             </div>
 
 
+            <div class="management-card">
+
+                <div class="icon">
+                    💳
+                </div>
+
+                <h3>
+                    Fees Management
+                </h3>
+
+                <p>
+                    Set student fees per term
+                    and record payments.
+                </p>
+
+                <a href="admin-fees.html">
+                    Manage Fees
+                </a>
+
+            </div>
+
+
         </section>
 
     </main>
 
-
-    <!-- ================= SUPABASE ================= -->
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
     <script src="../supabase-config.js"></script>
 
 
-    <!-- ================= DASHBOARD JAVASCRIPT ================= -->
-
     <script>
 
-
-        /*
-         * LOAD TABLE COUNT
-         */
 
         async function loadCount(
             table,
@@ -726,10 +688,6 @@
         }
 
 
-        /*
-         * LOAD DASHBOARD
-         */
-
         async function loadDashboard() {
 
             await Promise.all([
@@ -759,10 +717,6 @@
         }
 
 
-        /*
-         * LOGOUT
-         */
-
         document
             .getElementById("logoutButton")
             .addEventListener(
@@ -790,10 +744,6 @@
                 }
             );
 
-
-        /*
-         * START DASHBOARD
-         */
 
         loadDashboard();
 
