@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fees Management | E-Campus</title>
+
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: Arial, Helvetica, sans-serif; background: #f4f6f9; color: #172033; }
+
+.header { background: #111827; color: white; padding: 18px 25px; display: flex; align-items: center; justify-content: space-between; }
+.brand { display: flex; align-items: center; gap: 14px; }
+.logo { width: 58px; height: 58px; object-fit: contain; background: white; border-radius: 8px; }
+.brand h1 { font-size: 24px; }
+.brand p { color: #d4af37; margin-top: 4px; }
+.back-button { background: #d4af37; color: #111827; text-decoration: none; padding: 11px 18px; border-radius: 8px; font-weight: bold; }
+
+.container { max-width: 1000px; margin: 30px auto; padding: 0 20px; }
+.page-title { margin-bottom: 25px; }
+.page-title h2 { font-size: 30px; margin-bottom: 7px; }
+.page-title p { color: #6b7280; }
+
+.message { padding: 14px; border-radius: 8px; margin-bottom: 20px; display: none; }
+.message.success { display: block; background: #dcfce7; color: #166534; }
+.message.error { display: block; background: #fee2e2; color: #991b1b; }
+
+.card { background: white; padding: 25px; border-radius: 14px; margin-bottom: 25px; box-shadow: 0 5px 20px rgba(0,0,0,0.07); }
+.card h3 { margin-bottom: 6px; font-size: 22px; }
+.card .sub { color: #6b7280; font-size: 13px; margin-bottom: 18px; }
+
+.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+.form-group { display: flex; flex-direction: column; }
+.form-group.full { grid-column: 1 / -1; }
+label { font-weight: bold; margin-bottom: 7px; }
+
+input, select { width: 100%; padding: 13px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 15px; }
+
+.submit-button { margin-top: 20px; background: #d4af37; color: #111827; border: none; padding: 13px 20px; border-radius: 8px; font-weight: bold; cursor: pointer; width: 100%; }
+
+.fee-summary {
+    background: #f9fafb;
+    border-radius: 10px;
+    padding: 16px;
+    margin-top: 16px;
+    display: none;
+}
+
+.fee-summary-row { display: flex; justify-content: space-between; padding: 6px 0; font-size: 14px; }
+.fee-summary-row.balance { font-weight: bold; font-size: 16px; padding-top: 10px; border-top: 1px solid #e5e7eb; margin-top: 6px; }
+.balance-owed { color: #991b1b; }
+.balance-paid { color: #166534; }
+
+.payment-item { display: flex; justify-content: space-between; padding: 10px; background: white; border-radius: 8px; margin-bottom: 6px; font-size: 13px; border: 1px solid #e5e7eb; }
+
+.empty-note { color: #9ca3af; text-align: center; padding: 20px 0; }
+</style>
+</head>
+
+
+<body>
+
+<header class="header">
+    <div class="brand">
+        <img src="https://pub-b3e2d39712e84119875e84c5ec5f5c09.r2.dev/Logo/IMG-20260816-WA0050(1).jpg" alt="Sunningdale University Logo" class="logo">
+        <div><h1>E-Campus Administration</h1><p>Sunningdale University</p></div>
+    </div>
+    <a href="admin-dashboard.html" class="back-button">← Admin Dashboard</a>
+</header>
+
+
+<main class="container">
+
+    <section class="page-title">
+        <h2>Fees Management</h2>
+        <p>Set each student's fee per term, record payments, and track their balance.</p>
+    </section>
+
+    <div id="message" class="message"></div>
+
+    <section class="card">
+        <h3>1. Select Student & Term</h3>
+        <div class="sub">Search by student number or name to load their fee record for a term.</div>
+
+        <div class="form-grid">
+            <div class="form-group full">
+                <label for="studentSelect">Student</label>
+                <select id="studentSelect"><option value="">Select student</option></select>
+            </div>
+            <div class="form-group full">
+                <label for="termSelect">Academic Term</label>
+                <select id="termSelect"><option value="">Select term</option></select>
+            </div>
+        </div>
+
+        <button class="submit-button" onclick="loadFeeRecord()">Load Fee Record</button>
+
+        <div class="fee-summary" id="feeSummary"></div>
+    </section>
+
+    <section class="card" id="setFeeCard" style="display:none;">
+        <h3>2. Set Total Fee & Due Date</h3>
+        <div class="form-grid">
+            <div class="form-group">
+                <label for="totalFee">Total Fee Due (K)</label>
+                <input type="number" id="totalFee" min="0">
+            </div>
+            <div class="form-group">
+                <label for="dueDate">Due Date</label>
+                <input type="date" id="dueDate">
+            </div>
+        </div>
+        <button class="submit-button" onclick="saveFeeRecord()">Save Fee Record</button>
+    </section>
+
+    <section class="card" id="paymentCard" style="display:none;">
+        <h3>3. Record a Payment</h3>
+        <div class="form-grid">
+            <div class="form-group">
+                <label for="paymentAmount">Amount (K)</label>
+                <input type="number" id="paymentAmount" min="0">
+            </div>
+            <div class="form-group">
+                <label for="paymentMethod">Payment Method</label>
+                <select id="paymentMethod">
+                    <option value="Cash">Cash</option>
+                    <option value="Mobile Money">Mobile Money</option>
+                    <option value="Bank Deposit">Bank Deposit</option>
+                    <option value="Other">Other</option>
+                </select>
+            </div>
+            <div class="form-group full">
+                <label for="paymentNotes">Notes (optional)</label>
+                <input type="text" id="paymentNotes" placeholder="e.g. Reference number">
+            </div>
+        </div>
+        <button class="submit-button" onclick="recordPayment()">Record Payment</button>
+
+        <div style="margin-top:20px;">
+            <div class="sub" style="margin-bottom:10px;">Payment History</div>
+            <div id="paymentHistory"><p class="empty-note">No payments recorded yet.</p></div>
+        </div>
+    </section>
+
+</main>
+
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../supabase-config.js"></script>
+
+
+<script>
+
+const message = document.getElementById("message");
+let currentStudentFeeId = null;
+
+function showMessage(text, type) {
+    message.textContent = text;
+    message.className = "message " + type;
+}
+
+function escapeHtml(value) {
+    return String(value ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+}
+
+
+async function startPage() {
+
+    const studentSelect = document.getElementById("studentSelect");
+    const { data: students } =
+        await supabaseClient
+            .from("student_profiles")
+            .select("id, student_number, user_profiles ( first_name, last_name )")
+            .order("student_number");
+
+    (students || []).forEach(s => {
+        const name = s.user_profiles ? `${s.user_profiles.first_name} ${s.user_profiles.last_name}` : "Unknown";
+        const option = document.createElement("option");
+        option.value = s.id;
+        option.textContent = `${s.student_number} — ${name}`;
+        studentSelect.appendChild(option);
+    });
+
+    const termSelect = document.getElementById("termSelect");
+    const { data: terms } =
+        await supabaseClient.from("academic_terms").select("id, name").order("created_at", { ascending: false });
+
+    (terms || []).forEach(t => {
+        const option = document.createElement("option");
+        option.value = t.id;
+        option.textContent = t.name;
+        termSelect.appendChild(option);
+    });
+
+}
+
+
+async function loadFeeRecord() {
+
+    const studentId = document.getElementById("studentSelect").value;
+    const termId = document.getElementById("termSelect").value;
+
+    if (!studentId || !termId) {
+        showMessage("Please select both a student and a term.", "error");
+        return;
+    }
+
+    const { data: feeRecord, error } =
+        await supabaseClient
+            .from("student_term_fees")
+            .select("*")
+            .eq("student_id", studentId)
+            .eq("academic_term_id", termId)
+            .maybeSingle();
+
+    document.getElementById("setFeeCard").style.display = "block";
+
+    if (feeRecord) {
+
+        currentStudentFeeId = feeRecord.id;
+        document.getElementById("totalFee").value = feeRecord.total_fee;
+        document.getElementById("dueDate").value = feeRecord.due_date || "";
+        document.getElementById("paymentCard").style.display = "block";
+        await loadPayments();
+        await renderSummary(feeRecord);
+
+    } else {
+
+        currentStudentFeeId = null;
+        document.getElementById("totalFee").value = "";
+        document.getElementById("dueDate").value = "";
+        document.getElementById("paymentCard").style.display = "none";
+        document.getElementById("feeSummary").style.display = "none";
+        showMessage("No fee record exists yet for this student/term. Set one below.", "success");
+
+    }
+
+}
+
+
+async function saveFeeRecord() {
+
+    const studentId = document.getElementById("studentSelect").value;
+    const termId = document.getElementById("termSelect").value;
+    const totalFee = document.getElementById("totalFee").value;
+    const dueDate = document.getElementById("dueDate").value;
+
+    if (!totalFee || !dueDate) {
+        showMessage("Please enter both the total fee and due date.", "error");
+        return;
+    }
+
+    const payload = {
+        student_id: studentId,
+        academic_term_id: termId,
+        total_fee: Number(totalFee),
+        due_date: dueDate
+    };
+
+    let result;
+
+    if (currentStudentFeeId) {
+        result = await supabaseClient.from("student_term_fees").update(payload).eq("id", currentStudentFeeId);
+    } else {
+        result = await supabaseClient.from("student_term_fees").insert(payload).select().single();
+    }
+
+    if (result.error) {
+        showMessage("Unable to save: " + result.error.message, "error");
+        return;
+    }
+
+    if (!currentStudentFeeId && result.data) {
+        currentStudentFeeId = result.data.id;
+    }
+
+    showMessage("Fee record saved.", "success");
+    document.getElementById("paymentCard").style.display = "block";
+    await loadFeeRecord();
+
+}
+
+
+async function recordPayment() {
+
+    if (!currentStudentFeeId) {
+        showMessage("Please save the fee record first.", "error");
+        return;
+    }
+
+    const amount = document.getElementById("paymentAmount").value;
+    const method = document.getElementById("paymentMethod").value;
+    const notes = document.getElementById("paymentNotes").value.trim();
+
+    if (!amount) {
+        showMessage("Please enter a payment amount.", "error");
+        return;
+    }
+
+    const { data: { user } } = await supabaseClient.auth.getUser();
+
+    const { error } =
+        await supabaseClient.from("fee_payments").insert({
+            student_fee_id: currentStudentFeeId,
+            amount: Number(amount),
+            payment_method: method,
+            notes: notes || null,
+            recorded_by: user.id
+        });
+
+    if (error) {
+        showMessage("Unable to record payment: " + error.message, "error");
+        return;
+    }
+
+    showMessage("Payment recorded.", "success");
+    document.getElementById("paymentAmount").value = "";
+    document.getElementById("paymentNotes").value = "";
+    await loadPayments();
+    await loadFeeRecord();
+
+}
+
+
+async function loadPayments() {
+
+    const container = document.getElementById("paymentHistory");
+
+    const { data, error } =
+        await supabaseClient
+            .from("fee_payments")
+            .select("amount, payment_date, payment_method, notes")
+            .eq("student_fee_id", currentStudentFeeId)
+            .order("payment_date", { ascending: false });
+
+    if (error || !data || data.length === 0) {
+        container.innerHTML = `<p class="empty-note">No payments recorded yet.</p>`;
+        return;
+    }
+
+    container.innerHTML = data.map(p => `
+        <div class="payment-item">
+            <span>K${p.amount} — ${escapeHtml(p.payment_method || "-")} ${p.notes ? "(" + escapeHtml(p.notes) + ")" : ""}</span>
+            <span>${new Date(p.payment_date).toLocaleDateString()}</span>
+        </div>
+    `).join("");
+
+}
+
+
+async function renderSummary(feeRecord) {
+
+    const { data: payments } =
+        await supabaseClient.from("fee_payments").select("amount").eq("student_fee_id", feeRecord.id);
+
+    const totalPaid = (payments || []).reduce((sum, p) => sum + Number(p.amount), 0);
+    const balance = feeRecord.total_fee - totalPaid;
+
+    const summaryDiv = document.getElementById("feeSummary");
+    summaryDiv.style.display = "block";
+
+    summaryDiv.innerHTML = `
+        <div class="fee-summary-row"><span>Total Fee Due</span><span>K${feeRecord.total_fee}</span></div>
+        <div class="fee-summary-row"><span>Total Paid</span><span class="balance-paid">K${totalPaid}</span></div>
+        <div class="fee-summary-row balance"><span>Remaining Balance</span><span class="${balance > 0 ? "balance-owed" : "balance-paid"}">K${balance}</span></div>
+        <div class="fee-summary-row"><span>Due Date</span><span>${feeRecord.due_date ? new Date(feeRecord.due_date).toLocaleDateString() : "-"}</span></div>
+    `;
+
+}
+
+
+startPage();
+
+</script>
+
+</body>
+</html>
