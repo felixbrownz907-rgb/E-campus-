@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>My Timetable | E-Campus</title>
+
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: Arial, Helvetica, sans-serif; background: #f4f6f9; color: #172033; }
+
+.header { background: #111827; color: white; padding: 18px 25px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+.brand { display: flex; align-items: center; gap: 14px; }
+.logo { width: 55px; height: 55px; object-fit: contain; background: white; border-radius: 8px; }
+.brand h1 { font-size: 22px; }
+.brand p { color: #d4af37; margin-top: 3px; font-size: 13px; }
+.back-button { background: #d4af37; color: #111827; text-decoration: none; padding: 10px 16px; border-radius: 8px; font-weight: bold; font-size: 13px; }
+
+.container { max-width: 1000px; margin: 25px auto; padding: 0 20px; }
+.page-title { margin-bottom: 20px; }
+.page-title h2 { font-size: 28px; margin-bottom: 6px; }
+.page-title p { color: #6b7280; }
+
+.week-grid {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.day-column {
+    background: white;
+    border-radius: 12px;
+    padding: 14px 10px;
+    box-shadow: 0 3px 12px rgba(0,0,0,0.06);
+    min-height: 140px;
+}
+
+.day-column.today { border: 2px solid #d4af37; }
+
+.day-heading { font-weight: bold; font-size: 13px; text-align: center; margin-bottom: 10px; color: #374151; }
+.day-heading.today-label { color: #b58b17; }
+
+.day-course-pill {
+    background: #f4f6f9;
+    border-radius: 8px;
+    padding: 8px;
+    margin-bottom: 6px;
+    font-size: 11px;
+    text-align: center;
+    font-weight: bold;
+}
+
+.day-empty { color: #d1d5db; text-align: center; font-size: 12px; margin-top: 20px; }
+
+.list-card { background: white; border-radius: 14px; padding: 20px; box-shadow: 0 3px 12px rgba(0,0,0,0.06); }
+.list-card h3 { margin-bottom: 14px; font-size: 17px; }
+
+.course-row { display: flex; justify-content: space-between; align-items: center; padding: 12px; border: 1px solid #e5e7eb; border-radius: 10px; margin-bottom: 10px; flex-wrap: wrap; gap: 8px; }
+.course-row .code { color: #d4af37; font-weight: bold; font-size: 12px; }
+.course-row .name { font-weight: bold; font-size: 14px; }
+.course-row .days { font-size: 13px; color: #374151; }
+
+.empty-note { color: #9ca3af; text-align: center; padding: 30px 0; }
+
+@media (max-width: 700px) {
+    .week-grid { grid-template-columns: repeat(3, 1fr); }
+}
+
+@media (max-width: 450px) {
+    .week-grid { grid-template-columns: repeat(2, 1fr); }
+}
+</style>
+</head>
+
+
+<body>
+
+<header class="header">
+    <div class="brand">
+        <img src="https://pub-b3e2d39712e84119875e84c5ec5f5c09.r2.dev/Logo/IMG-20260816-WA0050(1).jpg" alt="Sunningdale University Logo" class="logo">
+        <div>
+            <h1>E-Campus</h1>
+            <p>Sunningdale University</p>
+        </div>
+    </div>
+    <a href="student-dashboard.html" class="back-button">← Dashboard</a>
+</header>
+
+
+<main class="container">
+
+    <section class="page-title">
+        <h2>My Timetable</h2>
+        <p>Your weekly class schedule, based on your enrolled courses.</p>
+    </section>
+
+    <div class="week-grid" id="weekGrid"></div>
+
+    <section class="list-card">
+        <h3>My Courses & Class Days</h3>
+        <div id="courseListContainer"><p class="empty-note">Loading...</p></div>
+    </section>
+
+</main>
+
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../supabase-config.js"></script>
+
+
+<script>
+
+const WEEKDAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+const WEEKDAY_INDEX_MAP = { "Sunday": 0, "Monday": 1, "Tuesday": 2, "Wednesday": 3, "Thursday": 4, "Friday": 5, "Saturday": 6 };
+
+
+function escapeHtml(value) {
+    return String(value ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+}
+
+
+async function loadTimetable() {
+
+    const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
+
+    if (authError || !user) {
+        window.location.href = "student-login.html";
+        return;
+    }
+
+    const { data: studentProfile } =
+        await supabaseClient.from("student_profiles").select("id").eq("user_id", user.id).single();
+
+    if (!studentProfile) {
+        document.getElementById("courseListContainer").innerHTML = `<p class="empty-note">Unable to load your student profile.</p>`;
+        return;
+    }
+
+    const { data: enrollments } =
+        await supabaseClient
+            .from("enrollments")
+            .select("courses ( code, name, class_days )")
+            .eq("student_id", studentProfile.id)
+            .eq("status", "enrolled");
+
+    const courses = (enrollments || []).map(e => e.courses).filter(Boolean);
+
+    const todayIndex = new Date().getDay();
+
+    const weekGrid = document.getElementById("weekGrid");
+    weekGrid.innerHTML = WEEKDAYS.map(day => {
+
+        const isToday = WEEKDAY_INDEX_MAP[day] === todayIndex;
+        const coursesOnDay = courses.filter(c => c.class_days && c.class_days.includes(day));
+
+        return `
+            <div class="day-column ${isToday ? "today" : ""}">
+                <div class="day-heading ${isToday ? "today-label" : ""}">${day.slice(0, 3)}${isToday ? " •" : ""}</div>
+                ${
+                    coursesOnDay.length === 0
+                    ? `<div class="day-empty">No class</div>`
+                    : coursesOnDay.map(c => `<div class="day-course-pill">${escapeHtml(c.code)}</div>`).join("")
+                }
+            </div>
+        `;
+
+    }).join("");
+
+    const listContainer = document.getElementById("courseListContainer");
+
+    if (courses.length === 0) {
+        listContainer.innerHTML = `<p class="empty-note">You are not enrolled in any courses yet.</p>`;
+        return;
+    }
+
+    listContainer.innerHTML = courses.map(c => `
+        <div class="course-row">
+            <div>
+                <div class="code">${escapeHtml(c.code)}</div>
+                <div class="name">${escapeHtml(c.name)}</div>
+            </div>
+            <div class="days">${c.class_days && c.class_days.length > 0 ? c.class_days.join(", ") : "No class days set yet"}</div>
+        </div>
+    `).join("");
+
+}
+
+
+loadTimetable();
+
+</script>
+
+</body>
+</html>
