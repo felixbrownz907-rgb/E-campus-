@@ -25,6 +25,20 @@ body { font-family: Arial, Helvetica, sans-serif; background: #f4f6f9; color: #1
 .message.success { display: block; background: #dcfce7; color: #166534; }
 .message.error { display: block; background: #fee2e2; color: #991b1b; }
 
+.debug-box {
+    background: #1f2937;
+    color: #d1fae5;
+    border-radius: 8px;
+    padding: 12px;
+    margin-bottom: 20px;
+    font-family: monospace;
+    font-size: 11px;
+    white-space: pre-wrap;
+    word-break: break-all;
+    max-height: 300px;
+    overflow-y: auto;
+}
+
 .card { background: white; padding: 22px; border-radius: 14px; margin-bottom: 18px; box-shadow: 0 3px 12px rgba(0,0,0,0.06); }
 
 .controls-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 18px; }
@@ -142,6 +156,7 @@ select, input[type="date"] { width: 100%; padding: 12px; border: 1px solid #d1d5
     </section>
 
     <div id="message" class="message"></div>
+    <div id="debugBox" class="debug-box">Debug: select a course to begin</div>
 
     <section class="card">
 
@@ -205,11 +220,17 @@ let currentCourseId = null;
 let currentRecordsMap = {};
 
 const message = document.getElementById("message");
+const debugBox = document.getElementById("debugBox");
 
 
 function showMessage(text, type) {
     message.textContent = text;
     message.className = "message " + type;
+}
+
+
+function updateDebug(obj) {
+    debugBox.textContent = JSON.stringify(obj, null, 2);
 }
 
 
@@ -238,6 +259,8 @@ async function startPage() {
         return;
     }
 
+    updateDebug({ step: "logged in as", userId: user.id, email: user.email });
+
     const { data: lecturerProfile } =
         await supabaseClient.from("lecturer_profiles").select("id").eq("user_id", user.id).single();
 
@@ -257,6 +280,8 @@ async function startPage() {
             .eq("lecturer_id", lecturerProfileId);
 
     const courses = (assignments || []).map(a => a.courses).filter(Boolean);
+
+    updateDebug({ step: "lecturerProfileId", lecturerProfileId, coursesAssigned: courses });
 
     const select = document.getElementById("courseSelect");
 
@@ -373,10 +398,19 @@ async function loadRoster() {
 
     if (error) {
         rosterContainer.innerHTML = `<p class="empty-note">Unable to load roster: ${escapeHtml(error.message)}</p>`;
+        updateDebug({ step: "enrollments query error", error: error, courseId: currentCourseId });
         return;
     }
 
     currentRoster = (enrollments || []).map(e => e.student_profiles).filter(Boolean);
+
+    updateDebug({
+        step: "roster + attendance lookup",
+        courseId: currentCourseId,
+        sessionDate: sessionDate,
+        rosterCount: currentRoster.length,
+        rosterStudentIds: currentRoster.map(s => s.id)
+    });
 
     if (currentRoster.length === 0) {
         rosterContainer.innerHTML = `<p class="empty-note">No students enrolled in this course.</p>`;
@@ -385,12 +419,21 @@ async function loadRoster() {
         return;
     }
 
-    const { data: existingRecords } =
+    const { data: existingRecords, error: attError } =
         await supabaseClient
             .from("attendance")
             .select("student_id, status, submitted_by_student, student_note, approval_status")
             .eq("course_id", currentCourseId)
             .eq("session_date", sessionDate);
+
+    updateDebug({
+        step: "attendance query result",
+        courseId: currentCourseId,
+        sessionDate: sessionDate,
+        attendanceError: attError || null,
+        recordsFound: existingRecords ? existingRecords.length : "null response",
+        rawRecords: existingRecords
+    });
 
     const existingMap = {};
     currentRecordsMap = {};
