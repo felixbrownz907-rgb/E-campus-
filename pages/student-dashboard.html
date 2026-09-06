@@ -45,8 +45,6 @@ body {
     cursor: pointer;
 }
 
-/* ===== SCROLLING ANNOUNCEMENT TICKER ===== */
-
 .ticker-wrap {
     background: #d4af37;
     color: #111827;
@@ -86,8 +84,6 @@ body {
 .welcome-card h2 { font-size: 24px; margin-bottom: 6px; }
 .welcome-card p { color: #d4af37; font-size: 14px; }
 
-/* ===== ROOMS (Exam Room + Assignments Room) — impossible to miss ===== */
-
 .rooms-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -113,8 +109,6 @@ body {
 .room-card .room-note { font-size: 12px; opacity: 0.9; }
 
 .room-card.no-pending { background: linear-gradient(135deg, #166534, #14532d); }
-
-/* ===== FEES SUMMARY CARD ===== */
 
 .fees-summary-card {
     background: white;
@@ -684,11 +678,15 @@ async function loadRoomsSummary(studentProfileId, authUserId, moduleIds) {
     }
 
 
-    // ===== ASSIGNMENTS ROOM: count assignments not yet submitted =====
+    // ===== ASSIGNMENTS ROOM: count only assignments AVAILABLE NOW and not yet submitted =====
 
     let assignmentsList = [];
     if (moduleIds.length > 0) {
-        const { data } = await supabaseClient.from("assignments").select("id").in("module_id", moduleIds);
+        const { data } = await supabaseClient
+            .from("assignments")
+            .select("id")
+            .in("module_id", moduleIds)
+            .or(`available_from.is.null,available_from.lte.${new Date().toISOString()}`);
         assignmentsList = data || [];
     }
 
