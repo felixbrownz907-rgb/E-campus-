@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Assignments | Lecturer Portal</title>
+
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: Arial, Helvetica, sans-serif; background: #f4f6f9; color: #172033; }
+
+.header { background: #0e7490; color: white; padding: 18px 25px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+.brand { display: flex; align-items: center; gap: 14px; }
+.logo { width: 55px; height: 55px; object-fit: contain; background: white; border-radius: 8px; }
+.brand h1 { font-size: 22px; }
+.brand p { color: #cffafe; margin-top: 3px; font-size: 13px; }
+.back-button { background: white; color: #0e7490; text-decoration: none; padding: 10px 16px; border-radius: 8px; font-weight: bold; font-size: 13px; }
+
+.container { max-width: 900px; margin: 25px auto; padding: 0 20px; }
+.page-title { margin-bottom: 20px; }
+.page-title h2 { font-size: 28px; margin-bottom: 6px; }
+.page-title p { color: #6b7280; }
+
+.message { padding: 14px; border-radius: 8px; margin-bottom: 20px; display: none; }
+.message.success { display: block; background: #dcfce7; color: #166534; }
+.message.error { display: block; background: #fee2e2; color: #991b1b; }
+
+.card { background: white; padding: 22px; border-radius: 14px; margin-bottom: 18px; box-shadow: 0 3px 12px rgba(0,0,0,0.06); }
+
+select, input, textarea { width: 100%; padding: 12px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 14px; margin-bottom: 12px; }
+textarea { min-height: 150px; resize: vertical; }
+
+.date-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+.small-button {
+    background: #0e7490;
+    color: white;
+    border: none;
+    padding: 10px 16px;
+    border-radius: 8px;
+    font-weight: bold;
+    font-size: 14px;
+    cursor: pointer;
+    width: 100%;
+}
+
+.format-hint {
+    background: #f4f6f9;
+    border-radius: 8px;
+    padding: 12px;
+    font-size: 13px;
+    color: #374151;
+    margin-bottom: 12px;
+}
+
+.assignment-item { padding: 14px; background: #f9fafb; border-radius: 10px; margin-bottom: 10px; }
+.assignment-item .title { font-weight: bold; margin-bottom: 4px; }
+.assignment-item .meta { font-size: 12px; color: #6b7280; margin-top: 6px; }
+.assignment-item .scheduled-tag { background: #fef3c7; color: #92400e; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: bold; margin-left: 6px; }
+
+.action-button { border: none; padding: 7px 11px; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 13px; }
+.delete-button { background: #fee2e2; color: #991b1b; }
+
+.empty-note { color: #9ca3af; text-align: center; padding: 20px 0; }
+</style>
+</head>
+
+
+<body>
+
+<header class="header">
+    <div class="brand">
+        <img src="https://pub-b3e2d39712e84119875e84c5ec5f5c09.r2.dev/Logo/IMG-20260816-WA0050(1).jpg" alt="Sunningdale University Logo" class="logo">
+        <div>
+            <h1>E-Campus</h1>
+            <p>Lecturer Portal</p>
+        </div>
+    </div>
+    <a href="lecturer-dashboard.html" class="back-button">← Dashboard</a>
+</header>
+
+
+<main class="container">
+
+    <section class="page-title">
+        <h2>Assignments</h2>
+        <p>Paste your assignment, set when it becomes available and its due date — prepare it now, it opens on its own.</p>
+    </section>
+
+    <div id="message" class="message"></div>
+
+    <section class="card">
+        <select id="courseSelect"><option value="">Select course</option></select>
+        <select id="unitSelect" disabled><option value="">Select course first</option></select>
+
+        <div class="format-hint">Paste your assignment below. The first line becomes the title, everything after it becomes the instructions.</div>
+
+        <textarea id="assignmentText" placeholder="Assignment 1 — Analyzing a Company's Financial Statements
+Using the financial statements provided in class, calculate the company's..."></textarea>
+
+        <div class="date-grid">
+            <div>
+                <label style="font-size:12px; font-weight:bold;">Available From (optional — leave blank for immediately)</label>
+                <input type="datetime-local" id="availableFrom">
+            </div>
+            <div>
+                <label style="font-size:12px; font-weight:bold;">Due Date</label>
+                <input type="datetime-local" id="dueDate">
+            </div>
+        </div>
+
+        <input type="number" id="maxScore" placeholder="Max Score (default 100)" style="margin-top:10px;">
+
+        <button class="small-button" style="margin-top:10px;" onclick="createAssignment()">Create Assignment</button>
+    </section>
+
+    <section class="card">
+        <h3 style="margin-bottom:14px; font-size:17px;">My Assignments</h3>
+        <div id="assignmentsList"><p class="empty-note">Select a course to view its assignments.</p></div>
+    </section>
+
+</main>
+
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../supabase-config.js"></script>
+
+
+<script>
+
+const message = document.getElementById("message");
+let lecturerProfileId = null;
+
+function showMessage(text, type) {
+    message.textContent = text;
+    message.className = "message " + type;
+}
+
+function escapeHtml(value) {
+    return String(value ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+}
+
+
+async function startPage() {
+
+    const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
+
+    if (authError || !user) {
+        window.location.href = "lecturer-login.html";
+        return;
+    }
+
+    const { data: lecturerProfile } =
+        await supabaseClient.from("lecturer_profiles").select("id").eq("user_id", user.id).single();
+
+    if (!lecturerProfile) return;
+
+    lecturerProfileId = lecturerProfile.id;
+
+    const { data: assignments } =
+        await supabaseClient
+            .from("course_lecturers")
+            .select("courses ( id, code, name )")
+            .eq("lecturer_id", lecturerProfileId);
+
+    const courses = (assignments || []).map(a => a.courses).filter(Boolean);
+    const select = document.getElementById("courseSelect");
+
+    courses.forEach(c => {
+        const option = document.createElement("option");
+        option.value = c.id;
+        option.textContent = `${c.code} — ${c.name}`;
+        select.appendChild(option);
+    });
+
+}
+
+
+document.getElementById("courseSelect").addEventListener("change", async function() {
+
+    const courseId = this.value;
+    const unitSelect = document.getElementById("unitSelect");
+
+    unitSelect.innerHTML = `<option value="">Loading...</option>`;
+    document.getElementById("assignmentsList").innerHTML = `<p class="empty-note">Select a unit to view assignments.</p>`;
+
+    if (!courseId) {
+        unitSelect.innerHTML = `<option value="">Select course first</option>`;
+        unitSelect.disabled = true;
+        return;
+    }
+
+    const { data } =
+        await supabaseClient.from("course_modules").select("id, module_number, title").eq("course_id", courseId).order("module_number");
+
+    unitSelect.innerHTML = `<option value="">Select unit</option>`;
+    (data || []).forEach(u => {
+        const option = document.createElement("option");
+        option.value = u.id;
+        option.textContent = `Unit ${u.module_number} — ${u.title}`;
+        unitSelect.appendChild(option);
+    });
+
+    unitSelect.disabled = false;
+
+});
+
+
+document.getElementById("unitSelect").addEventListener("change", loadAssignments);
+
+
+async function createAssignment() {
+
+    const unitId = document.getElementById("unitSelect").value;
+    const rawText = document.getElementById("assignmentText").value.trim();
+    const availableFrom = document.getElementById("availableFrom").value;
+    const dueDate = document.getElementById("dueDate").value;
+    const maxScore = document.getElementById("maxScore").value;
+
+    if (!unitId) {
+        showMessage("Please select a course and unit first.", "error");
+        return;
+    }
+
+    if (!rawText) {
+        showMessage("Please paste the assignment content.", "error");
+        return;
+    }
+
+    const lines = rawText.split("\n");
+    const title = lines[0].trim();
+    const description = lines.slice(1).join("\n").trim();
+
+    const { error } =
+        await supabaseClient.from("assignments").insert({
+            module_id: unitId,
+            title: title,
+            description: description || null,
+            available_from: availableFrom || null,
+            due_date: dueDate || null,
+            max_score: maxScore ? Number(maxScore) : 100,
+            status: "active"
+        });
+
+    if (error) {
+        showMessage("Unable to create assignment: " + error.message, "error");
+        return;
+    }
+
+    showMessage("Assignment created and scheduled.", "success");
+    document.getElementById("assignmentText").value = "";
+    document.getElementById("availableFrom").value = "";
+    document.getElementById("dueDate").value = "";
+    document.getElementById("maxScore").value = "";
+    await loadAssignments();
+
+}
+
+
+async function loadAssignments() {
+
+    const unitId = document.getElementById("unitSelect").value;
+    const container = document.getElementById("assignmentsList");
+
+    if (!unitId) {
+        container.innerHTML = `<p class="empty-note">Select a unit to view assignments.</p>`;
+        return;
+    }
+
+    const { data, error } =
+        await supabaseClient.from("assignments").select("*").eq("module_id", unitId).order("due_date");
+
+    if (error || !data || data.length === 0) {
+        container.innerHTML = `<p class="empty-note">No assignments created for this unit yet.</p>`;
+        return;
+    }
+
+    const now = new Date();
+
+    container.innerHTML = data.map(a => {
+
+        const isScheduled = a.available_from && new Date(a.available_from) > now;
+
+        return `
+            <div class="assignment-item">
+                <div class="title">${escapeHtml(a.title)} ${isScheduled ? `<span class="scheduled-tag">Scheduled</span>` : ""}</div>
+                <div class="meta">
+                    ${a.available_from ? "Opens: " + new Date(a.available_from).toLocaleString() + " • " : ""}
+                    ${a.due_date ? "Due: " + new Date(a.due_date).toLocaleString() : "No due date"}
+                    • Max: ${a.max_score}
+                </div>
+                <button class="action-button delete-button" style="margin-top:8px;" onclick="deleteAssignment('${a.id}')">Delete</button>
+            </div>
+        `;
+
+    }).join("");
+
+}
+
+
+async function deleteAssignment(id) {
+
+    const confirmed = confirm("Delete this assignment? This will also remove any student submissions.");
+    if (!confirmed) return;
+
+    await supabaseClient.from("submissions").delete().eq("assignment_id", id);
+    const { error } = await supabaseClient.from("assignments").delete().eq("id", id);
+
+    if (error) {
+        showMessage("Unable to delete: " + error.message, "error");
+        return;
+    }
+
+    showMessage("Deleted.", "success");
+    await loadAssignments();
+
+}
+
+
+startPage();
+
+</script>
+
+</body>
+</html>
