@@ -151,6 +151,7 @@ select, input[type="date"] { width: 100%; padding: 12px; border: 1px solid #d1d5
             <h3 style="font-size:16px; margin-bottom:8px;">Class Days for This Course</h3>
             <div class="current-days-note" id="currentDaysNote"></div>
             <div class="day-checkboxes">
+                <label><input type="checkbox" class="classDayEdit" value="Sunday"> Sun</label>
                 <label><input type="checkbox" class="classDayEdit" value="Monday"> Mon</label>
                 <label><input type="checkbox" class="classDayEdit" value="Tuesday"> Tue</label>
                 <label><input type="checkbox" class="classDayEdit" value="Wednesday"> Wed</label>
@@ -201,6 +202,7 @@ let lecturerProfileId = null;
 let currentRoster = [];
 let currentStatuses = {};
 let currentCourseId = null;
+let currentRecordsMap = {};
 
 const message = document.getElementById("message");
 
@@ -386,12 +388,16 @@ async function loadRoster() {
     const { data: existingRecords } =
         await supabaseClient
             .from("attendance")
-            .select("student_id, status")
+            .select("student_id, status, submitted_by_student, student_note, approval_status")
             .eq("course_id", currentCourseId)
             .eq("session_date", sessionDate);
 
     const existingMap = {};
-    (existingRecords || []).forEach(r => existingMap[r.student_id] = r.status);
+    currentRecordsMap = {};
+    (existingRecords || []).forEach(r => {
+        existingMap[r.student_id] = r.status;
+        currentRecordsMap[r.student_id] = r;
+    });
 
     currentStatuses = {};
     currentRoster.forEach(student => {
@@ -417,12 +423,15 @@ function renderRoster() {
             : "Unknown";
 
         const status = currentStatuses[student.id];
+        const record = currentRecordsMap[student.id];
+        const isPendingSelfSubmit = record && record.submitted_by_student && record.approval_status === "pending";
 
         return `
             <div class="roster-row">
                 <div>
-                    <div class="student-name">${escapeHtml(name)}</div>
+                    <div class="student-name">${escapeHtml(name)} ${isPendingSelfSubmit ? `<span style="background:#fef3c7; color:#92400e; padding:2px 8px; border-radius:12px; font-size:11px; font-weight:bold;">📝 Self-submitted</span>` : ""}</div>
                     <div class="student-number">${escapeHtml(student.student_number)}</div>
+                    ${record && record.student_note ? `<div style="font-size:12px; color:#6b7280; font-style:italic; margin-top:4px;">"${escapeHtml(record.student_note)}"</div>` : ""}
                 </div>
                 <div class="status-buttons">
                     <button class="status-btn ${status === "present" ? "active-present" : ""}" onclick="setStatus('${student.id}', 'present')">Present</button>
@@ -473,7 +482,8 @@ async function saveAttendance() {
         student_id: student.id,
         course_id: currentCourseId,
         session_date: sessionDate,
-        status: currentStatuses[student.id]
+        status: currentStatuses[student.id],
+        approval_status: "approved"
     }));
 
     const { error } =
