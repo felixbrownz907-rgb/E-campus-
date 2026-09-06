@@ -23,7 +23,7 @@ body { font-family: Arial, Helvetica, sans-serif; background: #f4f6f9; color: #1
 
 .week-grid {
     display: grid;
-    grid-template-columns: repeat(6, 1fr);
+    grid-template-columns: repeat(7, 1fr);
     gap: 10px;
     margin-bottom: 20px;
 }
@@ -63,11 +63,11 @@ body { font-family: Arial, Helvetica, sans-serif; background: #f4f6f9; color: #1
 
 .empty-note { color: #9ca3af; text-align: center; padding: 30px 0; }
 
-@media (max-width: 700px) {
-    .week-grid { grid-template-columns: repeat(3, 1fr); }
+@media (max-width: 800px) {
+    .week-grid { grid-template-columns: repeat(4, 1fr); }
 }
 
-@media (max-width: 450px) {
+@media (max-width: 500px) {
     .week-grid { grid-template-columns: repeat(2, 1fr); }
 }
 </style>
@@ -111,7 +111,7 @@ body { font-family: Arial, Helvetica, sans-serif; background: #f4f6f9; color: #1
 
 <script>
 
-const WEEKDAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+const WEEKDAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 const WEEKDAY_INDEX_MAP = { "Sunday": 0, "Monday": 1, "Tuesday": 2, "Wednesday": 3, "Thursday": 4, "Friday": 5, "Saturday": 6 };
 
 
