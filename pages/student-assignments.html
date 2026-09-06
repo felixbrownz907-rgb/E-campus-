@@ -42,6 +42,8 @@ body { font-family: Arial, Helvetica, sans-serif; background: #f4f6f9; color: #1
 .page-title h2 { font-size: 28px; margin-bottom: 6px; }
 .page-title p { color: #6b7280; }
 
+.section-heading { font-size: 16px; font-weight: bold; margin: 20px 0 10px; color: #374151; }
+
 .message {
     padding: 14px;
     border-radius: 8px;
@@ -60,6 +62,8 @@ body { font-family: Arial, Helvetica, sans-serif; background: #f4f6f9; color: #1
     box-shadow: 0 3px 12px rgba(0,0,0,0.06);
 }
 
+.card.scheduled { background: #f9fafb; opacity: 0.85; }
+
 .card-top {
     display: flex;
     justify-content: space-between;
@@ -74,6 +78,27 @@ body { font-family: Arial, Helvetica, sans-serif; background: #f4f6f9; color: #1
 .due-date { color: #6b7280; font-size: 13px; }
 .description { color: #374151; font-size: 14px; margin: 10px 0; white-space: pre-wrap; }
 
+.effective-range {
+    background: #eff6ff;
+    color: #1d4ed8;
+    padding: 8px 12px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: bold;
+    margin-top: 10px;
+    display: inline-block;
+}
+
+.locked-note {
+    background: #fef3c7;
+    color: #92400e;
+    padding: 10px 12px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: bold;
+    margin-top: 10px;
+}
+
 .status-badge {
     padding: 4px 10px;
     border-radius: 20px;
@@ -85,6 +110,7 @@ body { font-family: Arial, Helvetica, sans-serif; background: #f4f6f9; color: #1
 .status-badge.submitted { background: #dbeafe; color: #1d4ed8; }
 .status-badge.graded { background: #dcfce7; color: #166534; }
 .status-badge.overdue { background: #fee2e2; color: #991b1b; }
+.status-badge.scheduled { background: #f3f4f6; color: #6b7280; }
 
 .submission-form { margin-top: 14px; border-top: 1px solid #e5e7eb; padding-top: 14px; }
 
@@ -167,7 +193,7 @@ textarea { min-height: 120px; resize: vertical; }
 
     <section class="page-title">
         <h2>My Assignments</h2>
-        <p>Submit your work as typed text, or upload a PDF/Word document (max 1MB).</p>
+        <p>Available Now assignments can be submitted immediately. Scheduled ones will open automatically on their set date.</p>
     </section>
 
     <div id="message" class="message"></div>
@@ -267,12 +293,12 @@ async function loadAssignments() {
         return;
     }
 
+    // Fetch ALL assignments (not filtering by available_from here) so we can show both sections
     const { data: assignments, error: assignError } =
         await supabaseClient
             .from("assignments")
             .select("*")
             .in("module_id", moduleIds)
-            .or(`available_from.is.null,available_from.lte.${new Date().toISOString()}`)
             .order("due_date");
 
     if (assignError) {
@@ -305,34 +331,110 @@ async function loadAssignments() {
 function renderAssignments(assignments, submissionMap, moduleToCourse, courseMap) {
 
     const container = document.getElementById("assignmentsContainer");
-    container.innerHTML = "";
-
     const now = new Date();
 
-    assignments.forEach(assignment => {
+    const availableNow = assignments.filter(a => !a.available_from || new Date(a.available_from) <= now);
+    const scheduled = assignments.filter(a => a.available_from && new Date(a.available_from) > now);
 
-        const courseId = moduleToCourse[assignment.module_id];
-        const course = courseMap[courseId];
+    let html = "";
+
+    html += `<div class="section-heading">✅ Available Now</div>`;
+
+    if (availableNow.length === 0) {
+        html += `<div class="card"><p class="empty-note">Nothing available right now.</p></div>`;
+    } else {
+        availableNow.forEach(assignment => {
+            html += renderAvailableCard(assignment, submissionMap, moduleToCourse, courseMap, now);
+        });
+    }
+
+    if (scheduled.length > 0) {
+
+        html += `<div class="section-heading">🕒 Scheduled — Coming Soon</div>`;
+
+        scheduled.forEach(assignment => {
+            html += renderScheduledCard(assignment, moduleToCourse, courseMap);
+        });
+
+    }
+
+    container.innerHTML = html;
+
+    // Attach dynamic listeners after HTML injected
+    availableNow.forEach(assignment => {
         const submission = submissionMap[assignment.id];
+        if (!submission) {
+            const fileInput = document.getElementById(`fileInput-${assignment.id}`);
+            if (fileInput) { /* no-op, just ensures element exists for submit function */ }
+        }
+    });
 
-        let statusLabel = "Pending";
-        let statusClass = "pending";
+}
 
-        if (submission && submission.score !== null) {
-            statusLabel = "Graded";
-            statusClass = "graded";
-        } else if (submission) {
-            statusLabel = "Submitted";
-            statusClass = "submitted";
-        } else if (assignment.due_date && new Date(assignment.due_date) < now) {
-            statusLabel = "Overdue";
-            statusClass = "overdue";
+
+function renderAvailableCard(assignment, submissionMap, moduleToCourse, courseMap, now) {
+
+    const courseId = moduleToCourse[assignment.module_id];
+    const course = courseMap[courseId];
+    const submission = submissionMap[assignment.id];
+
+    let statusLabel = "Pending";
+    let statusClass = "pending";
+
+    if (submission && submission.score !== null) {
+        statusLabel = "Graded";
+        statusClass = "graded";
+    } else if (submission) {
+        statusLabel = "Submitted";
+        statusClass = "submitted";
+    } else if (assignment.due_date && new Date(assignment.due_date) < now) {
+        statusLabel = "Overdue";
+        statusClass = "overdue";
+    }
+
+    let bodyHtml = "";
+
+    if (submission) {
+
+        if (submission.score !== null) {
+            bodyHtml = `
+                <div class="grade-box">
+                    <div class="score">${submission.score} / ${assignment.max_score}</div>
+                    ${submission.feedback ? `<div class="feedback">${escapeHtml(submission.feedback)}</div>` : ""}
+                </div>
+            `;
+        } else {
+            bodyHtml = `<p style="color:#6b7280; font-size:13px; margin-top:10px;">Submitted on ${new Date(submission.submitted_at).toLocaleString()}. Awaiting grading.</p>`;
         }
 
-        const card = document.createElement("div");
-        card.className = "card";
+    } else {
 
-        card.innerHTML = `
+        bodyHtml = `
+            <div class="submission-form">
+                <div class="tab-buttons">
+                    <button type="button" class="tab-button active" id="tabText-${assignment.id}" onclick="switchTab('${assignment.id}', 'text')">Type Answer</button>
+                    <button type="button" class="tab-button" id="tabFile-${assignment.id}" onclick="switchTab('${assignment.id}', 'file')">Upload File</button>
+                </div>
+
+                <div id="textPanel-${assignment.id}">
+                    <textarea id="textInput-${assignment.id}" placeholder="Type your answer here..."></textarea>
+                </div>
+
+                <div id="filePanel-${assignment.id}" style="display:none;">
+                    <input type="file" id="fileInput-${assignment.id}" accept=".pdf,.doc,.docx">
+                    <div class="file-hint">PDF or Word document only. Maximum size: 1MB.</div>
+                </div>
+
+                <button class="submit-button" id="submitBtn-${assignment.id}" onclick="submitAssignment('${assignment.id}')">
+                    Submit Assignment
+                </button>
+            </div>
+        `;
+
+    }
+
+    return `
+        <div class="card">
             <div class="card-top">
                 <div>
                     <div class="course-tag">${course ? escapeHtml(course.code) : ""}</div>
@@ -342,57 +444,32 @@ function renderAssignments(assignments, submissionMap, moduleToCourse, courseMap
             </div>
             <div class="due-date">${assignment.due_date ? "Due: " + new Date(assignment.due_date).toLocaleString() : "No due date"} • Max score: ${assignment.max_score}</div>
             <div class="description">${escapeHtml(assignment.description || "")}</div>
-            <div id="body-${assignment.id}"></div>
-        `;
+            ${assignment.available_from || assignment.due_date ? `<div class="effective-range">Effective: ${assignment.available_from ? new Date(assignment.available_from).toLocaleDateString() : "Now"} → ${assignment.due_date ? new Date(assignment.due_date).toLocaleDateString() : "No deadline"}</div>` : ""}
+            ${bodyHtml}
+        </div>
+    `;
 
-        container.appendChild(card);
+}
 
-        const body = document.getElementById(`body-${assignment.id}`);
 
-        if (submission) {
+function renderScheduledCard(assignment, moduleToCourse, courseMap) {
 
-            if (submission.score !== null) {
+    const courseId = moduleToCourse[assignment.module_id];
+    const course = courseMap[courseId];
 
-                body.innerHTML = `
-                    <div class="grade-box">
-                        <div class="score">${submission.score} / ${assignment.max_score}</div>
-                        ${submission.feedback ? `<div class="feedback">${escapeHtml(submission.feedback)}</div>` : ""}
-                    </div>
-                `;
-
-            } else {
-
-                body.innerHTML = `<p style="color:#6b7280; font-size:13px; margin-top:10px;">Submitted on ${new Date(submission.submitted_at).toLocaleString()}. Awaiting grading.</p>`;
-
-            }
-
-        } else {
-
-            body.innerHTML = `
-                <div class="submission-form">
-                    <div class="tab-buttons">
-                        <button type="button" class="tab-button active" id="tabText-${assignment.id}" onclick="switchTab('${assignment.id}', 'text')">Type Answer</button>
-                        <button type="button" class="tab-button" id="tabFile-${assignment.id}" onclick="switchTab('${assignment.id}', 'file')">Upload File</button>
-                    </div>
-
-                    <div id="textPanel-${assignment.id}">
-                        <textarea id="textInput-${assignment.id}" placeholder="Type your answer here..."></textarea>
-                    </div>
-
-                    <div id="filePanel-${assignment.id}" style="display:none;">
-                        <input type="file" id="fileInput-${assignment.id}" accept=".pdf,.doc,.docx">
-                        <div class="file-hint">PDF or Word document only. Maximum size: 1MB.</div>
-                    </div>
-
-                    <button class="submit-button" id="submitBtn-${assignment.id}" onclick="submitAssignment('${assignment.id}')">
-                        Submit Assignment
-                    </button>
+    return `
+        <div class="card scheduled">
+            <div class="card-top">
+                <div>
+                    <div class="course-tag">${course ? escapeHtml(course.code) : ""}</div>
+                    <h3>${escapeHtml(assignment.title)}</h3>
                 </div>
-            `;
-
-        }
-
-    });
+                <span class="status-badge scheduled">Scheduled</span>
+            </div>
+            <div class="effective-range">Effective: ${new Date(assignment.available_from).toLocaleDateString()} → ${assignment.due_date ? new Date(assignment.due_date).toLocaleDateString() : "No deadline"}</div>
+            <div class="locked-note">🔒 This assignment will open automatically on ${new Date(assignment.available_from).toLocaleDateString()}. Come back then to submit.</div>
+        </div>
+    `;
 
 }
 
