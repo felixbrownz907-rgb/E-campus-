@@ -24,7 +24,45 @@ body { font-family: Arial, Helvetica, sans-serif; background: #f4f6f9; color: #1
 .term-block { margin-bottom: 24px; }
 .term-heading { font-size: 16px; font-weight: bold; margin-bottom: 10px; color: #374151; }
 
+.bursary-card {
+    background: #fef3c7;
+    border: 2px solid #f59e0b;
+    border-radius: 14px;
+    padding: 20px;
+    margin-bottom: 16px;
+}
+
+.bursary-card.active { background: #dcfce7; border-color: #22c55e; }
+
+.bursary-top { display: flex; justify-content: space-between; align-items: start; flex-wrap: wrap; gap: 10px; margin-bottom: 10px; }
+.bursary-title { font-size: 16px; font-weight: bold; }
+.bursary-percentage { font-size: 24px; font-weight: bold; color: #92400e; }
+.bursary-card.active .bursary-percentage { color: #166534; }
+
+.bursary-status-badge {
+    padding: 5px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: bold;
+}
+
+.bursary-status-badge.inactive { background: #fee2e2; color: #991b1b; }
+.bursary-status-badge.active { background: #dcfce7; color: #166534; }
+
+.bursary-deadline { font-size: 13px; color: #92400e; margin-top: 8px; }
+.bursary-card.active .bursary-deadline { color: #166534; }
+
+.bursary-action-note {
+    background: white;
+    border-radius: 8px;
+    padding: 12px;
+    font-size: 13px;
+    margin-top: 12px;
+    color: #374151;
+}
+
 .card { background: white; padding: 20px; border-radius: 14px; margin-bottom: 12px; box-shadow: 0 3px 12px rgba(0,0,0,0.06); }
+.card.bursary-fee-card { border: 1px solid #fde68a; }
 .category-name { font-size: 15px; font-weight: bold; margin-bottom: 12px; }
 
 .fee-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 12px; }
@@ -79,7 +117,7 @@ body { font-family: Arial, Helvetica, sans-serif; background: #f4f6f9; color: #1
 
     <section class="page-title">
         <h2>My Fees</h2>
-        <p>Your Tuition, Registration, and Exam Fee — amount paid, balance, and due date for each term.</p>
+        <p>Your Tuition, Registration, Exam Fee, Exemption Fee, and Bursary status — for each term.</p>
     </section>
 
     <div id="feesContainer">
@@ -134,7 +172,16 @@ async function loadFees() {
             .eq("student_id", studentProfile.id)
             .order("due_date", { ascending: false });
 
-    if (error || !feeRecords || feeRecords.length === 0) {
+    const { data: bursaries } =
+        await supabaseClient
+            .from("student_bursaries")
+            .select(`
+                id, bursary_percentage, activation_deadline,
+                academic_terms ( id, name )
+            `)
+            .eq("student_id", studentProfile.id);
+
+    if ((error || !feeRecords || feeRecords.length === 0) && (!bursaries || bursaries.length === 0)) {
         container.innerHTML = `<div class="card"><p class="empty-note">No fee records have been set up for you yet. Please contact admissions.</p></div>`;
         return;
     }
@@ -142,10 +189,17 @@ async function loadFees() {
     const today = new Date();
 
     const groupedByTerm = {};
-    feeRecords.forEach(r => {
+
+    (feeRecords || []).forEach(r => {
         const termName = r.academic_terms?.name || "Term";
-        if (!groupedByTerm[termName]) groupedByTerm[termName] = [];
-        groupedByTerm[termName].push(r);
+        if (!groupedByTerm[termName]) groupedByTerm[termName] = { fees: [], bursary: null };
+        groupedByTerm[termName].fees.push(r);
+    });
+
+    (bursaries || []).forEach(b => {
+        const termName = b.academic_terms?.name || "Term";
+        if (!groupedByTerm[termName]) groupedByTerm[termName] = { fees: [], bursary: null };
+        groupedByTerm[termName].bursary = b;
     });
 
     let html = "";
@@ -154,9 +208,66 @@ async function loadFees() {
 
         html += `<div class="term-block"><div class="term-heading">${escapeHtml(termName)}</div>`;
 
+        const termData = groupedByTerm[termName];
+
+        // ===== BURSARY CARD (if this term has one) =====
+
+        if (termData.bursary) {
+
+            const bursaryFeeRecord = termData.fees.find(f => f.fee_type === "Bursary Activation");
+            let isActive = false;
+            let activationBalance = 0;
+
+            if (bursaryFeeRecord) {
+
+                const { data: payments } =
+                    await supabaseClient.from("fee_payments").select("amount").eq("student_fee_id", bursaryFeeRecord.id);
+
+                const totalPaid = (payments || []).reduce((sum, p) => sum + Number(p.amount), 0);
+                isActive = totalPaid >= Number(bursaryFeeRecord.total_fee);
+                activationBalance = Number(bursaryFeeRecord.total_fee) - totalPaid;
+
+            }
+
+            const deadline = termData.bursary.activation_deadline;
+            const isDeadlinePassed = deadline && new Date(deadline) < today && !isActive;
+
+            html += `
+                <div class="bursary-card ${isActive ? "active" : ""}">
+                    <div class="bursary-top">
+                        <div>
+                            <div class="bursary-title">🎓 Your Bursary</div>
+                            <div class="bursary-percentage">${termData.bursary.bursary_percentage}%</div>
+                        </div>
+                        <span class="bursary-status-badge ${isActive ? "active" : "inactive"}">${isActive ? "✓ ACTIVE" : "⏳ INACTIVE"}</span>
+                    </div>
+
+                    ${
+                        isActive
+                        ? `<div class="bursary-deadline">Your bursary is active and applied to your tuition fee.</div>`
+                        : `
+                            <div class="bursary-deadline ${isDeadlinePassed ? "" : ""}">
+                                ${deadline ? "Activation deadline: " + new Date(deadline).toLocaleDateString() + (isDeadlinePassed ? " — DEADLINE PASSED" : "") : "No deadline set"}
+                            </div>
+                            <div class="bursary-action-note">
+                                ${
+                                    bursaryFeeRecord
+                                    ? `To activate your ${termData.bursary.bursary_percentage}% bursary, pay the outstanding <strong>Bursary Activation fee of K${activationBalance > 0 ? activationBalance : bursaryFeeRecord.total_fee}</strong> shown below.`
+                                    : `Your bursary has been awarded but is not yet active. Please contact admissions about the activation fee.`
+                                }
+                            </div>
+                        `
+                    }
+                </div>
+            `;
+
+        }
+
+        // ===== FEE CATEGORY CARDS =====
+
         let termOutstanding = 0;
 
-        for (const record of groupedByTerm[termName]) {
+        for (const record of termData.fees) {
 
             const { data: payments } =
                 await supabaseClient.from("fee_payments").select("amount").eq("student_fee_id", record.id);
@@ -165,12 +276,13 @@ async function loadFees() {
             const balance = record.total_fee - totalPaid;
             const isCleared = balance <= 0;
             const isOverdue = record.due_date && new Date(record.due_date) < today && !isCleared;
+            const isBursaryFee = record.fee_type === "Bursary Activation";
 
             termOutstanding += balance > 0 ? balance : 0;
 
             html += `
-                <div class="card">
-                    <div class="category-name">${escapeHtml(record.fee_type || "Fee")}</div>
+                <div class="card ${isBursaryFee ? "bursary-fee-card" : ""}">
+                    <div class="category-name">${isBursaryFee ? "🎓 " : ""}${escapeHtml(record.fee_type || "Fee")}</div>
 
                     <div class="fee-grid">
                         <div class="fee-box">
