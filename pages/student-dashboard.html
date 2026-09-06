@@ -86,7 +86,35 @@ body {
 .welcome-card h2 { font-size: 24px; margin-bottom: 6px; }
 .welcome-card p { color: #d4af37; font-size: 14px; }
 
-/* ===== FEES SUMMARY CARD (prominent, near top) ===== */
+/* ===== ROOMS (Exam Room + Assignments Room) — impossible to miss ===== */
+
+.rooms-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+    margin-bottom: 20px;
+}
+
+.room-card {
+    border-radius: 14px;
+    padding: 22px;
+    text-decoration: none;
+    color: white;
+    display: block;
+    box-shadow: 0 5px 18px rgba(0,0,0,0.12);
+}
+
+.room-card.exam-room { background: linear-gradient(135deg, #991b1b, #7f1d1d); }
+.room-card.assignment-room { background: linear-gradient(135deg, #1d4ed8, #1e3a8a); }
+
+.room-card .room-icon { font-size: 30px; margin-bottom: 8px; }
+.room-card .room-title { font-size: 16px; font-weight: bold; margin-bottom: 4px; }
+.room-card .room-count { font-size: 28px; font-weight: bold; margin: 8px 0; }
+.room-card .room-note { font-size: 12px; opacity: 0.9; }
+
+.room-card.no-pending { background: linear-gradient(135deg, #166534, #14532d); }
+
+/* ===== FEES SUMMARY CARD ===== */
 
 .fees-summary-card {
     background: white;
@@ -318,6 +346,7 @@ body {
 @media (max-width: 800px) {
     .stat-grid { grid-template-columns: repeat(2, 1fr); }
     .fees-summary-grid { grid-template-columns: 1fr; }
+    .rooms-grid { grid-template-columns: 1fr; }
 }
 
 </style>
@@ -351,6 +380,22 @@ body {
         <h2 id="welcomeName">Welcome back, Student</h2>
         <p id="studentMeta">Loading your details...</p>
     </section>
+
+
+    <div class="rooms-grid" id="roomsGrid">
+        <a href="student-quizzes.html" class="room-card exam-room" id="examRoomCard">
+            <div class="room-icon">🎯</div>
+            <div class="room-title">Exam Room — CA / Quiz / Final Exam</div>
+            <div class="room-count" id="examRoomCount">0</div>
+            <div class="room-note">Tap to open and see what's waiting for you</div>
+        </a>
+        <a href="student-assignments.html" class="room-card assignment-room" id="assignmentRoomCard">
+            <div class="room-icon">📝</div>
+            <div class="room-title">Assignments & Assessments Room</div>
+            <div class="room-count" id="assignmentRoomCount">0</div>
+            <div class="room-note">Tap to open and see what's waiting for you</div>
+        </a>
+    </div>
 
 
     <div id="feesSummaryContainer"></div>
@@ -529,7 +574,6 @@ async function loadFeesSummary(studentProfileId) {
         return;
     }
 
-    // Find the most recent term that has fee records
     const mostRecentTermId = feeRecords[0].academic_terms?.id;
     const currentTermName = feeRecords[0].academic_terms?.name || "Current Term";
     const currentTermRecords = feeRecords.filter(r => r.academic_terms?.id === mostRecentTermId);
@@ -592,6 +636,79 @@ async function loadFeesSummary(studentProfileId) {
             </div>
         </div>
     `;
+
+}
+
+
+async function loadRoomsSummary(studentProfileId, authUserId, moduleIds) {
+
+    // ===== EXAM ROOM: count CA/Quiz/Final Exam not yet attempted =====
+
+    let unitQuizzes = [];
+    if (moduleIds.length > 0) {
+        const { data } = await supabaseClient.from("quizzes").select("id, module_id").in("module_id", moduleIds);
+        unitQuizzes = data || [];
+    }
+
+    const { data: enrollmentsForFinal } =
+        await supabaseClient
+            .from("enrollments")
+            .select("courses ( id )")
+            .eq("student_id", studentProfileId)
+            .eq("status", "enrolled");
+
+    const courseIdsForFinal = (enrollmentsForFinal || []).map(e => e.courses?.id).filter(Boolean);
+
+    let finalExams = [];
+    if (courseIdsForFinal.length > 0) {
+        const { data } = await supabaseClient.from("quizzes").select("id, course_id").in("course_id", courseIdsForFinal).eq("is_final_exam", true);
+        finalExams = data || [];
+    }
+
+    const allQuizIds = [...unitQuizzes.map(q => q.id), ...finalExams.map(q => q.id)];
+
+    let attemptedQuizIds = new Set();
+    if (allQuizIds.length > 0) {
+        const { data } = await supabaseClient.from("quiz_attempts").select("quiz_id").eq("student_id", authUserId).in("quiz_id", allQuizIds);
+        attemptedQuizIds = new Set((data || []).map(a => a.quiz_id));
+    }
+
+    const pendingExamCount = allQuizIds.filter(id => !attemptedQuizIds.has(id)).length;
+
+    const examCard = document.getElementById("examRoomCard");
+    document.getElementById("examRoomCount").textContent = pendingExamCount;
+
+    if (pendingExamCount === 0) {
+        examCard.classList.add("no-pending");
+        document.querySelector("#examRoomCard .room-note").textContent = "Nothing pending — all caught up";
+    }
+
+
+    // ===== ASSIGNMENTS ROOM: count assignments not yet submitted =====
+
+    let assignmentsList = [];
+    if (moduleIds.length > 0) {
+        const { data } = await supabaseClient.from("assignments").select("id").in("module_id", moduleIds);
+        assignmentsList = data || [];
+    }
+
+    const assignmentIds = assignmentsList.map(a => a.id);
+
+    let submittedAssignmentIds = new Set();
+    if (assignmentIds.length > 0) {
+        const { data } = await supabaseClient.from("submissions").select("assignment_id").eq("student_id", authUserId).in("assignment_id", assignmentIds);
+        submittedAssignmentIds = new Set((data || []).map(s => s.assignment_id));
+    }
+
+    const pendingAssignmentCount = assignmentIds.filter(id => !submittedAssignmentIds.has(id)).length;
+
+    const assignmentCard = document.getElementById("assignmentRoomCard");
+    document.getElementById("assignmentRoomCount").textContent = pendingAssignmentCount;
+
+    if (pendingAssignmentCount === 0) {
+        assignmentCard.classList.add("no-pending");
+        document.querySelector("#assignmentRoomCard .room-note").textContent = "Nothing pending — all caught up";
+    }
 
 }
 
@@ -669,6 +786,8 @@ async function startDashboard() {
 
     document.getElementById("statModules").textContent = modules.length;
     const moduleIds = modules.map(m => m.id);
+
+    await loadRoomsSummary(studentProfile.id, user.id, moduleIds);
 
 
     // ===== LESSONS =====
