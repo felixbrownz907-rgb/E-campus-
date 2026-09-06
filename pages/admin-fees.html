@@ -38,6 +38,26 @@ input, select { width: 100%; padding: 13px; border: 1px solid #d1d5db; border-ra
 
 .submit-button { margin-top: 20px; background: #d4af37; color: #111827; border: none; padding: 13px 20px; border-radius: 8px; font-weight: bold; cursor: pointer; width: 100%; }
 
+.bursary-card {
+    background: #fef3c7;
+    border: 1px solid #f59e0b;
+    border-radius: 12px;
+    padding: 18px;
+    margin-bottom: 20px;
+}
+
+.bursary-status {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: bold;
+    margin-top: 10px;
+}
+
+.bursary-status.active { background: #dcfce7; color: #166534; }
+.bursary-status.inactive { background: #fee2e2; color: #991b1b; }
+
 .category-card {
     background: #f9fafb;
     border-radius: 12px;
@@ -45,6 +65,8 @@ input, select { width: 100%; padding: 13px; border: 1px solid #d1d5db; border-ra
     margin-bottom: 16px;
     border: 1px solid #e5e7eb;
 }
+
+.category-card.bursary-fee { background: #fffbeb; border-color: #fde68a; }
 
 .category-title { font-weight: bold; font-size: 15px; margin-bottom: 12px; }
 
@@ -113,7 +135,7 @@ input, select { width: 100%; padding: 13px; border: 1px solid #d1d5db; border-ra
 
     <section class="page-title">
         <h2>Fees Management</h2>
-        <p>Set and record Tuition, Registration, Exam Fee, and Exemption Fee separately for each student, per term.</p>
+        <p>Set fees, bursaries, and record payments for each student, per term.</p>
     </section>
 
     <div id="message" class="message"></div>
@@ -133,6 +155,26 @@ input, select { width: 100%; padding: 13px; border: 1px solid #d1d5db; border-ra
         <button class="submit-button" onclick="loadAllCategories()">Load Fee Record</button>
     </section>
 
+    <section class="card">
+        <h3>🎓 Bursary Setup</h3>
+        <div class="sub">Set the bursary percentage and activation deadline. Bursary becomes Active once the "Bursary Activation" fee below is fully paid.</div>
+
+        <div class="form-grid">
+            <div class="form-group">
+                <label for="bursaryPercentage">Bursary Percentage (%)</label>
+                <input type="number" id="bursaryPercentage" min="0" max="100" placeholder="e.g. 30">
+            </div>
+            <div class="form-group">
+                <label for="bursaryDeadline">Activation Deadline</label>
+                <input type="date" id="bursaryDeadline">
+            </div>
+        </div>
+
+        <button class="submit-button" onclick="saveBursary()">Save Bursary</button>
+
+        <div id="bursaryStatusDisplay"></div>
+    </section>
+
     <div id="categoriesContainer"></div>
 
 </main>
@@ -144,8 +186,10 @@ input, select { width: 100%; padding: 13px; border: 1px solid #d1d5db; border-ra
 
 <script>
 
-const FEE_CATEGORIES = ["Tuition", "Registration", "Exam Fee", "Exemption Fee"];
+const FEE_CATEGORIES = ["Tuition", "Registration", "Exam Fee", "Exemption Fee", "Bursary Activation"];
 const message = document.getElementById("message");
+let currentStudentId = null;
+let currentTermId = null;
 
 function showMessage(text, type) {
     message.textContent = text;
@@ -193,6 +237,105 @@ async function startPage() {
 }
 
 
+async function saveBursary() {
+
+    const studentId = document.getElementById("studentSelect").value;
+    const termId = document.getElementById("termSelect").value;
+    const percentage = document.getElementById("bursaryPercentage").value;
+    const deadline = document.getElementById("bursaryDeadline").value;
+
+    if (!studentId || !termId) {
+        showMessage("Please select a student and term first.", "error");
+        return;
+    }
+
+    if (!percentage) {
+        showMessage("Please enter a bursary percentage.", "error");
+        return;
+    }
+
+    const { data: existing } =
+        await supabaseClient
+            .from("student_bursaries")
+            .select("id")
+            .eq("student_id", studentId)
+            .eq("academic_term_id", termId)
+            .maybeSingle();
+
+    const payload = {
+        student_id: studentId,
+        academic_term_id: termId,
+        bursary_percentage: Number(percentage),
+        activation_deadline: deadline || null
+    };
+
+    let result;
+    if (existing) {
+        result = await supabaseClient.from("student_bursaries").update(payload).eq("id", existing.id);
+    } else {
+        result = await supabaseClient.from("student_bursaries").insert(payload);
+    }
+
+    if (result.error) {
+        showMessage("Unable to save bursary: " + result.error.message, "error");
+        return;
+    }
+
+    showMessage("Bursary saved.", "success");
+    await loadAllCategories();
+
+}
+
+
+async function loadBursaryStatus(studentId, termId) {
+
+    const container = document.getElementById("bursaryStatusDisplay");
+
+    const { data: bursary } =
+        await supabaseClient
+            .from("student_bursaries")
+            .select("*")
+            .eq("student_id", studentId)
+            .eq("academic_term_id", termId)
+            .maybeSingle();
+
+    if (!bursary) {
+        container.innerHTML = "";
+        document.getElementById("bursaryPercentage").value = "";
+        document.getElementById("bursaryDeadline").value = "";
+        return;
+    }
+
+    document.getElementById("bursaryPercentage").value = bursary.bursary_percentage;
+    document.getElementById("bursaryDeadline").value = bursary.activation_deadline || "";
+
+    const { data: activationFee } =
+        await supabaseClient
+            .from("student_term_fees")
+            .select("id, total_fee")
+            .eq("student_id", studentId)
+            .eq("academic_term_id", termId)
+            .eq("fee_type", "Bursary Activation")
+            .maybeSingle();
+
+    let isActive = false;
+
+    if (activationFee) {
+        const { data: payments } = await supabaseClient.from("fee_payments").select("amount").eq("student_fee_id", activationFee.id);
+        const totalPaid = (payments || []).reduce((sum, p) => sum + Number(p.amount), 0);
+        isActive = totalPaid >= Number(activationFee.total_fee);
+    }
+
+    container.innerHTML = `
+        <div class="bursary-card">
+            <strong>${bursary.bursary_percentage}% Bursary</strong> — Activation deadline: ${bursary.activation_deadline ? new Date(bursary.activation_deadline).toLocaleDateString() : "Not set"}
+            <div class="bursary-status ${isActive ? "active" : "inactive"}">${isActive ? "✓ ACTIVE" : "⏳ INACTIVE — awaiting activation payment"}</div>
+        </div>
+    `;
+
+}
+
+
 async function loadAllCategories() {
 
     const studentId = document.getElementById("studentSelect").value;
@@ -202,6 +345,11 @@ async function loadAllCategories() {
         showMessage("Please select both a student and a term.", "error");
         return;
     }
+
+    currentStudentId = studentId;
+    currentTermId = termId;
+
+    await loadBursaryStatus(studentId, termId);
 
     const container = document.getElementById("categoriesContainer");
     container.innerHTML = "";
@@ -233,11 +381,13 @@ async function loadAllCategories() {
         const balance = totalFee - totalPaid;
         totalOutstanding += balance > 0 ? balance : 0;
 
+        const isBursaryFee = category === "Bursary Activation";
+
         const card = document.createElement("div");
-        card.className = "card category-card";
+        card.className = "card category-card" + (isBursaryFee ? " bursary-fee" : "");
 
         card.innerHTML = `
-            <div class="category-title">${category}</div>
+            <div class="category-title">${isBursaryFee ? "🎓 " : ""}${category}</div>
 
             <div class="category-fields">
                 <input type="number" id="totalFee-${category}" placeholder="Total ${category} (K)" value="${feeRecord ? feeRecord.total_fee : ""}">
