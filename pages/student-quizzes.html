@@ -98,6 +98,20 @@ body { font-family: Arial, Helvetica, sans-serif; background: #f4f6f9; color: #1
 .status-badge.open { background: #dcfce7; color: #166534; }
 .status-badge.done { background: #dbeafe; color: #1d4ed8; }
 .status-badge.violation { background: #fee2e2; color: #991b1b; }
+.status-badge.scheduled { background: #fef3c7; color: #92400e; }
+
+.countdown-box {
+    background: #111827;
+    color: white;
+    border-radius: 10px;
+    padding: 16px;
+    margin-top: 12px;
+    text-align: center;
+}
+
+.countdown-box .countdown-label { font-size: 12px; color: #d4af37; margin-bottom: 6px; }
+.countdown-box .countdown-timer { font-size: 22px; font-weight: bold; font-family: monospace; }
+.countdown-box .countdown-date { font-size: 12px; color: #d1d5db; margin-top: 6px; }
 
 .start-button {
     margin-top: 14px;
@@ -330,6 +344,9 @@ let examTimerInterval = null;
 let examEndTime = null;
 let examLocked = false;
 
+let countdownInterval = null;
+let quizzesNeedingCountdown = [];
+
 
 function escapeHtml(value) {
     return String(value ?? "")
@@ -338,6 +355,12 @@ function escapeHtml(value) {
         .replace(/>/g, "&gt;")
         .replace(/"/g, "&quot;")
         .replace(/'/g, "&#039;");
+}
+
+
+function isTimeToOpen(quiz) {
+    if (!quiz.scheduled_start) return false;
+    return new Date(quiz.scheduled_start).getTime() <= Date.now();
 }
 
 
@@ -419,7 +442,6 @@ async function loadQuizzes() {
         }
     });
 
-    // Group quizzes by course to determine CA1/CA2/Final unlock chain
     const quizzesByCourse = {};
     quizzes.forEach(q => {
         if (!quizzesByCourse[q.course_id]) quizzesByCourse[q.course_id] = [];
@@ -433,7 +455,6 @@ async function loadQuizzes() {
 
 function getCALockInfo(quiz, quizzesByCourse, bestScoreByQuiz) {
 
-    // Regular quizzes (not CA, not final) are always available
     if (!quiz.is_final_exam && !quiz.ca_number) {
         return { locked: false };
     }
@@ -486,6 +507,7 @@ function renderQuizzes(quizzes, courseMap, attemptsByQuiz, bestScoreByQuiz, quiz
 
     const container = document.getElementById("quizzesContainer");
     container.innerHTML = "";
+    quizzesNeedingCountdown = [];
 
     quizzes.forEach(quiz => {
 
@@ -501,6 +523,9 @@ function renderQuizzes(quizzes, courseMap, attemptsByQuiz, bestScoreByQuiz, quiz
         let statusClass = "locked";
         let buttonDisabled = true;
         let buttonText = "Locked";
+        let showCountdown = false;
+
+        const effectivelyOpen = quiz.is_open || isTimeToOpen(quiz);
 
         if (lockInfo.locked) {
 
@@ -520,11 +545,16 @@ function renderQuizzes(quizzes, courseMap, attemptsByQuiz, bestScoreByQuiz, quiz
                 statusLabel = "Completed";
                 statusClass = "done";
                 buttonText = "Already Submitted";
-            } else if (quiz.is_open) {
+            } else if (effectivelyOpen) {
                 statusLabel = "Open Now";
                 statusClass = "open";
                 buttonDisabled = false;
                 buttonText = quiz.is_final_exam ? "Start Final Exam" : "Start Exam";
+            } else if (quiz.scheduled_start) {
+                statusLabel = "Scheduled";
+                statusClass = "scheduled";
+                buttonText = "Not Open Yet";
+                showCountdown = true;
             } else {
                 statusLabel = "Not Yet Open";
                 buttonText = "Waiting for exam window";
@@ -554,10 +584,17 @@ function renderQuizzes(quizzes, courseMap, attemptsByQuiz, bestScoreByQuiz, quiz
                 <div>
                     <div class="course-tag">${course ? escapeHtml(course.code) : ""} ${typeTag}</div>
                     <h3>${escapeHtml(quiz.title)}</h3>
-                    <div class="meta">${quiz.duration_minutes ? "Duration: " + quiz.duration_minutes + " min" : (quiz.due_date ? "Due: " + new Date(quiz.due_date).toLocaleString() : "No due date")}${bestScore !== null ? ` • Best score: ${bestScore}%` : ""}</div>
+                    <div class="meta">${quiz.duration_minutes ? "Duration: " + quiz.duration_minutes + " min" : ""}${bestScore !== null ? ` • Best score: ${bestScore}%` : ""}</div>
                 </div>
                 <span class="status-badge ${statusClass}">${statusLabel}</span>
             </div>
+            ${showCountdown ? `
+                <div class="countdown-box">
+                    <div class="countdown-label">OPENS AUTOMATICALLY IN</div>
+                    <div class="countdown-timer" id="countdown-${quiz.id}">--:--:--</div>
+                    <div class="countdown-date">${new Date(quiz.scheduled_start).toLocaleString()}</div>
+                </div>
+            ` : ""}
             <button class="start-button" ${buttonDisabled ? "disabled" : ""} onclick="beginQuiz('${quiz.id}')">${buttonText}</button>
             ${lockInfo.locked ? `<div class="locked-reason">🔒 ${escapeHtml(lockInfo.reason)}</div>` : ""}
             ${pendingViolation ? `<div class="locked-reason">⚠️ Your previous attempt was flagged for leaving the exam page. Your lecturer must review and reopen it before you can try again.</div>` : ""}
@@ -565,7 +602,56 @@ function renderQuizzes(quizzes, courseMap, attemptsByQuiz, bestScoreByQuiz, quiz
 
         container.appendChild(card);
 
+        if (showCountdown) {
+            quizzesNeedingCountdown.push(quiz);
+        }
+
     });
+
+    startCountdownTicker();
+
+}
+
+
+function startCountdownTicker() {
+
+    if (countdownInterval) clearInterval(countdownInterval);
+
+    if (quizzesNeedingCountdown.length === 0) return;
+
+    countdownInterval = setInterval(() => {
+
+        let anyJustOpened = false;
+
+        quizzesNeedingCountdown.forEach(quiz => {
+
+            const el = document.getElementById(`countdown-${quiz.id}`);
+            if (!el) return;
+
+            const remaining = new Date(quiz.scheduled_start).getTime() - Date.now();
+
+            if (remaining <= 0) {
+                anyJustOpened = true;
+                return;
+            }
+
+            const days = Math.floor(remaining / 86400000);
+            const hours = Math.floor((remaining % 86400000) / 3600000);
+            const minutes = Math.floor((remaining % 3600000) / 60000);
+            const seconds = Math.floor((remaining % 60000) / 1000);
+
+            el.textContent = days > 0
+                ? `${days}d ${hours}h ${minutes}m ${seconds}s`
+                : `${hours.toString().padStart(2,"0")}:${minutes.toString().padStart(2,"0")}:${seconds.toString().padStart(2,"0")}`;
+
+        });
+
+        if (anyJustOpened) {
+            clearInterval(countdownInterval);
+            loadQuizzes();
+        }
+
+    }, 1000);
 
 }
 
