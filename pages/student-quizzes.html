@@ -42,6 +42,18 @@ body { font-family: Arial, Helvetica, sans-serif; background: #f4f6f9; color: #1
 .page-title h2 { font-size: 28px; margin-bottom: 6px; }
 .page-title p { color: #6b7280; }
 
+.rules-card {
+    background: #eff6ff;
+    border: 1px solid #bfdbfe;
+    border-radius: 12px;
+    padding: 18px;
+    margin-bottom: 20px;
+}
+
+.rules-card h3 { font-size: 15px; margin-bottom: 10px; color: #1d4ed8; }
+.rules-card ul { margin-left: 20px; font-size: 13px; color: #374151; }
+.rules-card li { margin-bottom: 4px; }
+
 .card {
     background: white;
     padding: 22px;
@@ -83,6 +95,7 @@ body { font-family: Arial, Helvetica, sans-serif; background: #f4f6f9; color: #1
 .status-badge.locked { background: #f3f4f6; color: #6b7280; }
 .status-badge.open { background: #dcfce7; color: #166534; }
 .status-badge.done { background: #dbeafe; color: #1d4ed8; }
+.status-badge.violation { background: #fee2e2; color: #991b1b; }
 
 .start-button {
     margin-top: 14px;
@@ -117,6 +130,7 @@ body { font-family: Arial, Helvetica, sans-serif; background: #f4f6f9; color: #1
     z-index: 999;
     overflow-y: auto;
     padding: 20px;
+    user-select: none;
 }
 
 .exam-room.active { display: block; }
@@ -207,6 +221,23 @@ body { font-family: Arial, Helvetica, sans-serif; background: #f4f6f9; color: #1
 .lockout-screen h2 { font-size: 26px; margin-bottom: 14px; }
 .lockout-screen p { font-size: 15px; max-width: 500px; }
 
+.copy-warning-toast {
+    display: none;
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #991b1b;
+    color: white;
+    padding: 14px 22px;
+    border-radius: 10px;
+    font-weight: bold;
+    z-index: 1001;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+}
+
+.copy-warning-toast.show { display: block; }
+
 </style>
 </head>
 
@@ -229,7 +260,19 @@ body { font-family: Arial, Helvetica, sans-serif; background: #f4f6f9; color: #1
 
     <section class="page-title">
         <h2>Quizzes & Exams</h2>
-        <p>Complete each Unit's CA (70%+) to unlock the next Unit. Pass all 3 CAs to unlock the Final Exam. Exams are single-attempt and locked once you begin.</p>
+        <p>Complete each Unit's CA (70%+) to unlock the next Unit. Pass all 3 CAs to unlock the Final Exam.</p>
+    </section>
+
+    <section class="rules-card">
+        <h3>📋 Locked Exam Rules</h3>
+        <ul>
+            <li>Do not leave this page or switch to another app once the exam begins.</li>
+            <li>Copying and pasting is disabled during the exam.</li>
+            <li>Keep your device in normal full-screen mode — do not use split-screen or floating window features.</li>
+            <li>If you leave the page, your exam will be locked immediately and flagged for your lecturer's review.</li>
+            <li>A locked exam can only be reopened by your lecturer. You will get a completely fresh attempt with full time — your previous answers will not be saved.</li>
+            <li>Each exam allows only one valid attempt unless your lecturer reopens it for you.</li>
+        </ul>
     </section>
 
     <div id="quizzesContainer">
@@ -249,7 +292,7 @@ body { font-family: Arial, Helvetica, sans-serif; background: #f4f6f9; color: #1
     </div>
 
     <div class="exam-warning">
-        ⚠️ Do not leave this page or switch apps. Doing so will lock your exam and submit your current answers immediately.
+        ⚠️ Do not leave this page or switch apps. Copying and pasting is disabled. Leaving will lock your exam and require your lecturer to reopen it before you can try again.
     </div>
 
     <div id="examQuestions"></div>
@@ -261,8 +304,11 @@ body { font-family: Arial, Helvetica, sans-serif; background: #f4f6f9; color: #1
 
 <div class="lockout-screen" id="lockoutScreen">
     <h2>⚠️ Exam Locked</h2>
-    <p id="lockoutMessage">You left the exam page. Your answers at that moment have been submitted automatically and flagged for review.</p>
+    <p id="lockoutMessage">You left the exam page. Your exam has been locked and flagged for your lecturer. You will need your lecturer to reopen it before you can attempt it again — with a fresh full attempt and full time.</p>
 </div>
+
+
+<div class="copy-warning-toast" id="copyWarningToast">⚠️ Copying and pasting is not allowed during this exam.</div>
 
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -365,7 +411,7 @@ async function loadQuizzes() {
     const { data: attempts } =
         await supabaseClient
             .from("quiz_attempts")
-            .select("quiz_id, score, submitted_at")
+            .select("quiz_id, score, submitted_at, violation_flag, cleared_by_lecturer")
             .eq("student_id", authUserId)
             .in("quiz_id", quizIds);
 
@@ -448,7 +494,12 @@ function renderQuizzes(quizzes, moduleToCourse, courseMap, attemptsByQuiz, modul
         const courseId = quiz.is_final_exam ? quiz.course_id : moduleToCourse[quiz.module_id];
         const course = courseMap[courseId];
         const attempts = attemptsByQuiz[quiz.id] || [];
-        const hasAttempted = attempts.length > 0;
+
+        // A pending violation: flagged, not yet cleared by lecturer
+        const pendingViolation = attempts.find(a => a.violation_flag && !a.cleared_by_lecturer);
+
+        // A valid completed attempt: has a score, and is not an unresolved violation
+        const validCompletion = attempts.find(a => a.score !== null && !a.violation_flag);
 
         const lockInfo = getUnitLockInfo(quiz, moduleToCourse, modulesByCourse, passedModuleIds);
 
@@ -463,9 +514,15 @@ function renderQuizzes(quizzes, moduleToCourse, courseMap, attemptsByQuiz, modul
             statusClass = "locked";
             buttonText = quiz.is_final_exam ? "Complete All CAs First" : "Previous Unit Not Passed";
 
+        } else if (pendingViolation) {
+
+            statusLabel = "Locked — Awaiting Lecturer";
+            statusClass = "violation";
+            buttonText = "Awaiting Lecturer Review";
+
         } else if (quiz.is_exam) {
 
-            if (hasAttempted) {
+            if (validCompletion) {
                 statusLabel = "Completed";
                 statusClass = "done";
                 buttonText = "Already Submitted";
@@ -481,18 +538,18 @@ function renderQuizzes(quizzes, moduleToCourse, courseMap, attemptsByQuiz, modul
 
         } else {
 
-            statusLabel = hasAttempted ? "Attempted" : "Available";
-            statusClass = hasAttempted ? "done" : "open";
+            statusLabel = validCompletion ? "Attempted" : "Available";
+            statusClass = validCompletion ? "done" : "open";
             buttonDisabled = false;
-            buttonText = hasAttempted ? "Retake Quiz" : "Start Quiz";
+            buttonText = validCompletion ? "Retake Quiz" : "Start Quiz";
 
         }
 
         const card = document.createElement("div");
         card.className = "card";
 
-        const bestScore = attempts.length > 0
-            ? Math.max(...attempts.map(a => a.score ?? 0))
+        const bestScore = attempts.filter(a => !a.violation_flag).length > 0
+            ? Math.max(...attempts.filter(a => !a.violation_flag).map(a => a.score ?? 0))
             : null;
 
         card.innerHTML = `
@@ -506,6 +563,7 @@ function renderQuizzes(quizzes, moduleToCourse, courseMap, attemptsByQuiz, modul
             </div>
             <button class="start-button" ${buttonDisabled ? "disabled" : ""} onclick="beginQuiz('${quiz.id}')">${buttonText}</button>
             ${lockInfo.locked ? `<div class="locked-reason">🔒 ${escapeHtml(lockInfo.reason)}</div>` : ""}
+            ${pendingViolation ? `<div class="locked-reason">⚠️ Your previous attempt was flagged for leaving the exam page. Your lecturer must review and reopen it before you can try again.</div>` : ""}
         `;
 
         container.appendChild(card);
@@ -535,7 +593,7 @@ async function beginQuiz(quizId) {
 
     if (quiz.is_exam) {
         const confirmed = confirm(
-            "This is a locked exam. Once you start, you must NOT leave this page or switch apps until you finish. Doing so will lock your exam and submit your current answers. Are you ready to begin?"
+            "This is a locked exam. Once you start:\n\n• Do not leave this page or switch apps\n• Copying and pasting is disabled\n• Stay in normal full-screen mode\n\nLeaving will lock your exam and require your lecturer to reopen it. Are you ready to begin?"
         );
         if (!confirmed) return;
     }
@@ -570,6 +628,10 @@ async function beginQuiz(quizId) {
     if (quiz.is_exam) {
         document.addEventListener("visibilitychange", handleVisibilityChange);
         window.addEventListener("blur", handleWindowBlur);
+        document.addEventListener("copy", handleCopyPasteAttempt);
+        document.addEventListener("cut", handleCopyPasteAttempt);
+        document.addEventListener("paste", handleCopyPasteAttempt);
+        document.addEventListener("contextmenu", handleCopyPasteAttempt);
     }
 
     if (quiz.duration_minutes) {
@@ -665,19 +727,37 @@ function handleWindowBlur() {
 }
 
 
+function handleCopyPasteAttempt(event) {
+
+    event.preventDefault();
+
+    const toast = document.getElementById("copyWarningToast");
+    toast.classList.add("show");
+
+    setTimeout(() => {
+        toast.classList.remove("show");
+    }, 2500);
+
+}
+
+
 function lockExam(reason) {
 
     examLocked = true;
 
     document.removeEventListener("visibilitychange", handleVisibilityChange);
     window.removeEventListener("blur", handleWindowBlur);
+    document.removeEventListener("copy", handleCopyPasteAttempt);
+    document.removeEventListener("cut", handleCopyPasteAttempt);
+    document.removeEventListener("paste", handleCopyPasteAttempt);
+    document.removeEventListener("contextmenu", handleCopyPasteAttempt);
 
     if (examTimerInterval) clearInterval(examTimerInterval);
 
     document.getElementById("examRoom").classList.remove("active");
     document.getElementById("lockoutScreen").classList.add("active");
     document.getElementById("lockoutMessage").textContent =
-        reason + " Your answers at that moment have been submitted automatically and flagged for lecturer review.";
+        reason + " Your exam has been locked and flagged for your lecturer. You will need your lecturer to reopen it before you can attempt it again — with a fresh full attempt and full time.";
 
     submitExam(true, reason);
 
@@ -689,6 +769,10 @@ async function submitExam(isViolation, violationReason) {
     if (examTimerInterval) clearInterval(examTimerInterval);
     document.removeEventListener("visibilitychange", handleVisibilityChange);
     window.removeEventListener("blur", handleWindowBlur);
+    document.removeEventListener("copy", handleCopyPasteAttempt);
+    document.removeEventListener("cut", handleCopyPasteAttempt);
+    document.removeEventListener("paste", handleCopyPasteAttempt);
+    document.removeEventListener("contextmenu", handleCopyPasteAttempt);
 
     const answers = {};
     let autoScoredPoints = 0;
@@ -708,7 +792,7 @@ async function submitExam(isViolation, violationReason) {
             answers[q.id] = val;
 
             autoScorableTotal += 1;
-            if (val && val === q.correct_answer) {
+            if (val && q.correct_answer && val === q.correct_answer) {
                 autoScoredPoints += 1;
             }
 
@@ -716,31 +800,35 @@ async function submitExam(isViolation, violationReason) {
 
     });
 
-    const hasShortAnswer = activeQuestions.some(q => q.question_type === "short_answer");
-
-    const score = autoScorableTotal > 0 && !hasShortAnswer
+    const finalScore = autoScorableTotal > 0
         ? Math.round((autoScoredPoints / autoScorableTotal) * 100)
         : null;
+
+    const updatePayload = {
+        answers: answers,
+        submitted_at: new Date().toISOString(),
+        score: finalScore
+    };
+
+    if (isViolation) {
+        updatePayload.violation_flag = true;
+        updatePayload.violation_reason = violationReason;
+        updatePayload.score = null;
+    }
 
     const { error } =
         await supabaseClient
             .from("quiz_attempts")
-            .update({
-                answers: answers,
-                score: score,
-                submitted_at: new Date().toISOString(),
-                violation_flag: !!isViolation,
-                violation_reason: violationReason || null
-            })
+            .update(updatePayload)
             .eq("id", activeAttemptId);
 
     if (error) {
-        console.error(error);
+        console.error("Submit error:", error);
     }
 
     if (!isViolation) {
         document.getElementById("examRoom").classList.remove("active");
-        alert(score !== null ? `Submitted. Score: ${score}%` : "Submitted. Awaiting grading for short-answer questions.");
+        alert(finalScore !== null ? `Submitted. Your score: ${finalScore}%` : "Submitted. Your answers will be graded by your lecturer.");
         await loadQuizzes();
     }
 
