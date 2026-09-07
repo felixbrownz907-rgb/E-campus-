@@ -9,34 +9,14 @@
 * { box-sizing: border-box; margin: 0; padding: 0; }
 body { font-family: Arial, Helvetica, sans-serif; background: #f4f6f9; color: #172033; }
 
-.header {
-    background: #0e7490;
-    color: white;
-    padding: 18px 25px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    flex-wrap: wrap;
-    gap: 12px;
-}
-
+.header { background: #0e7490; color: white; padding: 18px 25px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
 .brand { display: flex; align-items: center; gap: 14px; }
 .logo { width: 55px; height: 55px; object-fit: contain; background: white; border-radius: 8px; }
 .brand h1 { font-size: 22px; }
 .brand p { color: #cffafe; margin-top: 3px; font-size: 13px; }
-
-.back-button {
-    background: white;
-    color: #0e7490;
-    text-decoration: none;
-    padding: 10px 16px;
-    border-radius: 8px;
-    font-weight: bold;
-    font-size: 13px;
-}
+.back-button { background: white; color: #0e7490; text-decoration: none; padding: 10px 16px; border-radius: 8px; font-weight: bold; font-size: 13px; }
 
 .container { max-width: 1250px; margin: 25px auto; padding: 0 20px; }
-
 .page-title { margin-bottom: 20px; }
 .page-title h2 { font-size: 28px; margin-bottom: 6px; }
 .page-title p { color: #6b7280; }
@@ -77,18 +57,14 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: #0e7490
 .exam-checkbox-group input { width: auto; }
 .exam-checkbox-group label { margin-bottom: 0; font-weight: normal; }
 
-.final-checkbox-group {
-    display: flex;
-    align-items: center;
-    gap: 10px;
+.assessment-hint {
     background: #eff6ff;
-    padding: 14px;
     border-radius: 8px;
+    padding: 12px;
+    font-size: 13px;
+    color: #1e40af;
     border: 1px solid #bfdbfe;
 }
-
-.final-checkbox-group input { width: auto; }
-.final-checkbox-group label { margin-bottom: 0; font-weight: normal; }
 
 .submit-button {
     margin-top: 20px;
@@ -121,6 +97,7 @@ tr:hover { background: #f9fafb; }
 
 .exam-tag { background: #fee2e2; color: #991b1b; padding: 3px 9px; border-radius: 20px; font-size: 11px; font-weight: bold; margin-left: 6px; }
 .final-tag { background: #dbeafe; color: #1d4ed8; padding: 3px 9px; border-radius: 20px; font-size: 11px; font-weight: bold; margin-left: 6px; }
+.ca-tag { background: #fef3c7; color: #92400e; padding: 3px 9px; border-radius: 20px; font-size: 11px; font-weight: bold; margin-left: 6px; }
 
 .action-button {
     border: none;
@@ -197,7 +174,7 @@ tr:hover { background: #f9fafb; }
 
     <section class="page-title">
         <h2>Exams & Quizzes</h2>
-        <p>Create Unit CAs and course Final Exams for your assigned courses. Publish results when ready for students to see.</p>
+        <p>CA1, CA2 and the Final Exam belong to the course as a whole — not to any Unit, so they stay stable even if Units are added, removed or reorganized. Publish results when ready for students to see.</p>
     </section>
 
     <div id="message" class="message"></div>
@@ -205,7 +182,7 @@ tr:hover { background: #f9fafb; }
 
     <section class="card">
 
-        <h3>Add New Quiz / Exam</h3>
+        <h3>Add New Assessment</h3>
 
         <form id="quizForm">
 
@@ -219,22 +196,25 @@ tr:hover { background: #f9fafb; }
                 </div>
 
                 <div class="form-group full">
-                    <div class="final-checkbox-group">
-                        <input type="checkbox" id="isFinalExam">
-                        <label for="isFinalExam">This is the course's Final Exam (not tied to a Unit — covers the whole course, unlocks only after all 3 CAs are passed)</label>
-                    </div>
-                </div>
-
-                <div class="form-group full" id="moduleGroup">
-                    <label for="module">Unit</label>
-                    <select id="module" required disabled>
-                        <option value="">Select course first</option>
+                    <label for="assessmentType">Assessment Type</label>
+                    <select id="assessmentType" required>
+                        <option value="">Select type</option>
+                        <option value="1">CA1</option>
+                        <option value="2">CA2</option>
+                        <option value="final">End-of-Term / Final Exam</option>
+                        <option value="quiz">Regular Quiz (not part of CA sequence)</option>
                     </select>
                 </div>
 
                 <div class="form-group full">
+                    <div class="assessment-hint" id="assessmentHint">
+                        Students must pass CA1 (70%+) before CA2 unlocks, and must pass both CA1 and CA2 before the Final Exam unlocks. This applies regardless of how many Units the course has.
+                    </div>
+                </div>
+
+                <div class="form-group full">
                     <label for="title">Title</label>
-                    <input type="text" id="title" required placeholder="e.g. CA1 — Networking Basics, or Final Exam">
+                    <input type="text" id="title" required placeholder="e.g. CA1 — Microeconomics First Term">
                 </div>
 
                 <div class="form-group">
@@ -261,12 +241,12 @@ tr:hover { background: #f9fafb; }
 
                 <div class="form-group full">
                     <label for="description">Description / Instructions</label>
-                    <textarea id="description" placeholder="Describe the quiz or exam..."></textarea>
+                    <textarea id="description" placeholder="Describe the assessment..."></textarea>
                 </div>
 
             </div>
 
-            <button type="submit" class="submit-button" id="submitButton">Create Quiz</button>
+            <button type="submit" class="submit-button" id="submitButton">Create Assessment</button>
 
         </form>
 
@@ -333,16 +313,22 @@ document.getElementById("isExam").addEventListener("change", function() {
 });
 
 
-document.getElementById("isFinalExam").addEventListener("change", function() {
-    const moduleGroup = document.getElementById("moduleGroup");
-    const moduleSelect = document.getElementById("module");
-    if (this.checked) {
-        moduleGroup.style.display = "none";
-        moduleSelect.required = false;
+document.getElementById("assessmentType").addEventListener("change", function() {
+
+    const hint = document.getElementById("assessmentHint");
+
+    if (this.value === "1") {
+        hint.textContent = "CA1 is always available first — no prerequisite.";
+    } else if (this.value === "2") {
+        hint.textContent = "CA2 unlocks only after the student passes CA1 (70%+).";
+    } else if (this.value === "final") {
+        hint.textContent = "The Final Exam unlocks only after the student passes both CA1 and CA2 (70%+ each).";
+    } else if (this.value === "quiz") {
+        hint.textContent = "A regular quiz — not part of the CA1/CA2/Final progression, always available once created.";
     } else {
-        moduleGroup.style.display = "block";
-        moduleSelect.required = true;
+        hint.textContent = "Students must pass CA1 (70%+) before CA2 unlocks, and must pass both CA1 and CA2 before the Final Exam unlocks. This applies regardless of how many Units the course has.";
     }
+
 });
 
 
@@ -387,67 +373,25 @@ async function loadMyCourses() {
 }
 
 
-async function loadModulesByCourse(courseId) {
-
-    const select = document.getElementById("module");
-    select.innerHTML = `<option value="">Loading modules...</option>`;
-    select.disabled = true;
-
-    if (!courseId) {
-        select.innerHTML = `<option value="">Select course first</option>`;
-        return;
-    }
-
-    const { data, error } =
-        await supabaseClient
-            .from("course_modules")
-            .select("id, module_number, title")
-            .eq("course_id", courseId)
-            .order("module_number");
-
-    if (error || !data || data.length === 0) {
-        select.innerHTML = `<option value="">No units found for this course</option>`;
-        return;
-    }
-
-    select.innerHTML = `<option value="">Select unit</option>`;
-    data.forEach(m => {
-        const option = document.createElement("option");
-        option.value = m.id;
-        option.textContent = `Unit ${m.module_number} — ${m.title}`;
-        select.appendChild(option);
-    });
-
-    select.disabled = false;
-
-}
-
-
-document.getElementById("course").addEventListener("change", function() {
-    if (!document.getElementById("isFinalExam").checked) {
-        loadModulesByCourse(this.value);
-    }
-});
-
-
 document.getElementById("quizForm").addEventListener("submit", async function(event) {
 
     event.preventDefault();
 
     const isExam = document.getElementById("isExam").checked;
-    const isFinalExam = document.getElementById("isFinalExam").checked;
     const scheduledValue = document.getElementById("scheduledStart").value;
     const courseId = document.getElementById("course").value;
+    const assessmentType = document.getElementById("assessmentType").value;
 
-    if (!isFinalExam && !document.getElementById("module").value) {
-        showMessage("Please select a Unit, or mark this as the Final Exam.", "error");
+    if (!assessmentType) {
+        showMessage("Please select an assessment type.", "error");
         return;
     }
 
     const quizData = {
-        module_id: isFinalExam ? null : document.getElementById("module").value,
-        course_id: isFinalExam ? courseId : null,
-        is_final_exam: isFinalExam,
+        module_id: null,
+        course_id: courseId,
+        is_final_exam: assessmentType === "final",
+        ca_number: (assessmentType === "1" || assessmentType === "2") ? Number(assessmentType) : null,
         title: document.getElementById("title").value.trim(),
         description: document.getElementById("description").value.trim() || null,
         max_score: Number(document.getElementById("maxScore").value) || 100,
@@ -471,10 +415,6 @@ document.getElementById("quizForm").addEventListener("submit", async function(ev
     showMessage("Created successfully.", "success");
     document.getElementById("quizForm").reset();
     document.getElementById("scheduledGroup").style.display = "none";
-    document.getElementById("moduleGroup").style.display = "block";
-    document.getElementById("module").innerHTML = `<option value="">Select course first</option>`;
-    document.getElementById("module").disabled = true;
-    document.getElementById("module").required = true;
 
     await loadQuizzes();
 
@@ -490,41 +430,22 @@ async function loadQuizzes() {
         return;
     }
 
-    const { data: modules } =
-        await supabaseClient.from("course_modules").select("id, course_id").in("course_id", myCourseIds);
-
-    const moduleIds = (modules || []).map(m => m.id);
-
-    const { data: unitQuizzes, error: unitError } =
-        moduleIds.length > 0
-        ? await supabaseClient
-            .from("quizzes")
-            .select(`
-                id, title, is_exam, is_open, is_final_exam, is_published, duration_minutes, scheduled_start, module_id, course_id,
-                course_modules ( course_id, courses ( code, name ) )
-            `)
-            .in("module_id", moduleIds)
-        : { data: [], error: null };
-
-    const { data: finalExams, error: finalError } =
+    const { data: allQuizzes, error } =
         await supabaseClient
             .from("quizzes")
             .select(`
-                id, title, is_exam, is_open, is_final_exam, is_published, duration_minutes, scheduled_start, module_id, course_id,
+                id, title, is_exam, is_open, is_final_exam, is_published, ca_number, duration_minutes, scheduled_start, course_id,
                 courses ( code, name )
             `)
             .in("course_id", myCourseIds)
-            .eq("is_final_exam", true);
+            .order("title");
 
-    const allQuizzes = [...(unitQuizzes || []), ...(finalExams || [])]
-        .sort((a, b) => (a.title || "").localeCompare(b.title || ""));
-
-    if (unitError || finalError) {
-        tbody.innerHTML = `<tr><td colspan="6">Unable to load: ${escapeHtml((unitError || finalError).message)}</td></tr>`;
+    if (error) {
+        tbody.innerHTML = `<tr><td colspan="6">Unable to load: ${escapeHtml(error.message)}</td></tr>`;
         return;
     }
 
-    if (allQuizzes.length === 0) {
+    if (!allQuizzes || allQuizzes.length === 0) {
         tbody.innerHTML = `<tr><td colspan="6">No quizzes or exams created yet.</td></tr>`;
         return;
     }
@@ -538,13 +459,18 @@ async function loadQuizzes() {
             .select("id", { count: "exact", head: true })
             .eq("quiz_id", quiz.id);
 
-        const course = quiz.is_final_exam ? quiz.courses : quiz.course_modules?.courses;
+        const course = quiz.courses;
+
+        let typeTag = "";
+        if (quiz.is_final_exam) typeTag = `<span class="final-tag">FINAL</span>`;
+        else if (quiz.ca_number) typeTag = `<span class="ca-tag">CA${quiz.ca_number}</span>`;
+        if (quiz.is_exam) typeTag += `<span class="exam-tag">EXAM</span>`;
 
         const row = document.createElement("tr");
 
         row.innerHTML = `
             <td>${course ? escapeHtml(course.code) : "-"}</td>
-            <td>${escapeHtml(quiz.title)} ${quiz.is_final_exam ? `<span class="final-tag">FINAL</span>` : ""} ${quiz.is_exam ? `<span class="exam-tag">EXAM</span>` : ""} ${quiz.is_published ? `<span class="final-tag" style="background:#dcfce7; color:#166534;">PUBLISHED</span>` : ""}</td>
+            <td>${escapeHtml(quiz.title)} ${typeTag} ${quiz.is_published ? `<span class="final-tag" style="background:#dcfce7; color:#166534;">PUBLISHED</span>` : ""}</td>
             <td>${quiz.scheduled_start ? new Date(quiz.scheduled_start).toLocaleString() : "-"}</td>
             <td>${quiz.duration_minutes ? quiz.duration_minutes + " min" : "-"}</td>
             <td>${count || 0}</td>
