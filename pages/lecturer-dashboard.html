@@ -78,6 +78,12 @@ body { font-family: Arial, Helvetica, sans-serif; background: #f4f6f9; color: #1
     font-size: 13px;
 }
 
+.quick-link.featured {
+    background: #0e7490;
+    color: white;
+    border-color: #0e7490;
+}
+
 .course-item {
     padding: 16px;
     border: 1px solid #e5e7eb;
@@ -141,6 +147,7 @@ body { font-family: Arial, Helvetica, sans-serif; background: #f4f6f9; color: #1
     <section class="card">
         <h3>Quick Actions</h3>
         <div class="quick-links">
+            <a href="lecturer-schedule-exam.html" class="quick-link featured">🗓️ Schedule Exam</a>
             <a href="lecturer-content.html" class="quick-link">📖 Manage Content</a>
             <a href="lecturer-assignments.html" class="quick-link">📝 Create Assignments</a>
             <a href="lecturer-exams.html" class="quick-link">📋 Manage Exams</a>
@@ -282,6 +289,7 @@ async function startDashboard() {
             <h4>${escapeHtml(course.code)} — ${escapeHtml(course.name)}</h4>
             <div class="course-meta">${studentCountByCourse[course.id] || 0} students enrolled • ${course.credits || 0} credits</div>
             <div class="action-row">
+                <a href="lecturer-schedule-exam.html" class="small-button">🗓️ Schedule Exam</a>
                 <a href="lecturer-content.html" class="small-button">📖 Manage Content</a>
                 <a href="lecturer-assignments.html" class="small-button">📝 Create Assignments</a>
                 <a href="lecturer-exams.html" class="small-button">📋 Manage Exams</a>
