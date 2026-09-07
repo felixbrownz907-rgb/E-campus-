@@ -657,6 +657,34 @@ async function renderQuestions(quizId) {
     }
 
     html += `
+        <div style="margin-top:16px; padding-top:16px; border-top:1px solid #e5e7eb; background:#eff6ff; padding:16px; border-radius:8px;">
+            <h4 style="margin-bottom:10px;">🤖 Generate Questions with AI</h4>
+            <p style="font-size:13px; color:#374151; margin-bottom:10px;">Describe the topic and let AI draft the questions — review and edit before they're saved.</p>
+
+            <textarea id="aiTopic-${quizId}" placeholder="e.g. Introduction to Supply and Demand in Microeconomics" style="margin-bottom:10px;"></textarea>
+
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:10px;">
+                <select id="aiQuestionType-${quizId}">
+                    <option value="multiple_choice">Multiple Choice</option>
+                    <option value="true_false">True or False</option>
+                </select>
+                <select id="aiExamType-${quizId}">
+                    <option value="quiz">Quiz</option>
+                    <option value="midterm">Midterm</option>
+                    <option value="final exam">Final Exam</option>
+                    <option value="end of term exam">End of Term Exam</option>
+                    <option value="end of semester exam">End of Semester Exam</option>
+                    <option value="end of year exam">End of Year Exam</option>
+                </select>
+            </div>
+
+            <input type="number" id="aiNumQuestions-${quizId}" placeholder="Number of questions (e.g. 5)" value="5" min="1" max="20" style="margin-bottom:10px;">
+
+            <button class="small-button" onclick="generateAIQuestions('${quizId}')" id="aiGenerateBtn-${quizId}">✨ Generate Questions</button>
+
+            <div id="aiPreview-${quizId}" style="margin-top:14px;"></div>
+        </div>
+
         <div style="margin-top:16px; padding-top:16px; border-top:1px solid #e5e7eb;">
             <h4 style="margin-bottom:10px;">Add Multiple Choice Question</h4>
             <textarea id="newQtext-${quizId}" placeholder="Enter the question text..." style="margin-bottom:10px;"></textarea>
@@ -694,6 +722,116 @@ ANSWER: A structured collection of organized data.</div>
     `;
 
     panel.innerHTML = html;
+
+}
+
+
+async function generateAIQuestions(quizId) {
+
+    const topic = document.getElementById(`aiTopic-${quizId}`).value.trim();
+    const questionType = document.getElementById(`aiQuestionType-${quizId}`).value;
+    const examType = document.getElementById(`aiExamType-${quizId}`).value;
+    const numQuestions = document.getElementById(`aiNumQuestions-${quizId}`).value;
+
+    if (!topic) {
+        showMessage("Please describe the topic first.", "error");
+        return;
+    }
+
+    const btn = document.getElementById(`aiGenerateBtn-${quizId}`);
+    btn.disabled = true;
+    btn.textContent = "Generating...";
+
+    const previewDiv = document.getElementById(`aiPreview-${quizId}`);
+    previewDiv.innerHTML = `<p style="color:#6b7280; font-size:13px;">AI is preparing your ${examType}...</p>`;
+
+    try {
+
+        const response = await fetch("/generate-questions", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ topic, questionType, examType, numQuestions })
+        });
+
+        const data = await response.json();
+
+        if (!response.ok || data.error) {
+            previewDiv.innerHTML = `<p style="color:#991b1b; font-size:13px;">Error: ${escapeHtml(data.error || "Unable to generate questions.")}</p>`;
+            btn.disabled = false;
+            btn.textContent = "✨ Generate Questions";
+            return;
+        }
+
+        const parsedQuestions = parseBulkQuestions(data.text);
+
+        if (parsedQuestions.length === 0) {
+            previewDiv.innerHTML = `<p style="color:#991b1b; font-size:13px;">AI response could not be parsed. Try again or rephrase the topic.</p>`;
+            btn.disabled = false;
+            btn.textContent = "✨ Generate Questions";
+            return;
+        }
+
+        let previewHtml = `<div style="background:white; border-radius:8px; padding:14px; border:1px solid #bfdbfe;">
+            <p style="font-weight:bold; margin-bottom:10px; font-size:13px;">Review the AI-drafted questions below, then confirm to add them:</p>`;
+
+        parsedQuestions.forEach((q, idx) => {
+            previewHtml += `
+                <div style="padding:10px; background:#f9fafb; border-radius:6px; margin-bottom:8px; font-size:13px;">
+                    <strong>${idx + 1}. ${escapeHtml(q.question_text)}</strong><br>
+                    ${q.question_type === "short_answer"
+                        ? `Answer: ${escapeHtml(q.correct_answer || "-")}`
+                        : (q.options || []).map(opt => `${opt === q.correct_answer ? "✓" : "○"} ${escapeHtml(opt)}`).join("<br>")
+                    }
+                </div>
+            `;
+        });
+
+        previewHtml += `<button class="small-button" onclick='confirmAIQuestions("${quizId}")'>✅ Confirm & Add These Questions</button></div>`;
+
+        previewDiv.innerHTML = previewHtml;
+        previewDiv.dataset.pending = JSON.stringify(parsedQuestions);
+
+        btn.disabled = false;
+        btn.textContent = "✨ Generate Questions";
+
+    } catch (err) {
+
+        previewDiv.innerHTML = `<p style="color:#991b1b; font-size:13px;">Unexpected error: ${escapeHtml(err.message)}</p>`;
+        btn.disabled = false;
+        btn.textContent = "✨ Generate Questions";
+
+    }
+
+}
+
+
+async function confirmAIQuestions(quizId) {
+
+    const previewDiv = document.getElementById(`aiPreview-${quizId}`);
+    const parsedQuestions = JSON.parse(previewDiv.dataset.pending || "[]");
+
+    if (parsedQuestions.length === 0) return;
+
+    const rowsToInsert = parsedQuestions.map(q => ({
+        quiz_id: quizId,
+        question_text: q.question_text,
+        question_type: q.question_type,
+        options: q.options,
+        correct_answer: q.correct_answer,
+        points: 1
+    }));
+
+    const { error } = await supabaseClient.from("quiz_questions").insert(rowsToInsert);
+
+    if (error) {
+        showMessage("Unable to add questions: " + error.message, "error");
+        return;
+    }
+
+    showMessage(`${parsedQuestions.length} AI-generated question(s) added.`, "success");
+    previewDiv.innerHTML = "";
+    await renderQuestions(quizId);
+    await loadQuizzes();
 
 }
 
@@ -908,7 +1046,7 @@ async function toggleAttempts(quizId) {
     const { data, error } =
         await supabaseClient
             .from("quiz_attempts")
-            .select("id, score, submitted_at, student_id, violation_flag, violation_reason")
+            .select("id, score, submitted_at, student_id, violation_flag, violation_reason, cleared_by_lecturer")
             .eq("quiz_id", quizId)
             .order("submitted_at", { ascending: false });
 
@@ -930,18 +1068,43 @@ async function toggleAttempts(quizId) {
             await supabaseClient.from("user_profiles").select("first_name, last_name").eq("id", attempt.student_id).single();
 
         const name = profile ? `${profile.first_name} ${profile.last_name}` : "Unknown student";
+        const needsReview = attempt.violation_flag && !attempt.cleared_by_lecturer;
 
         html += `
-            <div class="attempt-row">
-                <span>${escapeHtml(name)} ${attempt.violation_flag ? `<span class="violation-tag">⚠ FLAGGED: ${escapeHtml(attempt.violation_reason || "Left exam page")}</span>` : ""}</span>
-                <span>${new Date(attempt.submitted_at).toLocaleString()}</span>
-                <strong>${attempt.score ?? "Ungraded"}${attempt.score !== null ? "%" : ""}</strong>
+            <div class="attempt-row" style="flex-direction:column; align-items:flex-start;">
+                <div style="display:flex; justify-content:space-between; width:100%; flex-wrap:wrap; gap:6px;">
+                    <span>${escapeHtml(name)} ${attempt.violation_flag ? `<span class="violation-tag">⚠ FLAGGED: ${escapeHtml(attempt.violation_reason || "Left exam page")}</span>` : ""} ${attempt.cleared_by_lecturer ? `<span style="background:#dcfce7; color:#166534; padding:2px 8px; border-radius:12px; font-size:11px; font-weight:bold; margin-left:6px;">✓ Cleared</span>` : ""}</span>
+                    <span>${new Date(attempt.submitted_at).toLocaleString()}</span>
+                    <strong>${attempt.score ?? "Ungraded"}${attempt.score !== null ? "%" : ""}</strong>
+                </div>
+                ${needsReview ? `<button class="action-button" style="background:#166534; color:white; margin-top:6px;" onclick="allowRetry('${attempt.id}')">Allow Student to Retry (Fresh Attempt)</button>` : ""}
             </div>
         `;
 
     }
 
     panel.innerHTML = html;
+
+}
+
+
+async function allowRetry(attemptId) {
+
+    const confirmed = confirm("Clear this flagged attempt and let the student try again with a fresh full attempt?");
+    if (!confirmed) return;
+
+    const { error } =
+        await supabaseClient
+            .from("quiz_attempts")
+            .update({ cleared_by_lecturer: true })
+            .eq("id", attemptId);
+
+    if (error) {
+        showMessage("Unable to clear attempt: " + error.message, "error");
+        return;
+    }
+
+    showMessage("Attempt cleared. The student can now start a fresh attempt.", "success");
 
 }
 
