@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Schedule Exam | Lecturer Portal</title>
+
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: Arial, Helvetica, sans-serif; background: #f4f6f9; color: #172033; }
+
+.header { background: #0e7490; color: white; padding: 18px 25px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+.brand { display: flex; align-items: center; gap: 14px; }
+.logo { width: 55px; height: 55px; object-fit: contain; background: white; border-radius: 8px; }
+.brand h1 { font-size: 22px; }
+.brand p { color: #cffafe; margin-top: 3px; font-size: 13px; }
+.back-button { background: white; color: #0e7490; text-decoration: none; padding: 10px 16px; border-radius: 8px; font-weight: bold; font-size: 13px; }
+
+.container { max-width: 700px; margin: 25px auto; padding: 0 20px; }
+.page-title { margin-bottom: 20px; }
+.page-title h2 { font-size: 26px; margin-bottom: 6px; }
+.page-title p { color: #6b7280; font-size: 14px; }
+
+.message { padding: 14px; border-radius: 8px; margin-bottom: 20px; display: none; }
+.message.success { display: block; background: #dcfce7; color: #166534; }
+.message.error { display: block; background: #fee2e2; color: #991b1b; }
+
+.card { background: white; padding: 25px; border-radius: 14px; margin-bottom: 20px; box-shadow: 0 5px 20px rgba(0,0,0,0.07); }
+
+label { font-weight: bold; margin-bottom: 8px; display: block; font-size: 14px; }
+
+select, input {
+    width: 100%;
+    padding: 14px;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    font-size: 16px;
+    margin-bottom: 18px;
+}
+
+.current-info {
+    background: #f4f6f9;
+    border-radius: 8px;
+    padding: 14px;
+    margin-bottom: 18px;
+    font-size: 13px;
+    color: #374151;
+    display: none;
+}
+
+.current-info.show { display: block; }
+.current-info strong { color: #111827; }
+
+.submit-button {
+    background: #0e7490;
+    color: white;
+    border: none;
+    padding: 16px;
+    border-radius: 10px;
+    font-weight: bold;
+    font-size: 16px;
+    cursor: pointer;
+    width: 100%;
+}
+
+.open-status-button {
+    margin-top: 12px;
+    background: #166534;
+    color: white;
+    border: none;
+    padding: 14px;
+    border-radius: 10px;
+    font-weight: bold;
+    font-size: 15px;
+    cursor: pointer;
+    width: 100%;
+    display: none;
+}
+
+.open-status-button.show { display: block; }
+
+.empty-note { color: #9ca3af; text-align: center; padding: 20px 0; font-size: 14px; }
+</style>
+</head>
+
+
+<body>
+
+<header class="header">
+    <div class="brand">
+        <img src="https://pub-b3e2d39712e84119875e84c5ec5f5c09.r2.dev/Logo/IMG-20260816-WA0050(1).jpg" alt="Sunningdale University Logo" class="logo">
+        <div>
+            <h1>E-Campus</h1>
+            <p>Lecturer Portal</p>
+        </div>
+    </div>
+    <a href="lecturer-dashboard.html" class="back-button">← Dashboard</a>
+</header>
+
+
+<main class="container">
+
+    <section class="page-title">
+        <h2>Schedule an Exam</h2>
+        <p>Pick an exam that's already prepared, set when it should be written, and how long students get.</p>
+    </section>
+
+    <div id="message" class="message"></div>
+
+    <section class="card">
+
+        <label for="courseSelect">Course</label>
+        <select id="courseSelect"><option value="">Select course</option></select>
+
+        <label for="examSelect">Exam</label>
+        <select id="examSelect" disabled><option value="">Select course first</option></select>
+
+        <div class="current-info" id="currentInfo"></div>
+
+        <label for="examDate">Date it will be written</label>
+        <input type="date" id="examDate">
+
+        <label for="examTime">Time it will start</label>
+        <input type="time" id="examTime">
+
+        <label for="durationHours">How long (hours)</label>
+        <input type="number" id="durationHours" step="0.5" placeholder="e.g. 1 for one hour, 1.5 for 90 minutes">
+
+        <button class="submit-button" onclick="saveSchedule()">Save Schedule</button>
+        <button class="open-status-button" id="openButton" onclick="toggleOpen()">Open Exam Room Now</button>
+
+    </section>
+
+</main>
+
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../supabase-config.js"></script>
+
+
+<script>
+
+const message = document.getElementById("message");
+let lecturerProfileId = null;
+let currentQuizIsOpen = false;
+
+function showMessage(text, type) {
+    message.textContent = text;
+    message.className = "message " + type;
+}
+
+
+async function startPage() {
+
+    const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
+
+    if (authError || !user) {
+        window.location.href = "lecturer-login.html";
+        return;
+    }
+
+    const { data: lecturerProfile } =
+        await supabaseClient.from("lecturer_profiles").select("id").eq("user_id", user.id).single();
+
+    if (!lecturerProfile) return;
+
+    lecturerProfileId = lecturerProfile.id;
+
+    const { data: assignments } =
+        await supabaseClient
+            .from("course_lecturers")
+            .select("courses ( id, code, name )")
+            .eq("lecturer_id", lecturerProfileId);
+
+    const courses = (assignments || []).map(a => a.courses).filter(Boolean);
+    const select = document.getElementById("courseSelect");
+
+    courses.forEach(c => {
+        const option = document.createElement("option");
+        option.value = c.id;
+        option.textContent = `${c.code} — ${c.name}`;
+        select.appendChild(option);
+    });
+
+}
+
+
+document.getElementById("courseSelect").addEventListener("change", async function() {
+
+    const courseId = this.value;
+    const examSelect = document.getElementById("examSelect");
+
+    examSelect.innerHTML = `<option value="">Loading...</option>`;
+    document.getElementById("currentInfo").classList.remove("show");
+    document.getElementById("openButton").classList.remove("show");
+
+    if (!courseId) {
+        examSelect.innerHTML = `<option value="">Select course first</option>`;
+        examSelect.disabled = true;
+        return;
+    }
+
+    const { data: quizzes } =
+        await supabaseClient
+            .from("quizzes")
+            .select("id, title, ca_number, is_final_exam, is_exam, is_open, scheduled_start, duration_minutes")
+            .eq("course_id", courseId)
+            .order("ca_number");
+
+    if (!quizzes || quizzes.length === 0) {
+        examSelect.innerHTML = `<option value="">No exams found for this course</option>`;
+        return;
+    }
+
+    examSelect.innerHTML = `<option value="">Select exam</option>`;
+    quizzes.forEach(q => {
+        const label = q.is_final_exam ? "Final Exam" : (q.ca_number ? `CA${q.ca_number}` : "Quiz");
+        const option = document.createElement("option");
+        option.value = q.id;
+        option.textContent = `${label} — ${q.title}`;
+        option.dataset.quiz = JSON.stringify(q);
+        examSelect.appendChild(option);
+    });
+
+    examSelect.disabled = false;
+
+});
+
+
+document.getElementById("examSelect").addEventListener("change", function() {
+
+    const selectedOption = this.options[this.selectedIndex];
+    const currentInfo = document.getElementById("currentInfo");
+    const openButton = document.getElementById("openButton");
+
+    if (!this.value) {
+        currentInfo.classList.remove("show");
+        openButton.classList.remove("show");
+        return;
+    }
+
+    const quiz = JSON.parse(selectedOption.dataset.quiz);
+
+    document.getElementById("examDate").value = quiz.scheduled_start ? quiz.scheduled_start.split("T")[0] : "";
+    document.getElementById("examTime").value = quiz.scheduled_start ? quiz.scheduled_start.split("T")[1]?.slice(0,5) : "";
+    document.getElementById("durationHours").value = quiz.duration_minutes ? (quiz.duration_minutes / 60) : "";
+
+    currentInfo.innerHTML = `
+        <strong>Currently:</strong> ${quiz.scheduled_start ? "Scheduled for " + new Date(quiz.scheduled_start).toLocaleString() : "No date set yet"}<br>
+        <strong>Exam Room:</strong> ${quiz.is_open ? "✅ Currently OPEN — students can write it now" : "🔒 Currently closed"}
+    `;
+    currentInfo.classList.add("show");
+
+    currentQuizIsOpen = quiz.is_open;
+    openButton.textContent = currentQuizIsOpen ? "Close Exam Room Now" : "Open Exam Room Now";
+    openButton.classList.add("show");
+
+});
+
+
+async function saveSchedule() {
+
+    const quizId = document.getElementById("examSelect").value;
+    const date = document.getElementById("examDate").value;
+    const time = document.getElementById("examTime").value;
+    const hours = document.getElementById("durationHours").value;
+
+    if (!quizId) {
+        showMessage("Please select an exam first.", "error");
+        return;
+    }
+
+    if (!date || !time) {
+        showMessage("Please enter both the date and time.", "error");
+        return;
+    }
+
+    const scheduledStart = `${date}T${time}:00`;
+    const durationMinutes = hours ? Math.round(Number(hours) * 60) : null;
+
+    const { error } =
+        await supabaseClient
+            .from("quizzes")
+            .update({
+                scheduled_start: scheduledStart,
+                duration_minutes: durationMinutes
+            })
+            .eq("id", quizId);
+
+    if (error) {
+        showMessage("Unable to save: " + error.message, "error");
+        return;
+    }
+
+    showMessage("Schedule saved. Students will see this date and time.", "success");
+    document.getElementById("courseSelect").dispatchEvent(new Event("change"));
+
+}
+
+
+async function toggleOpen() {
+
+    const quizId = document.getElementById("examSelect").value;
+
+    if (!quizId) return;
+
+    const newState = !currentQuizIsOpen;
+
+    const { error } =
+        await supabaseClient.from("quizzes").update({ is_open: newState }).eq("id", quizId);
+
+    if (error) {
+        showMessage("Unable to update: " + error.message, "error");
+        return;
+    }
+
+    showMessage(newState ? "Exam room opened — students can write it now." : "Exam room closed.", "success");
+    document.getElementById("courseSelect").dispatchEvent(new Event("change"));
+
+}
+
+
+startPage();
+
+</script>
+
+</body>
+</html>
