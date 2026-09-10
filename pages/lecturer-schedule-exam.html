@@ -241,8 +241,25 @@ document.getElementById("examSelect").addEventListener("change", function() {
 
     const quiz = JSON.parse(selectedOption.dataset.quiz);
 
-    document.getElementById("examDate").value = quiz.scheduled_start ? quiz.scheduled_start.split("T")[0] : "";
-    document.getElementById("examTime").value = quiz.scheduled_start ? quiz.scheduled_start.split("T")[1]?.slice(0,5) : "";
+    if (quiz.scheduled_start) {
+
+        const localDate = new Date(quiz.scheduled_start);
+        const yyyy = localDate.getFullYear();
+        const mm = String(localDate.getMonth() + 1).padStart(2, "0");
+        const dd = String(localDate.getDate()).padStart(2, "0");
+        const hh = String(localDate.getHours()).padStart(2, "0");
+        const min = String(localDate.getMinutes()).padStart(2, "0");
+
+        document.getElementById("examDate").value = `${yyyy}-${mm}-${dd}`;
+        document.getElementById("examTime").value = `${hh}:${min}`;
+
+    } else {
+
+        document.getElementById("examDate").value = "";
+        document.getElementById("examTime").value = "";
+
+    }
+
     document.getElementById("durationHours").value = quiz.duration_minutes ? (quiz.duration_minutes / 60) : "";
 
     currentInfo.innerHTML = `
@@ -275,7 +292,8 @@ async function saveSchedule() {
         return;
     }
 
-    const scheduledStart = `${date}T${time}:00`;
+    // Build the date/time as the lecturer's LOCAL time, then convert correctly to UTC for storage
+    const scheduledStart = new Date(`${date}T${time}:00`).toISOString();
     const durationMinutes = hours ? Math.round(Number(hours) * 60) : null;
 
     const { error } =
