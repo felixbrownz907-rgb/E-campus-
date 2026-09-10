@@ -54,6 +54,18 @@ body { font-family: Arial, Helvetica, sans-serif; background: #f4f6f9; color: #1
 .rules-card ul { margin-left: 20px; font-size: 13px; color: #374151; }
 .rules-card li { margin-bottom: 4px; }
 
+.debug-box {
+    background: #1f2937;
+    color: #d1fae5;
+    border-radius: 8px;
+    padding: 12px;
+    margin-bottom: 20px;
+    font-family: monospace;
+    font-size: 11px;
+    white-space: pre-wrap;
+    word-break: break-all;
+}
+
 .card {
     background: white;
     padding: 22px;
@@ -290,6 +302,8 @@ body { font-family: Arial, Helvetica, sans-serif; background: #f4f6f9; color: #1
         </ul>
     </section>
 
+    <div id="debugBox" class="debug-box" style="display:none;"></div>
+
     <div id="quizzesContainer">
         <div class="card"><p class="empty-note">Loading...</p></div>
     </div>
@@ -309,6 +323,8 @@ body { font-family: Arial, Helvetica, sans-serif; background: #f4f6f9; color: #1
     <div class="exam-warning">
         ⚠️ Do not leave this page or switch apps. Copying and pasting is disabled. Leaving will lock your exam and require your lecturer to reopen it before you can try again.
     </div>
+
+    <div id="debugStatus" style="background:#1f2937; color:#d1fae5; padding:10px; border-radius:8px; margin-bottom:16px; font-family:monospace; font-size:11px;">Monitoring active — waiting for page to be left...</div>
 
     <div id="examQuestions"></div>
 
@@ -708,13 +724,24 @@ async function beginQuiz(quizId) {
 
     document.getElementById("examRoom").classList.add("active");
 
+    const debugStatus = document.getElementById("debugStatus");
+
     if (quiz.is_exam) {
+
         document.addEventListener("visibilitychange", handleVisibilityChange);
         window.addEventListener("blur", handleWindowBlur);
         document.addEventListener("copy", handleCopyPasteAttempt);
         document.addEventListener("cut", handleCopyPasteAttempt);
         document.addEventListener("paste", handleCopyPasteAttempt);
         document.addEventListener("contextmenu", handleCopyPasteAttempt);
+
+        debugStatus.textContent = "🟢 ANTI-CHEAT ACTIVE — is_exam=true — monitoring visibilitychange + blur";
+
+    } else {
+
+        debugStatus.textContent = "🔴 ANTI-CHEAT NOT ACTIVE — this quiz has is_exam=false";
+        debugStatus.style.background = "#7c2d12";
+
     }
 
     if (quiz.duration_minutes) {
@@ -797,16 +824,26 @@ function startTimer() {
 
 
 function handleVisibilityChange() {
+
+    const debugStatus = document.getElementById("debugStatus");
+    if (debugStatus) debugStatus.textContent = "⚠️ visibilitychange FIRED — document.hidden = " + document.hidden;
+
     if (document.hidden && !examLocked) {
         lockExam("You switched away from this tab.");
     }
+
 }
 
 
 function handleWindowBlur() {
+
+    const debugStatus = document.getElementById("debugStatus");
+    if (debugStatus) debugStatus.textContent = "⚠️ window blur FIRED";
+
     if (!examLocked) {
         lockExam("You left this window.");
     }
+
 }
 
 
