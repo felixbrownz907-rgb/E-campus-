@@ -54,18 +54,6 @@ body { font-family: Arial, Helvetica, sans-serif; background: #f4f6f9; color: #1
 .rules-card ul { margin-left: 20px; font-size: 13px; color: #374151; }
 .rules-card li { margin-bottom: 4px; }
 
-.debug-box {
-    background: #1f2937;
-    color: #d1fae5;
-    border-radius: 8px;
-    padding: 12px;
-    margin-bottom: 20px;
-    font-family: monospace;
-    font-size: 11px;
-    white-space: pre-wrap;
-    word-break: break-all;
-}
-
 .card {
     background: white;
     padding: 22px;
@@ -111,6 +99,7 @@ body { font-family: Arial, Helvetica, sans-serif; background: #f4f6f9; color: #1
 .status-badge.done { background: #dbeafe; color: #1d4ed8; }
 .status-badge.violation { background: #fee2e2; color: #991b1b; }
 .status-badge.scheduled { background: #fef3c7; color: #92400e; }
+.status-badge.closed { background: #f3f4f6; color: #991b1b; }
 
 .countdown-box {
     background: #111827;
@@ -124,6 +113,16 @@ body { font-family: Arial, Helvetica, sans-serif; background: #f4f6f9; color: #1
 .countdown-box .countdown-label { font-size: 12px; color: #d4af37; margin-bottom: 6px; }
 .countdown-box .countdown-timer { font-size: 22px; font-weight: bold; font-family: monospace; }
 .countdown-box .countdown-date { font-size: 12px; color: #d1d5db; margin-top: 6px; }
+
+.window-note {
+    background: #fef3c7;
+    color: #92400e;
+    padding: 10px 12px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: bold;
+    margin-top: 10px;
+}
 
 .start-button {
     margin-top: 14px;
@@ -298,11 +297,10 @@ body { font-family: Arial, Helvetica, sans-serif; background: #f4f6f9; color: #1
             <li>Copying and pasting is disabled during the exam.</li>
             <li>Keep your device in normal full-screen mode — do not use split-screen or floating window features.</li>
             <li>If you leave the page, your exam will be locked immediately and flagged for your lecturer's review.</li>
+            <li>All students share the same exam end time — joining late means less time, not extra time.</li>
             <li>A locked exam can only be reopened by your lecturer. You will get a completely fresh attempt with full time — your previous answers will not be saved.</li>
         </ul>
     </section>
-
-    <div id="debugBox" class="debug-box" style="display:none;"></div>
 
     <div id="quizzesContainer">
         <div class="card"><p class="empty-note">Loading...</p></div>
@@ -323,8 +321,6 @@ body { font-family: Arial, Helvetica, sans-serif; background: #f4f6f9; color: #1
     <div class="exam-warning">
         ⚠️ Do not leave this page or switch apps. Copying and pasting is disabled. Leaving will lock your exam and require your lecturer to reopen it before you can try again.
     </div>
-
-    <div id="debugStatus" style="background:#1f2937; color:#d1fae5; padding:10px; border-radius:8px; margin-bottom:16px; font-family:monospace; font-size:11px;">Monitoring active — waiting for page to be left...</div>
 
     <div id="examQuestions"></div>
 
@@ -377,6 +373,20 @@ function escapeHtml(value) {
 function isTimeToOpen(quiz) {
     if (!quiz.scheduled_start) return false;
     return new Date(quiz.scheduled_start).getTime() <= Date.now();
+}
+
+
+// The ONE fixed end time for everyone, based on the schedule — not per-student
+function getAbsoluteEndTime(quiz) {
+    if (!quiz.scheduled_start || !quiz.duration_minutes) return null;
+    return new Date(quiz.scheduled_start).getTime() + (quiz.duration_minutes * 60000);
+}
+
+
+function isWindowClosed(quiz) {
+    const absoluteEnd = getAbsoluteEndTime(quiz);
+    if (!absoluteEnd) return false;
+    return Date.now() > absoluteEnd;
 }
 
 
@@ -540,8 +550,11 @@ function renderQuizzes(quizzes, courseMap, attemptsByQuiz, bestScoreByQuiz, quiz
         let buttonDisabled = true;
         let buttonText = "Locked";
         let showCountdown = false;
+        let windowClosedNote = "";
 
         const effectivelyOpen = quiz.is_open || isTimeToOpen(quiz);
+        const windowClosed = isWindowClosed(quiz);
+        const absoluteEnd = getAbsoluteEndTime(quiz);
 
         if (lockInfo.locked) {
 
@@ -558,22 +571,44 @@ function renderQuizzes(quizzes, courseMap, attemptsByQuiz, bestScoreByQuiz, quiz
         } else if (quiz.is_exam) {
 
             if (validCompletion) {
+
                 statusLabel = "Completed";
                 statusClass = "done";
                 buttonText = "Already Submitted";
+
+            } else if (windowClosed) {
+
+                statusLabel = "Exam Window Closed";
+                statusClass = "closed";
+                buttonText = "Time Expired";
+                windowClosedNote = `This exam's window closed at ${new Date(absoluteEnd).toLocaleString()}. Contact your lecturer if you missed it.`;
+
             } else if (effectivelyOpen) {
+
                 statusLabel = "Open Now";
                 statusClass = "open";
                 buttonDisabled = false;
                 buttonText = quiz.is_final_exam ? "Start Final Exam" : "Start Exam";
+
+                if (absoluteEnd) {
+                    const remainingMins = Math.round((absoluteEnd - Date.now()) / 60000);
+                    windowClosedNote = remainingMins > 0
+                        ? `⏰ Everyone shares the same end time — ${remainingMins} minute(s) remain in this exam window.`
+                        : "";
+                }
+
             } else if (quiz.scheduled_start) {
+
                 statusLabel = "Scheduled";
                 statusClass = "scheduled";
                 buttonText = "Not Open Yet";
                 showCountdown = true;
+
             } else {
+
                 statusLabel = "Not Yet Open";
                 buttonText = "Waiting for exam window";
+
             }
 
         } else {
@@ -614,6 +649,7 @@ function renderQuizzes(quizzes, courseMap, attemptsByQuiz, bestScoreByQuiz, quiz
             <button class="start-button" ${buttonDisabled ? "disabled" : ""} onclick="beginQuiz('${quiz.id}')">${buttonText}</button>
             ${lockInfo.locked ? `<div class="locked-reason">🔒 ${escapeHtml(lockInfo.reason)}</div>` : ""}
             ${pendingViolation ? `<div class="locked-reason">⚠️ Your previous attempt was flagged for leaving the exam page. Your lecturer must review and reopen it before you can try again.</div>` : ""}
+            ${windowClosedNote ? `<div class="window-note">${escapeHtml(windowClosedNote)}</div>` : ""}
         `;
 
         container.appendChild(card);
@@ -682,6 +718,13 @@ async function beginQuiz(quizId) {
         return;
     }
 
+    // Final safety check — window may have closed in the seconds since the page loaded
+    if (quiz.is_exam && isWindowClosed(quiz)) {
+        alert("This exam's window has just closed. You can no longer start it.");
+        await loadQuizzes();
+        return;
+    }
+
     const { data: questions, error: qError } =
         await supabaseClient.from("quiz_questions").select("*").eq("quiz_id", quizId);
 
@@ -692,7 +735,7 @@ async function beginQuiz(quizId) {
 
     if (quiz.is_exam) {
         const confirmed = confirm(
-            "This is a locked exam. Once you start:\n\n• Do not leave this page or switch apps\n• Copying and pasting is disabled\n• Stay in normal full-screen mode\n\nLeaving will lock your exam and require your lecturer to reopen it. Are you ready to begin?"
+            "This is a locked exam. Once you start:\n\n• Do not leave this page or switch apps\n• Copying and pasting is disabled\n• Stay in normal full-screen mode\n• Everyone shares the same end time — joining late means less time\n\nLeaving will lock your exam and require your lecturer to reopen it. Are you ready to begin?"
         );
         if (!confirmed) return;
     }
@@ -724,31 +767,25 @@ async function beginQuiz(quizId) {
 
     document.getElementById("examRoom").classList.add("active");
 
-    const debugStatus = document.getElementById("debugStatus");
-
     if (quiz.is_exam) {
-
         document.addEventListener("visibilitychange", handleVisibilityChange);
         window.addEventListener("blur", handleWindowBlur);
         document.addEventListener("copy", handleCopyPasteAttempt);
         document.addEventListener("cut", handleCopyPasteAttempt);
         document.addEventListener("paste", handleCopyPasteAttempt);
         document.addEventListener("contextmenu", handleCopyPasteAttempt);
-
-        debugStatus.textContent = "🟢 ANTI-CHEAT ACTIVE — is_exam=true — monitoring visibilitychange + blur";
-
-    } else {
-
-        debugStatus.textContent = "🔴 ANTI-CHEAT NOT ACTIVE — this quiz has is_exam=false";
-        debugStatus.style.background = "#7c2d12";
-
     }
 
-    if (quiz.duration_minutes) {
-        examEndTime = Date.now() + (quiz.duration_minutes * 60000);
+    // ===== KEY FIX: use the FIXED, SHARED end time based on the schedule, not personal click time =====
+
+    const absoluteEnd = getAbsoluteEndTime(quiz);
+
+    if (absoluteEnd) {
+        examEndTime = absoluteEnd;
         startTimer();
-    } else if (quiz.due_date) {
-        examEndTime = new Date(quiz.due_date).getTime();
+    } else if (quiz.duration_minutes) {
+        // Fallback: no schedule set, only manually opened — each student gets their own countdown
+        examEndTime = Date.now() + (quiz.duration_minutes * 60000);
         startTimer();
     } else {
         document.getElementById("examTimer").textContent = "";
@@ -824,26 +861,16 @@ function startTimer() {
 
 
 function handleVisibilityChange() {
-
-    const debugStatus = document.getElementById("debugStatus");
-    if (debugStatus) debugStatus.textContent = "⚠️ visibilitychange FIRED — document.hidden = " + document.hidden;
-
     if (document.hidden && !examLocked) {
         lockExam("You switched away from this tab.");
     }
-
 }
 
 
 function handleWindowBlur() {
-
-    const debugStatus = document.getElementById("debugStatus");
-    if (debugStatus) debugStatus.textContent = "⚠️ window blur FIRED";
-
     if (!examLocked) {
         lockExam("You left this window.");
     }
-
 }
 
 
