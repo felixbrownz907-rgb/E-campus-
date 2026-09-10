@@ -103,7 +103,7 @@ body {
     width: 90%;
     max-width: 420px;
     height: 100%;
-    background: #f4f6f9;
+    background: white;
     z-index: 201;
     overflow-y: auto;
     transition: right 0.25s ease;
@@ -136,9 +136,54 @@ body {
     font-size: 13px;
 }
 
-.menu-content { padding: 16px; }
+/* ===== Menu list items (matching the reference style) ===== */
 
-.menu-section {
+.menu-list { padding: 8px 0; }
+
+.menu-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 20px;
+    text-decoration: none;
+    color: #172033;
+    font-size: 15px;
+    font-weight: bold;
+    border-bottom: 1px solid #f0f1f3;
+}
+
+.menu-item:active { background: #f4f6f9; }
+
+.menu-item .item-left { display: flex; align-items: center; gap: 12px; }
+.menu-item .arrow { color: #9ca3af; font-size: 14px; }
+
+.menu-item.disabled { color: #9ca3af; }
+.menu-item.disabled .badge-soon {
+    background: #f3f4f6;
+    color: #6b7280;
+    font-size: 10px;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-weight: bold;
+    margin-left: 8px;
+}
+
+.menu-section-label {
+    padding: 14px 20px 6px;
+    font-size: 11px;
+    font-weight: bold;
+    color: #9ca3af;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* Detail panels that were previously inline (stats, learning list, etc.) still available below the quick nav */
+.menu-detail-section {
+    background: #f4f6f9;
+    padding: 16px;
+}
+
+.menu-detail-card {
     background: white;
     padding: 18px;
     border-radius: 12px;
@@ -146,7 +191,7 @@ body {
     box-shadow: 0 2px 8px rgba(0,0,0,0.05);
 }
 
-.menu-section h4 { font-size: 15px; margin-bottom: 12px; }
+.menu-detail-card h4 { font-size: 15px; margin-bottom: 12px; }
 
 .mini-stat-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
 .mini-stat { background: #f9fafb; border-radius: 8px; padding: 10px; text-align: center; }
@@ -353,24 +398,6 @@ body {
 .module-block h5 { margin-bottom: 5px; color: #111827; font-size: 13px; }
 .lesson-line { padding: 5px 0 5px 16px; color: #374151; font-size: 12px; }
 
-.services-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
-    gap: 8px;
-}
-
-.service-link {
-    background: #f4f6f9;
-    border: 1px solid #e5e7eb;
-    border-radius: 10px;
-    padding: 14px;
-    text-align: center;
-    text-decoration: none;
-    color: #172033;
-    font-weight: bold;
-    font-size: 12px;
-}
-
 .ai-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
@@ -422,20 +449,117 @@ body {
 </header>
 
 
-<!-- ============ SLIDE-OUT MENU ============ -->
+<!-- ============ SLIDE-OUT MENU (reorganized to match reference layout) ============ -->
 
 <div class="menu-overlay" id="menuOverlay" onclick="closeMenu()"></div>
 
 <div class="menu-panel" id="menuPanel">
 
     <div class="menu-header">
-        <h3>More</h3>
+        <h3>Menu</h3>
         <button class="menu-close" onclick="closeMenu()">Close ✕</button>
     </div>
 
-    <div class="menu-content">
+    <div class="menu-list">
 
-        <div class="menu-section">
+        <a href="student-profile.html" class="menu-item">
+            <span class="item-left">👤 My Profile</span>
+            <span class="arrow">›</span>
+        </a>
+
+        <a href="student-register-courses.html" class="menu-item">
+            <span class="item-left">📚 Course Registration</span>
+            <span class="arrow">›</span>
+        </a>
+
+        <a href="student-ca-record.html" class="menu-item">
+            <span class="item-left">📈 Results — My CA Record</span>
+            <span class="arrow">›</span>
+        </a>
+
+        <a href="student-academic-records.html" class="menu-item">
+            <span class="item-left">📈 Results — Academic Records</span>
+            <span class="arrow">›</span>
+        </a>
+
+        <div class="menu-item disabled">
+            <span class="item-left">📡 Live Classes <span class="badge-soon">Coming Soon</span></span>
+        </div>
+
+        <div class="menu-item disabled">
+            <span class="item-left">📡 Live Orientations <span class="badge-soon">Coming Soon</span></span>
+        </div>
+
+        <a href="student-courses.html" class="menu-item">
+            <span class="item-left">📖 My Lessons</span>
+            <span class="arrow">›</span>
+        </a>
+
+        <div class="menu-item disabled">
+            <span class="item-left">🏛️ E-Library <span class="badge-soon">Coming Soon</span></span>
+        </div>
+
+        <a href="student-quizzes.html" class="menu-item">
+            <span class="item-left">📝 Exam</span>
+            <span class="arrow">›</span>
+        </a>
+
+        <a href="student-timetable.html" class="menu-item">
+            <span class="item-left">📅 Online Exam Time Table</span>
+            <span class="arrow">›</span>
+        </a>
+
+        <div class="menu-item disabled">
+            <span class="item-left">✅ Apply Exemption <span class="badge-soon">Coming Soon</span></span>
+        </div>
+
+        <div class="menu-item disabled">
+            <span class="item-left">📋 My Exemption Status <span class="badge-soon">Coming Soon</span></span>
+        </div>
+
+        <div class="menu-item disabled">
+            <span class="item-left">🔄 Apply For Programme Change <span class="badge-soon">Coming Soon</span></span>
+        </div>
+
+        <a href="student-timetable.html" class="menu-item">
+            <span class="item-left">📅 My Lecture Timetable</span>
+            <span class="arrow">›</span>
+        </a>
+
+        <div class="menu-item disabled">
+            <span class="item-left">📆 Academic Calendar <span class="badge-soon">Coming Soon</span></span>
+        </div>
+
+        <a href="student-attendance.html" class="menu-item">
+            <span class="item-left">📅 My Attendance</span>
+            <span class="arrow">›</span>
+        </a>
+
+        <a href="acceptance-letter.html" class="menu-item">
+            <span class="item-left">🎓 Acceptance Letter</span>
+            <span class="arrow">›</span>
+        </a>
+
+        <div class="menu-item disabled">
+            <span class="item-left">🎓 Certificates <span class="badge-soon">Coming Soon</span></span>
+        </div>
+
+        <a href="student-fees.html" class="menu-item">
+            <span class="item-left">💳 My Payments</span>
+            <span class="arrow">›</span>
+        </a>
+
+        <div class="menu-item disabled">
+            <span class="item-left">📢 Support / Help Desk <span class="badge-soon">Coming Soon</span></span>
+        </div>
+
+    </div>
+
+    <div class="menu-section-label">More Detail</div>
+
+    <div class="menu-detail-section">
+
+        <div class="menu-detail-card">
             <h4>📊 My Stats</h4>
             <div class="mini-stat-grid">
                 <div class="mini-stat"><div class="value" id="statCourses">0</div><div class="label">📚 Courses</div></div>
@@ -449,39 +573,22 @@ body {
             </div>
         </div>
 
-        <div class="menu-section">
-            <h4>Student Services</h4>
-            <div class="services-grid">
-                <a href="student-profile.html" class="service-link">👤 My Profile</a>
-                <a href="student-academic-records.html" class="service-link">📄 Academic Records</a>
-                <a href="student-register-courses.html" class="service-link">📋 Register for Courses</a>
-                <a href="student-ca-record.html" class="service-link">📊 My CA Record</a>
-                <a href="acceptance-letter.html" class="service-link">🎓 Acceptance Letter</a>
-                <a href="student-attendance.html" class="service-link">📅 My Attendance</a>
-                <a href="student-timetable.html" class="service-link">🗓️ My Timetable</a>
-                <a href="#" class="service-link">🎓 Certificates</a>
-                <a href="student-fees.html" class="service-link">💳 Fees & Payments</a>
-                <a href="#" class="service-link">📅 Academic Calendar</a>
-                <a href="#" class="service-link">📢 Support / Help Desk</a>
-            </div>
-        </div>
-
-        <div class="menu-section">
+        <div class="menu-detail-card">
             <h4>My Learning</h4>
             <div id="myLearningList"><p class="empty-note">Loading...</p></div>
         </div>
 
-        <div class="menu-section">
+        <div class="menu-detail-card">
             <h4>Upcoming Deadlines</h4>
             <div id="deadlinesList"><p class="empty-note">Loading...</p></div>
         </div>
 
-        <div class="menu-section">
+        <div class="menu-detail-card">
             <h4>Recent Activity</h4>
             <div id="activityList"><p class="empty-note">Loading...</p></div>
         </div>
 
-        <div class="menu-section">
+        <div class="menu-detail-card">
             <h4>Academic Performance</h4>
             <div class="perf-row"><span>Overall Progress</span><span class="value" id="perfProgress">0%</span></div>
             <div class="perf-row"><span>Assignment Average</span><span class="value" id="perfAssignment">0%</span></div>
@@ -489,18 +596,18 @@ body {
             <div class="perf-row"><span>Course Average</span><span class="value" id="perfCourse">0%</span></div>
         </div>
 
-        <div class="menu-section">
+        <div class="menu-detail-card">
             <h4>My Courses</h4>
             <div id="myCoursesList"><p class="empty-note">Loading...</p></div>
         </div>
 
-        <div class="menu-section">
+        <div class="menu-detail-card">
             <h4>Course Structure</h4>
             <div id="courseStructureSelector" style="margin-bottom:12px;"></div>
             <div id="courseStructure" class="structure-tree"><p class="empty-note">Select a course above.</p></div>
         </div>
 
-        <div class="menu-section">
+        <div class="menu-detail-card">
             <h4>Assignments Center</h4>
             <div class="perf-row"><span>📋 Available</span><span class="value" id="assignAvailable">0</span></div>
             <div class="perf-row"><span>📤 Submitted</span><span class="value" id="assignSubmitted">0</span></div>
@@ -509,7 +616,7 @@ body {
             <a href="student-assignments.html" class="small-button" style="margin-top:12px; display:inline-block;">View All Assignments</a>
         </div>
 
-        <div class="menu-section">
+        <div class="menu-detail-card">
             <h4>Quiz Center</h4>
             <div class="perf-row"><span>🎯 Available Quizzes</span><span class="value" id="quizAvailable">0</span></div>
             <div class="perf-row"><span>📊 Previous Attempts</span><span class="value" id="quizAttempts">0</span></div>
@@ -517,12 +624,12 @@ body {
             <a href="student-quizzes.html" class="small-button" style="margin-top:12px; display:inline-block;">View All Quizzes</a>
         </div>
 
-        <div class="menu-section">
+        <div class="menu-detail-card">
             <h4>Announcements</h4>
             <div id="announcementsList"><p class="empty-note">No announcements yet.</p></div>
         </div>
 
-        <div class="menu-section">
+        <div class="menu-detail-card">
             <h4>AI Learning Hub</h4>
             <div class="ai-grid">
                 <a href="ai-tutor.html" class="ai-card">🤖 AI Study Assistant<span>Coming soon</span></a>
