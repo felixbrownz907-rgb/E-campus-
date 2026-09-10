@@ -24,6 +24,9 @@ body {
     justify-content: space-between;
     flex-wrap: wrap;
     gap: 12px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
 }
 
 .brand { display: flex; align-items: center; gap: 14px; }
@@ -42,6 +45,17 @@ body {
     border-radius: 8px;
     font-weight: bold;
     font-size: 13px;
+    cursor: pointer;
+}
+
+.menu-button {
+    background: #1f2937;
+    color: white;
+    border: 1px solid #374151;
+    padding: 10px 16px;
+    border-radius: 8px;
+    font-weight: bold;
+    font-size: 14px;
     cursor: pointer;
 }
 
@@ -71,29 +85,97 @@ body {
     100% { transform: translateX(-100%); }
 }
 
-.container { max-width: 1300px; margin: 25px auto; padding: 0 20px; }
+/* ===== SLIDE-OUT MENU ===== */
+
+.menu-overlay {
+    display: none;
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 200;
+}
+
+.menu-overlay.open { display: block; }
+
+.menu-panel {
+    position: fixed;
+    top: 0; right: -100%;
+    width: 90%;
+    max-width: 420px;
+    height: 100%;
+    background: #f4f6f9;
+    z-index: 201;
+    overflow-y: auto;
+    transition: right 0.25s ease;
+    padding-bottom: 40px;
+}
+
+.menu-panel.open { right: 0; }
+
+.menu-header {
+    background: #111827;
+    color: white;
+    padding: 18px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    position: sticky;
+    top: 0;
+}
+
+.menu-header h3 { font-size: 18px; }
+
+.menu-close {
+    background: #d4af37;
+    color: #111827;
+    border: none;
+    padding: 8px 14px;
+    border-radius: 8px;
+    font-weight: bold;
+    cursor: pointer;
+    font-size: 13px;
+}
+
+.menu-content { padding: 16px; }
+
+.menu-section {
+    background: white;
+    padding: 18px;
+    border-radius: 12px;
+    margin-bottom: 14px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+
+.menu-section h4 { font-size: 15px; margin-bottom: 12px; }
+
+.mini-stat-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+.mini-stat { background: #f9fafb; border-radius: 8px; padding: 10px; text-align: center; }
+.mini-stat .value { font-size: 18px; font-weight: bold; }
+.mini-stat .label { font-size: 10px; color: #6b7280; margin-top: 2px; }
+
+.container { max-width: 1300px; margin: 20px auto; padding: 0 20px; }
 
 .welcome-card {
     background: linear-gradient(135deg, #111827, #1f2937);
     color: white;
-    padding: 25px;
+    padding: 22px;
     border-radius: 14px;
-    margin-bottom: 20px;
+    margin-bottom: 16px;
 }
 
-.welcome-card h2 { font-size: 24px; margin-bottom: 6px; }
-.welcome-card p { color: #d4af37; font-size: 14px; }
+.welcome-card h2 { font-size: 22px; margin-bottom: 6px; }
+.welcome-card p { color: #d4af37; font-size: 13px; }
 
 .rooms-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 14px;
-    margin-bottom: 20px;
+    gap: 12px;
+    margin-bottom: 16px;
 }
 
 .room-card {
     border-radius: 14px;
-    padding: 22px;
+    padding: 18px;
     text-decoration: none;
     color: white;
     display: block;
@@ -103,18 +185,18 @@ body {
 .room-card.exam-room { background: linear-gradient(135deg, #991b1b, #7f1d1d); }
 .room-card.assignment-room { background: linear-gradient(135deg, #1d4ed8, #1e3a8a); }
 
-.room-card .room-icon { font-size: 30px; margin-bottom: 8px; }
-.room-card .room-title { font-size: 16px; font-weight: bold; margin-bottom: 4px; }
-.room-card .room-count { font-size: 28px; font-weight: bold; margin: 8px 0; }
-.room-card .room-note { font-size: 12px; opacity: 0.9; }
+.room-card .room-icon { font-size: 26px; margin-bottom: 6px; }
+.room-card .room-title { font-size: 13px; font-weight: bold; margin-bottom: 4px; }
+.room-card .room-count { font-size: 24px; font-weight: bold; margin: 6px 0; }
+.room-card .room-note { font-size: 11px; opacity: 0.9; }
 
 .room-card.no-pending { background: linear-gradient(135deg, #166534, #14532d); }
 
 .fees-summary-card {
     background: white;
     border-radius: 14px;
-    padding: 20px;
-    margin-bottom: 20px;
+    padding: 18px;
+    margin-bottom: 16px;
     box-shadow: 0 3px 12px rgba(0,0,0,0.06);
     border: 2px solid #f3f4f6;
 }
@@ -131,14 +213,14 @@ body {
     margin-bottom: 12px;
 }
 
-.fees-summary-title { font-size: 16px; font-weight: bold; }
+.fees-summary-title { font-size: 15px; font-weight: bold; }
 .fees-summary-term { font-size: 12px; color: #6b7280; }
 
 .fees-summary-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 12px; }
 
 .fees-mini-box { background: #f9fafb; border-radius: 8px; padding: 10px; text-align: center; }
 .fees-mini-box .label { font-size: 11px; color: #6b7280; font-weight: bold; margin-bottom: 4px; }
-.fees-mini-box .value { font-size: 16px; font-weight: bold; }
+.fees-mini-box .value { font-size: 15px; font-weight: bold; }
 .fees-mini-box.paid .value { color: #166534; }
 .fees-mini-box.balance .value { color: #991b1b; }
 .fees-mini-box.balance.cleared .value { color: #166534; }
@@ -164,54 +246,27 @@ body {
     font-weight: bold;
 }
 
-.stat-grid {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 14px;
-    margin-bottom: 20px;
-}
-
-.stat-card {
-    background: white;
-    border-radius: 12px;
-    padding: 18px;
-    text-align: center;
-    box-shadow: 0 3px 12px rgba(0,0,0,0.06);
-}
-
-.stat-card .value { font-size: 26px; font-weight: bold; color: #111827; }
-.stat-card .label { font-size: 12px; color: #6b7280; margin-top: 4px; }
-
 .card {
     background: white;
-    padding: 22px;
+    padding: 20px;
     border-radius: 14px;
-    margin-bottom: 20px;
+    margin-bottom: 16px;
     box-shadow: 0 3px 12px rgba(0,0,0,0.06);
 }
 
-.card h3 { font-size: 19px; margin-bottom: 16px; }
+.card h3 { font-size: 17px; margin-bottom: 14px; }
 
 .today-lesson-item {
-    padding: 16px;
+    padding: 14px;
     border: 1px solid #bfdbfe;
     background: #eff6ff;
     border-radius: 10px;
-    margin-bottom: 12px;
+    margin-bottom: 10px;
 }
 
 .today-lesson-item .course-tag { color: #1d4ed8; font-size: 12px; font-weight: bold; }
-.today-lesson-item h4 { font-size: 15px; margin: 4px 0 8px; }
-.today-lesson-item .topic-note { font-size: 13px; color: #374151; margin-bottom: 10px; }
-
-.course-item {
-    padding: 15px;
-    border: 1px solid #e5e7eb;
-    border-radius: 10px;
-    margin-bottom: 12px;
-}
-
-.course-item h4 { font-size: 16px; margin-bottom: 8px; }
+.today-lesson-item h4 { font-size: 14px; margin: 4px 0 6px; }
+.today-lesson-item .topic-note { font-size: 12px; color: #374151; margin-bottom: 8px; }
 
 .progress-bar-bg {
     background: #e5e7eb;
@@ -243,7 +298,7 @@ body {
 
 .quick-actions {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
     gap: 10px;
 }
 
@@ -264,9 +319,9 @@ body {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 12px 0;
+    padding: 10px 0;
     border-bottom: 1px solid #e5e7eb;
-    font-size: 14px;
+    font-size: 13px;
 }
 
 .deadline-item:last-child, .activity-item:last-child, .announcement-item:last-child { border-bottom: none; }
@@ -274,7 +329,7 @@ body {
 .badge {
     padding: 4px 10px;
     border-radius: 20px;
-    font-size: 11px;
+    font-size: 10px;
     font-weight: bold;
 }
 
@@ -285,60 +340,59 @@ body {
 .perf-row {
     display: flex;
     justify-content: space-between;
-    padding: 10px 0;
+    padding: 9px 0;
     border-bottom: 1px solid #e5e7eb;
-    font-size: 14px;
+    font-size: 13px;
 }
 
 .perf-row:last-child { border-bottom: none; }
 .perf-row .value { font-weight: bold; color: #111827; }
 
-.structure-tree { font-size: 14px; }
-.module-block { margin-bottom: 14px; }
-.module-block h5 { margin-bottom: 6px; color: #111827; }
-.lesson-line { padding: 6px 0 6px 18px; color: #374151; }
+.structure-tree { font-size: 13px; }
+.module-block { margin-bottom: 12px; }
+.module-block h5 { margin-bottom: 5px; color: #111827; font-size: 13px; }
+.lesson-line { padding: 5px 0 5px 16px; color: #374151; font-size: 12px; }
 
 .services-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-    gap: 10px;
+    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+    gap: 8px;
 }
 
 .service-link {
     background: #f4f6f9;
     border: 1px solid #e5e7eb;
     border-radius: 10px;
-    padding: 16px;
+    padding: 14px;
     text-align: center;
     text-decoration: none;
     color: #172033;
     font-weight: bold;
-    font-size: 13px;
+    font-size: 12px;
 }
 
 .ai-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-    gap: 10px;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 8px;
 }
 
 .ai-card {
     background: linear-gradient(135deg, #1f2937, #111827);
     color: white;
     border-radius: 10px;
-    padding: 16px;
+    padding: 14px;
     text-align: center;
     text-decoration: none;
-    font-size: 13px;
+    font-size: 12px;
     font-weight: bold;
 }
 
-.ai-card span { color: #d4af37; display: block; margin-top: 4px; font-size: 11px; }
+.ai-card span { color: #d4af37; display: block; margin-top: 4px; font-size: 10px; }
 
-.empty-note { color: #9ca3af; font-size: 14px; padding: 10px 0; }
+.empty-note { color: #9ca3af; font-size: 13px; padding: 10px 0; }
 
 @media (max-width: 800px) {
-    .stat-grid { grid-template-columns: repeat(2, 1fr); }
     .fees-summary-grid { grid-template-columns: 1fr; }
     .rooms-grid { grid-template-columns: 1fr; }
 }
@@ -362,10 +416,125 @@ body {
         </div>
     </div>
     <div class="header-actions">
-        <a href="student-profile.html" class="header-button">👤 Profile</a>
+        <button class="menu-button" onclick="openMenu()">☰ Menu</button>
         <button id="logoutButton" class="header-button">🚪 Logout</button>
     </div>
 </header>
+
+
+<!-- ============ SLIDE-OUT MENU ============ -->
+
+<div class="menu-overlay" id="menuOverlay" onclick="closeMenu()"></div>
+
+<div class="menu-panel" id="menuPanel">
+
+    <div class="menu-header">
+        <h3>More</h3>
+        <button class="menu-close" onclick="closeMenu()">Close ✕</button>
+    </div>
+
+    <div class="menu-content">
+
+        <div class="menu-section">
+            <h4>📊 My Stats</h4>
+            <div class="mini-stat-grid">
+                <div class="mini-stat"><div class="value" id="statCourses">0</div><div class="label">📚 Courses</div></div>
+                <div class="mini-stat"><div class="value" id="statModules">0</div><div class="label">📖 Modules</div></div>
+                <div class="mini-stat"><div class="value" id="statAssignments">0</div><div class="label">📝 Assignments</div></div>
+                <div class="mini-stat"><div class="value" id="statQuizzes">0</div><div class="label">🎯 Quizzes</div></div>
+                <div class="mini-stat"><div class="value" id="statProgress">0%</div><div class="label">📊 Progress</div></div>
+                <div class="mini-stat"><div class="value" id="statAverage">0%</div><div class="label">🏆 Average</div></div>
+                <div class="mini-stat"><div class="value" id="statDeadlines">0</div><div class="label">⏰ Deadlines</div></div>
+                <div class="mini-stat"><div class="value" id="statCompletedLessons">0</div><div class="label">🔥 Lessons Done</div></div>
+            </div>
+        </div>
+
+        <div class="menu-section">
+            <h4>Student Services</h4>
+            <div class="services-grid">
+                <a href="student-profile.html" class="service-link">👤 My Profile</a>
+                <a href="student-academic-records.html" class="service-link">📄 Academic Records</a>
+                <a href="student-register-courses.html" class="service-link">📋 Register for Courses</a>
+                <a href="student-ca-record.html" class="service-link">📊 My CA Record</a>
+                <a href="acceptance-letter.html" class="service-link">🎓 Acceptance Letter</a>
+                <a href="student-attendance.html" class="service-link">📅 My Attendance</a>
+                <a href="student-timetable.html" class="service-link">🗓️ My Timetable</a>
+                <a href="#" class="service-link">🎓 Certificates</a>
+                <a href="student-fees.html" class="service-link">💳 Fees & Payments</a>
+                <a href="#" class="service-link">📅 Academic Calendar</a>
+                <a href="#" class="service-link">📢 Support / Help Desk</a>
+            </div>
+        </div>
+
+        <div class="menu-section">
+            <h4>My Learning</h4>
+            <div id="myLearningList"><p class="empty-note">Loading...</p></div>
+        </div>
+
+        <div class="menu-section">
+            <h4>Upcoming Deadlines</h4>
+            <div id="deadlinesList"><p class="empty-note">Loading...</p></div>
+        </div>
+
+        <div class="menu-section">
+            <h4>Recent Activity</h4>
+            <div id="activityList"><p class="empty-note">Loading...</p></div>
+        </div>
+
+        <div class="menu-section">
+            <h4>Academic Performance</h4>
+            <div class="perf-row"><span>Overall Progress</span><span class="value" id="perfProgress">0%</span></div>
+            <div class="perf-row"><span>Assignment Average</span><span class="value" id="perfAssignment">0%</span></div>
+            <div class="perf-row"><span>Quiz Average</span><span class="value" id="perfQuiz">0%</span></div>
+            <div class="perf-row"><span>Course Average</span><span class="value" id="perfCourse">0%</span></div>
+        </div>
+
+        <div class="menu-section">
+            <h4>My Courses</h4>
+            <div id="myCoursesList"><p class="empty-note">Loading...</p></div>
+        </div>
+
+        <div class="menu-section">
+            <h4>Course Structure</h4>
+            <div id="courseStructureSelector" style="margin-bottom:12px;"></div>
+            <div id="courseStructure" class="structure-tree"><p class="empty-note">Select a course above.</p></div>
+        </div>
+
+        <div class="menu-section">
+            <h4>Assignments Center</h4>
+            <div class="perf-row"><span>📋 Available</span><span class="value" id="assignAvailable">0</span></div>
+            <div class="perf-row"><span>📤 Submitted</span><span class="value" id="assignSubmitted">0</span></div>
+            <div class="perf-row"><span>✅ Graded</span><span class="value" id="assignGraded">0</span></div>
+            <div class="perf-row"><span>🔴 Overdue</span><span class="value" id="assignOverdue">0</span></div>
+            <a href="student-assignments.html" class="small-button" style="margin-top:12px; display:inline-block;">View All Assignments</a>
+        </div>
+
+        <div class="menu-section">
+            <h4>Quiz Center</h4>
+            <div class="perf-row"><span>🎯 Available Quizzes</span><span class="value" id="quizAvailable">0</span></div>
+            <div class="perf-row"><span>📊 Previous Attempts</span><span class="value" id="quizAttempts">0</span></div>
+            <div class="perf-row"><span>🏆 Average Score</span><span class="value" id="quizAvg">0%</span></div>
+            <a href="student-quizzes.html" class="small-button" style="margin-top:12px; display:inline-block;">View All Quizzes</a>
+        </div>
+
+        <div class="menu-section">
+            <h4>Announcements</h4>
+            <div id="announcementsList"><p class="empty-note">No announcements yet.</p></div>
+        </div>
+
+        <div class="menu-section">
+            <h4>AI Learning Hub</h4>
+            <div class="ai-grid">
+                <a href="ai-tutor.html" class="ai-card">🤖 AI Study Assistant<span>Coming soon</span></a>
+                <a href="ai-tutor.html" class="ai-card">🧠 AI Tutor<span>Coming soon</span></a>
+                <a href="ai-tutor.html" class="ai-card">📝 AI Study Planner<span>Coming soon</span></a>
+                <a href="ai-tutor.html" class="ai-card">📊 AI Performance Insights<span>Coming soon</span></a>
+            </div>
+        </div>
+
+    </div>
+
+</div>
 
 
 <main class="container">
@@ -379,35 +548,20 @@ body {
     <div class="rooms-grid" id="roomsGrid">
         <a href="student-quizzes.html" class="room-card exam-room" id="examRoomCard">
             <div class="room-icon">🎯</div>
-            <div class="room-title">Exam Room — CA / Quiz / Final Exam</div>
+            <div class="room-title">Exam Room</div>
             <div class="room-count" id="examRoomCount">0</div>
-            <div class="room-note">Tap to open and see what's waiting for you</div>
+            <div class="room-note">Tap to open</div>
         </a>
         <a href="student-assignments.html" class="room-card assignment-room" id="assignmentRoomCard">
             <div class="room-icon">📝</div>
-            <div class="room-title">Assignments & Assessments Room</div>
+            <div class="room-title">Assignments Room</div>
             <div class="room-count" id="assignmentRoomCount">0</div>
-            <div class="room-note">Tap to open and see what's waiting for you</div>
+            <div class="room-note">Tap to open</div>
         </a>
     </div>
 
 
     <div id="feesSummaryContainer"></div>
-
-
-    <div class="stat-grid">
-        <div class="stat-card"><div class="value" id="statCourses">0</div><div class="label">📚 Courses</div></div>
-        <div class="stat-card"><div class="value" id="statModules">0</div><div class="label">📖 Modules</div></div>
-        <div class="stat-card"><div class="value" id="statAssignments">0</div><div class="label">📝 Assignments</div></div>
-        <div class="stat-card"><div class="value" id="statQuizzes">0</div><div class="label">🎯 Quizzes</div></div>
-    </div>
-
-    <div class="stat-grid">
-        <div class="stat-card"><div class="value" id="statProgress">0%</div><div class="label">📊 Progress</div></div>
-        <div class="stat-card"><div class="value" id="statAverage">0%</div><div class="label">🏆 Average</div></div>
-        <div class="stat-card"><div class="value" id="statDeadlines">0</div><div class="label">⏰ Deadlines</div></div>
-        <div class="stat-card"><div class="value" id="statCompletedLessons">0</div><div class="label">🔥 Lessons Done</div></div>
-    </div>
 
 
     <section class="card">
@@ -417,107 +571,12 @@ body {
 
 
     <section class="card">
-        <h3>My Learning</h3>
-        <div id="myLearningList"><p class="empty-note">Loading...</p></div>
-    </section>
-
-
-    <section class="card">
-        <h3>Today's Learning</h3>
+        <h3>Quick Actions</h3>
         <div class="quick-actions">
-            <a href="student-register-courses.html" class="quick-action">📋 Register for Courses</a>
             <a href="student-courses.html" class="quick-action">▶ Continue Learning</a>
-            <a href="student-assignments.html" class="quick-action">📝 Complete Assignment</a>
-            <a href="student-quizzes.html" class="quick-action">🎯 Take Quiz</a>
+            <a href="student-register-courses.html" class="quick-action">📋 Register for Courses</a>
             <a href="student-timetable.html" class="quick-action">🗓️ My Timetable</a>
-        </div>
-    </section>
-
-
-    <section class="card">
-        <h3>Upcoming Deadlines</h3>
-        <div id="deadlinesList"><p class="empty-note">Loading...</p></div>
-    </section>
-
-
-    <section class="card">
-        <h3>Recent Activity</h3>
-        <div id="activityList"><p class="empty-note">Loading...</p></div>
-    </section>
-
-
-    <section class="card">
-        <h3>Academic Performance</h3>
-        <div class="perf-row"><span>Overall Progress</span><span class="value" id="perfProgress">0%</span></div>
-        <div class="perf-row"><span>Assignment Average</span><span class="value" id="perfAssignment">0%</span></div>
-        <div class="perf-row"><span>Quiz Average</span><span class="value" id="perfQuiz">0%</span></div>
-        <div class="perf-row"><span>Course Average</span><span class="value" id="perfCourse">0%</span></div>
-    </section>
-
-
-    <section class="card">
-        <h3>My Courses</h3>
-        <div id="myCoursesList"><p class="empty-note">Loading...</p></div>
-    </section>
-
-
-    <section class="card">
-        <h3>Course Structure</h3>
-        <div id="courseStructureSelector" style="margin-bottom:14px;"></div>
-        <div id="courseStructure" class="structure-tree"><p class="empty-note">Select a course above.</p></div>
-    </section>
-
-
-    <section class="card">
-        <h3>Assignments Center</h3>
-        <div class="perf-row"><span>📋 Available</span><span class="value" id="assignAvailable">0</span></div>
-        <div class="perf-row"><span>📤 Submitted</span><span class="value" id="assignSubmitted">0</span></div>
-        <div class="perf-row"><span>✅ Graded</span><span class="value" id="assignGraded">0</span></div>
-        <div class="perf-row"><span>🔴 Overdue</span><span class="value" id="assignOverdue">0</span></div>
-        <a href="student-assignments.html" class="small-button" style="margin-top:14px; display:inline-block;">View All Assignments</a>
-    </section>
-
-
-    <section class="card">
-        <h3>Quiz Center</h3>
-        <div class="perf-row"><span>🎯 Available Quizzes</span><span class="value" id="quizAvailable">0</span></div>
-        <div class="perf-row"><span>📊 Previous Attempts</span><span class="value" id="quizAttempts">0</span></div>
-        <div class="perf-row"><span>🏆 Average Score</span><span class="value" id="quizAvg">0%</span></div>
-        <a href="student-quizzes.html" class="small-button" style="margin-top:14px; display:inline-block;">View All Quizzes</a>
-    </section>
-
-
-    <section class="card">
-        <h3>Announcements</h3>
-        <div id="announcementsList"><p class="empty-note">No announcements yet.</p></div>
-    </section>
-
-
-    <section class="card">
-        <h3>Student Services</h3>
-        <div class="services-grid">
-            <a href="student-profile.html" class="service-link">👤 My Profile</a>
-            <a href="student-academic-records.html" class="service-link">📄 Academic Records</a>
-            <a href="student-register-courses.html" class="service-link">📋 Register for Courses</a>
-            <a href="student-ca-record.html" class="service-link">📊 My CA Record</a>
-            <a href="acceptance-letter.html" class="service-link">🎓 Acceptance Letter</a>
-            <a href="student-attendance.html" class="service-link">📅 My Attendance</a>
-            <a href="student-timetable.html" class="service-link">🗓️ My Timetable</a>
-            <a href="#" class="service-link">🎓 Certificates</a>
-            <a href="student-fees.html" class="service-link">💳 Fees & Payments</a>
-            <a href="#" class="service-link">📅 Academic Calendar</a>
-            <a href="#" class="service-link">📢 Support / Help Desk</a>
-        </div>
-    </section>
-
-
-    <section class="card">
-        <h3>AI Learning Hub</h3>
-        <div class="ai-grid">
-            <a href="ai-tutor.html" class="ai-card">🤖 AI Study Assistant<span>Coming soon</span></a>
-            <a href="ai-tutor.html" class="ai-card">🧠 AI Tutor<span>Coming soon</span></a>
-            <a href="ai-tutor.html" class="ai-card">📝 AI Study Planner<span>Coming soon</span></a>
-            <a href="ai-tutor.html" class="ai-card">📊 AI Performance Insights<span>Coming soon</span></a>
+            <button class="quick-action" onclick="openMenu()" style="border:1px solid #e5e7eb; background:#f4f6f9;">☰ See More</button>
         </div>
     </section>
 
@@ -546,6 +605,17 @@ function average(numbers) {
     const valid = numbers.filter(n => n !== null && n !== undefined && !isNaN(n));
     if (valid.length === 0) return 0;
     return Math.round(valid.reduce((a, b) => a + Number(b), 0) / valid.length);
+}
+
+
+function openMenu() {
+    document.getElementById("menuOverlay").classList.add("open");
+    document.getElementById("menuPanel").classList.add("open");
+}
+
+function closeMenu() {
+    document.getElementById("menuOverlay").classList.remove("open");
+    document.getElementById("menuPanel").classList.remove("open");
 }
 
 
@@ -636,8 +706,6 @@ async function loadFeesSummary(studentProfileId) {
 
 async function loadRoomsSummary(studentProfileId, authUserId, moduleIds) {
 
-    // ===== EXAM ROOM: count CA/Quiz/Final Exam not yet attempted =====
-
     let unitQuizzes = [];
     if (moduleIds.length > 0) {
         const { data } = await supabaseClient.from("quizzes").select("id, module_id").in("module_id", moduleIds);
@@ -655,11 +723,11 @@ async function loadRoomsSummary(studentProfileId, authUserId, moduleIds) {
 
     let finalExams = [];
     if (courseIdsForFinal.length > 0) {
-        const { data } = await supabaseClient.from("quizzes").select("id, course_id").in("course_id", courseIdsForFinal).eq("is_final_exam", true);
+        const { data } = await supabaseClient.from("quizzes").select("id, course_id").in("course_id", courseIdsForFinal);
         finalExams = data || [];
     }
 
-    const allQuizIds = [...unitQuizzes.map(q => q.id), ...finalExams.map(q => q.id)];
+    const allQuizIds = [...new Set([...unitQuizzes.map(q => q.id), ...finalExams.map(q => q.id)])];
 
     let attemptedQuizIds = new Set();
     if (allQuizIds.length > 0) {
@@ -674,11 +742,9 @@ async function loadRoomsSummary(studentProfileId, authUserId, moduleIds) {
 
     if (pendingExamCount === 0) {
         examCard.classList.add("no-pending");
-        document.querySelector("#examRoomCard .room-note").textContent = "Nothing pending — all caught up";
+        document.querySelector("#examRoomCard .room-note").textContent = "All caught up";
     }
 
-
-    // ===== ASSIGNMENTS ROOM: count only assignments AVAILABLE NOW and not yet submitted =====
 
     let assignmentsList = [];
     if (moduleIds.length > 0) {
@@ -705,7 +771,7 @@ async function loadRoomsSummary(studentProfileId, authUserId, moduleIds) {
 
     if (pendingAssignmentCount === 0) {
         assignmentCard.classList.add("no-pending");
-        document.querySelector("#assignmentRoomCard .room-note").textContent = "Nothing pending — all caught up";
+        document.querySelector("#assignmentRoomCard .room-note").textContent = "All caught up";
     }
 
 }
@@ -719,8 +785,6 @@ async function startDashboard() {
         window.location.href = "student-login.html";
         return;
     }
-
-    // ===== STUDENT PROFILE =====
 
     const { data: studentProfile, error: profileError } =
         await supabaseClient
@@ -752,8 +816,6 @@ async function startDashboard() {
     await loadFeesSummary(studentProfile.id);
 
 
-    // ===== ENROLLMENTS =====
-
     const { data: enrollments } =
         await supabaseClient
             .from("enrollments")
@@ -769,8 +831,6 @@ async function startDashboard() {
 
     document.getElementById("statCourses").textContent = enrolledCourses.length;
 
-
-    // ===== MODULES =====
 
     let modules = [];
     if (courseIds.length > 0) {
@@ -788,8 +848,6 @@ async function startDashboard() {
     await loadRoomsSummary(studentProfile.id, user.id, moduleIds);
 
 
-    // ===== LESSONS =====
-
     let lessons = [];
     if (moduleIds.length > 0) {
         const { data } = await supabaseClient
@@ -802,8 +860,6 @@ async function startDashboard() {
 
     const lessonIds = lessons.map(l => l.id);
 
-
-    // ===== LESSON PROGRESS =====
 
     let progressRows = [];
     if (lessonIds.length > 0) {
@@ -827,8 +883,6 @@ async function startDashboard() {
     document.getElementById("perfProgress").textContent = overallProgress + "%";
     document.getElementById("statCompletedLessons").textContent = completedLessonIds.size;
 
-
-    // ===== TODAY'S LESSON WIDGET =====
 
     const moduleToCourse = {};
     modules.forEach(m => moduleToCourse[m.id] = m.course_id);
@@ -864,8 +918,8 @@ async function startDashboard() {
                     <h4>${escapeHtml(course.name)} — Class scheduled today</h4>
                     <div class="topic-note">
                         ${nextTopic
-                            ? `Next Topic to complete: <strong>Topic ${nextTopic.lesson_number} — ${escapeHtml(nextTopic.title)}</strong>`
-                            : `You've completed all available Topics in this course so far.`
+                            ? `Next Topic: <strong>Topic ${nextTopic.lesson_number} — ${escapeHtml(nextTopic.title)}</strong>`
+                            : `You've completed all available Topics so far.`
                         }
                     </div>
                     <a href="student-courses.html" class="small-button">Open Course</a>
@@ -876,8 +930,6 @@ async function startDashboard() {
 
     }
 
-
-    // ===== ASSIGNMENTS + SUBMISSIONS =====
 
     let assignments = [];
     if (moduleIds.length > 0) {
@@ -917,8 +969,6 @@ async function startDashboard() {
     document.getElementById("perfAssignment").textContent = assignmentAverage + "%";
 
 
-    // ===== QUIZZES + ATTEMPTS =====
-
     let quizzes = [];
     if (moduleIds.length > 0) {
         const { data } = await supabaseClient
@@ -949,16 +999,12 @@ async function startDashboard() {
     document.getElementById("perfQuiz").textContent = quizAverage + "%";
 
 
-    // ===== COURSE AVERAGE (from enrollments.final_score) =====
-
     const courseAverage = average((enrollments || []).map(e => e.final_score));
     document.getElementById("perfCourse").textContent = courseAverage + "%";
 
     const overallAverage = average([assignmentAverage, quizAverage, courseAverage].filter(v => v > 0));
     document.getElementById("statAverage").textContent = overallAverage + "%";
 
-
-    // ===== UPCOMING DEADLINES =====
 
     const sevenDaysOut = new Date();
     sevenDaysOut.setDate(sevenDaysOut.getDate() + 7);
@@ -990,8 +1036,6 @@ async function startDashboard() {
     }
 
 
-    // ===== RECENT ACTIVITY =====
-
     const activityItems = [
         ...progressRows.filter(p => p.completed_at)
             .map(p => ({ text: "✅ Completed a lesson", date: p.completed_at })),
@@ -1006,13 +1050,11 @@ async function startDashboard() {
         activityList.innerHTML = activityItems.map(item => `
             <div class="activity-item">
                 <span>${item.text}</span>
-                <span style="color:#9ca3af; font-size:12px;">${new Date(item.date).toLocaleDateString()}</span>
+                <span style="color:#9ca3af; font-size:11px;">${new Date(item.date).toLocaleDateString()}</span>
             </div>
         `).join("");
     }
 
-
-    // ===== MY LEARNING + MY COURSES =====
 
     const myLearningList = document.getElementById("myLearningList");
     const myCoursesList = document.getElementById("myCoursesList");
@@ -1035,8 +1077,8 @@ async function startDashboard() {
             const pct = courseLessons.length > 0 ? Math.round((completedCount / courseLessons.length) * 100) : 0;
 
             learningHtml += `
-                <div class="course-item">
-                    <h4>📚 ${escapeHtml(course.code)} — ${escapeHtml(course.name)}</h4>
+                <div style="padding:12px; border:1px solid #e5e7eb; border-radius:10px; margin-bottom:10px;">
+                    <h4 style="font-size:13px; margin-bottom:6px;">📚 ${escapeHtml(course.code)} — ${escapeHtml(course.name)}</h4>
                     <div class="course-meta">${completedCount} of ${courseLessons.length} lessons completed</div>
                     <div class="progress-bar-bg"><div class="progress-bar-fill" style="width:${pct}%;"></div></div>
                     <a href="student-courses.html" class="small-button">Continue Learning</a>
@@ -1044,8 +1086,8 @@ async function startDashboard() {
             `;
 
             coursesHtml += `
-                <div class="course-item">
-                    <h4>${escapeHtml(course.code)} — ${escapeHtml(course.name)}</h4>
+                <div style="padding:12px; border:1px solid #e5e7eb; border-radius:10px; margin-bottom:10px;">
+                    <h4 style="font-size:13px; margin-bottom:6px;">${escapeHtml(course.code)} — ${escapeHtml(course.name)}</h4>
                     <div class="course-meta">Progress: ${pct}% • ${course.credits || 0} credits</div>
                     <a href="student-courses.html" class="small-button">Open Course</a>
                 </div>
@@ -1108,8 +1150,6 @@ async function startDashboard() {
     }
 
 
-    // ===== ANNOUNCEMENTS (list) + TICKER (scrolling banner) =====
-
     const orConditions = [`user_id.eq.${user.id}`, `course_id.is.null`];
     if (courseIds.length > 0) {
         orConditions.push(`course_id.in.(${courseIds.join(",")})`);
@@ -1130,7 +1170,7 @@ async function startDashboard() {
         announcementsList.innerHTML = announcements.map(a => `
             <div class="announcement-item">
                 <span>📢 ${escapeHtml(a.title)}</span>
-                <span style="color:#9ca3af; font-size:12px;">${new Date(a.created_at).toLocaleDateString()}</span>
+                <span style="color:#9ca3af; font-size:11px;">${new Date(a.created_at).toLocaleDateString()}</span>
             </div>
         `).join("");
     }
