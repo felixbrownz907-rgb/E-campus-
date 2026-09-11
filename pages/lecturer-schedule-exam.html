@@ -79,6 +79,22 @@ select, input {
 
 .open-status-button.show { display: block; }
 
+.delete-button {
+    margin-top: 12px;
+    background: #fee2e2;
+    color: #991b1b;
+    border: none;
+    padding: 14px;
+    border-radius: 10px;
+    font-weight: bold;
+    font-size: 15px;
+    cursor: pointer;
+    width: 100%;
+    display: none;
+}
+
+.delete-button.show { display: block; }
+
 .empty-note { color: #9ca3af; text-align: center; padding: 20px 0; font-size: 14px; }
 </style>
 </head>
@@ -128,6 +144,7 @@ select, input {
 
         <button class="submit-button" onclick="saveSchedule()">Save Schedule</button>
         <button class="open-status-button" id="openButton" onclick="toggleOpen()">Open Exam Room Now</button>
+        <button class="delete-button" id="deleteButton" onclick="deleteExam()">🗑️ Delete This Exam Permanently</button>
 
     </section>
 
@@ -193,6 +210,7 @@ document.getElementById("courseSelect").addEventListener("change", async functio
     examSelect.innerHTML = `<option value="">Loading...</option>`;
     document.getElementById("currentInfo").classList.remove("show");
     document.getElementById("openButton").classList.remove("show");
+    document.getElementById("deleteButton").classList.remove("show");
 
     if (!courseId) {
         examSelect.innerHTML = `<option value="">Select course first</option>`;
@@ -232,34 +250,19 @@ document.getElementById("examSelect").addEventListener("change", function() {
     const selectedOption = this.options[this.selectedIndex];
     const currentInfo = document.getElementById("currentInfo");
     const openButton = document.getElementById("openButton");
+    const deleteButton = document.getElementById("deleteButton");
 
     if (!this.value) {
         currentInfo.classList.remove("show");
         openButton.classList.remove("show");
+        deleteButton.classList.remove("show");
         return;
     }
 
     const quiz = JSON.parse(selectedOption.dataset.quiz);
 
-    if (quiz.scheduled_start) {
-
-        const localDate = new Date(quiz.scheduled_start);
-        const yyyy = localDate.getFullYear();
-        const mm = String(localDate.getMonth() + 1).padStart(2, "0");
-        const dd = String(localDate.getDate()).padStart(2, "0");
-        const hh = String(localDate.getHours()).padStart(2, "0");
-        const min = String(localDate.getMinutes()).padStart(2, "0");
-
-        document.getElementById("examDate").value = `${yyyy}-${mm}-${dd}`;
-        document.getElementById("examTime").value = `${hh}:${min}`;
-
-    } else {
-
-        document.getElementById("examDate").value = "";
-        document.getElementById("examTime").value = "";
-
-    }
-
+    document.getElementById("examDate").value = quiz.scheduled_start ? quiz.scheduled_start.split("T")[0] : "";
+    document.getElementById("examTime").value = quiz.scheduled_start ? quiz.scheduled_start.split("T")[1]?.slice(0,5) : "";
     document.getElementById("durationHours").value = quiz.duration_minutes ? (quiz.duration_minutes / 60) : "";
 
     currentInfo.innerHTML = `
@@ -271,6 +274,7 @@ document.getElementById("examSelect").addEventListener("change", function() {
     currentQuizIsOpen = quiz.is_open;
     openButton.textContent = currentQuizIsOpen ? "Close Exam Room Now" : "Open Exam Room Now";
     openButton.classList.add("show");
+    deleteButton.classList.add("show");
 
 });
 
@@ -292,7 +296,6 @@ async function saveSchedule() {
         return;
     }
 
-    // Build the date/time as the lecturer's LOCAL time, then convert correctly to UTC for storage
     const scheduledStart = new Date(`${date}T${time}:00`).toISOString();
     const durationMinutes = hours ? Math.round(Number(hours) * 60) : null;
 
@@ -333,6 +336,33 @@ async function toggleOpen() {
     }
 
     showMessage(newState ? "Exam room opened — students can write it now." : "Exam room closed.", "success");
+    document.getElementById("courseSelect").dispatchEvent(new Event("change"));
+
+}
+
+
+async function deleteExam() {
+
+    const quizId = document.getElementById("examSelect").value;
+    const examSelect = document.getElementById("examSelect");
+    const examLabel = examSelect.options[examSelect.selectedIndex].textContent;
+
+    if (!quizId) return;
+
+    const confirmed = confirm(`Delete "${examLabel}" permanently?\n\nThis will remove all its questions and any student attempts. This cannot be undone.`);
+    if (!confirmed) return;
+
+    await supabaseClient.from("quiz_attempts").delete().eq("quiz_id", quizId);
+    await supabaseClient.from("quiz_questions").delete().eq("quiz_id", quizId);
+
+    const { error } = await supabaseClient.from("quizzes").delete().eq("id", quizId);
+
+    if (error) {
+        showMessage("Unable to delete: " + error.message, "error");
+        return;
+    }
+
+    showMessage(`"${examLabel}" deleted successfully.`, "success");
     document.getElementById("courseSelect").dispatchEvent(new Event("change"));
 
 }
