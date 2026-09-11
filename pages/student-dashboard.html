@@ -208,7 +208,7 @@ body {
 .welcome-card h2 { font-size: 22px; margin-bottom: 6px; }
 .welcome-card p { color: #d4af37; font-size: 13px; }
 
-/* ===== TERM COUNTDOWN — personal, per-student ===== */
+/* ===== TERM COUNTDOWN ===== */
 
 .term-countdown-card {
     border-radius: 14px;
@@ -236,6 +236,46 @@ body {
 .term-countdown-label { font-size: 13px; opacity: 0.85; font-weight: bold; }
 .term-countdown-days { font-size: 30px; font-weight: bold; }
 .term-countdown-note { font-size: 12px; opacity: 0.9; margin-top: 4px; }
+
+/* ===== NEXT EXAM CARD — the one specific exam that matters right now ===== */
+
+.next-exam-card {
+    border-radius: 14px;
+    padding: 20px;
+    margin-bottom: 16px;
+    color: white;
+    box-shadow: 0 5px 18px rgba(0,0,0,0.12);
+    text-decoration: none;
+    display: block;
+}
+
+.next-exam-card.scheduled { background: linear-gradient(135deg, #7c2d12, #78350f); }
+.next-exam-card.open-now { background: linear-gradient(135deg, #991b1b, #7f1d1d); }
+.next-exam-card.none { background: linear-gradient(135deg, #374151, #1f2937); }
+
+.next-exam-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 8px;
+}
+
+.next-exam-label { font-size: 12px; opacity: 0.8; font-weight: bold; text-transform: uppercase; letter-spacing: 0.5px; }
+.next-exam-title { font-size: 16px; font-weight: bold; margin-top: 4px; }
+.next-exam-course { font-size: 12px; opacity: 0.85; margin-top: 2px; }
+
+.next-exam-countdown {
+    font-size: 24px;
+    font-weight: bold;
+    font-family: monospace;
+    margin: 10px 0 6px;
+}
+
+.next-exam-meta { font-size: 12px; opacity: 0.9; }
+
+/* ===== ROOMS ===== */
 
 .rooms-grid {
     display: grid;
@@ -681,6 +721,9 @@ body {
     <div id="termCountdownContainer"></div>
 
 
+    <div id="nextExamContainer"></div>
+
+
     <div class="rooms-grid" id="roomsGrid">
         <a href="student-quizzes.html" class="room-card exam-room" id="examRoomCard">
             <div class="room-icon">🎯</div>
@@ -727,6 +770,8 @@ body {
 <script>
 
 const WEEKDAY_NAMES = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+const PASS_THRESHOLD = 70;
+let nextExamTickerInterval = null;
 
 function escapeHtml(value) {
     return String(value ?? "")
@@ -774,19 +819,16 @@ async function loadTermCountdown(studentProfileId) {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    // Find the currently active term (today falls between start and end)
     const activeTerm = terms.find(t => {
         const start = new Date(t.start_date + "T00:00:00");
         const end = new Date(t.end_date + "T00:00:00");
         return today >= start && today <= end;
     });
 
-    // If no active term, find the next upcoming one (start date in the future)
     const upcomingTerm = !activeTerm
         ? terms.filter(t => new Date(t.start_date + "T00:00:00") > today).sort((a, b) => new Date(a.start_date) - new Date(b.start_date))[0]
         : null;
 
-    // If neither active nor upcoming, the most recent term has ended
     const mostRecentTerm = terms[terms.length - 1];
 
     let html = "";
@@ -842,6 +884,171 @@ async function loadTermCountdown(studentProfileId) {
     }
 
     container.innerHTML = html;
+
+}
+
+
+async function loadNextExam(studentProfileId, authUserId, courseIds) {
+
+    const container = document.getElementById("nextExamContainer");
+
+    if (courseIds.length === 0) {
+        container.innerHTML = "";
+        return;
+    }
+
+    const { data: quizzes } =
+        await supabaseClient
+            .from("quizzes")
+            .select("*")
+            .in("course_id", courseIds);
+
+    if (!quizzes || quizzes.length === 0) {
+        container.innerHTML = "";
+        return;
+    }
+
+    const quizIds = quizzes.map(q => q.id);
+
+    const { data: attempts } =
+        await supabaseClient
+            .from("quiz_attempts")
+            .select("quiz_id, score, violation_flag")
+            .eq("student_id", authUserId)
+            .in("quiz_id", quizIds);
+
+    const bestScoreByQuiz = {};
+    const attemptedQuizIds = new Set();
+    (attempts || []).forEach(a => {
+        attemptedQuizIds.add(a.quiz_id);
+        if (a.score === null || a.violation_flag) return;
+        if (!bestScoreByQuiz[a.quiz_id] || a.score > bestScoreByQuiz[a.quiz_id]) {
+            bestScoreByQuiz[a.quiz_id] = a.score;
+        }
+    });
+
+    const quizzesByCourse = {};
+    quizzes.forEach(q => {
+        if (!quizzesByCourse[q.course_id]) quizzesByCourse[q.course_id] = [];
+        quizzesByCourse[q.course_id].push(q);
+    });
+
+    function isLocked(quiz) {
+
+        if (!quiz.is_final_exam && !quiz.ca_number) return false;
+
+        const courseQuizzes = quizzesByCourse[quiz.course_id] || [];
+        const ca1 = courseQuizzes.find(q => q.ca_number === 1);
+        const ca2 = courseQuizzes.find(q => q.ca_number === 2);
+
+        const ca1Passed = ca1 && bestScoreByQuiz[ca1.id] !== undefined && bestScoreByQuiz[ca1.id] >= PASS_THRESHOLD;
+        const ca2Passed = ca2 && bestScoreByQuiz[ca2.id] !== undefined && bestScoreByQuiz[ca2.id] >= PASS_THRESHOLD;
+
+        if (quiz.is_final_exam) return !(ca1 && ca2 && ca1Passed && ca2Passed);
+        if (quiz.ca_number === 1) return false;
+        if (quiz.ca_number === 2) return !(ca1 && ca1Passed);
+
+        return false;
+
+    }
+
+    // Only consider exams: locked exam type, not yet attempted, not locked by prerequisite, has a scheduled start
+    const candidates = quizzes.filter(q =>
+        q.is_exam &&
+        !attemptedQuizIds.has(q.id) &&
+        !isLocked(q) &&
+        q.scheduled_start
+    );
+
+    if (candidates.length === 0) {
+        container.innerHTML = `
+            <div class="next-exam-card none">
+                <div class="next-exam-label">🎯 Next Exam</div>
+                <div class="next-exam-title">Nothing scheduled right now</div>
+                <div class="next-exam-meta">Check back once your lecturer schedules your next exam.</div>
+            </div>
+        `;
+        return;
+    }
+
+    // Pick the one with the earliest scheduled_start (soonest matters most)
+    candidates.sort((a, b) => new Date(a.scheduled_start) - new Date(b.scheduled_start));
+    const nextExam = candidates[0];
+
+    const courseIdToCode = {};
+    // We'll fetch course codes quickly
+    const { data: coursesData } = await supabaseClient.from("courses").select("id, code").in("id", courseIds);
+    (coursesData || []).forEach(c => courseIdToCode[c.id] = c.code);
+
+    function renderNextExamCard() {
+
+        const now = Date.now();
+        const scheduledStart = new Date(nextExam.scheduled_start).getTime();
+        const scheduledEnd = nextExam.duration_minutes ? scheduledStart + (nextExam.duration_minutes * 60000) : null;
+
+        const isOpenNow = nextExam.is_open || (now >= scheduledStart && (!scheduledEnd || now <= scheduledEnd));
+        const isWindowClosed = scheduledEnd && now > scheduledEnd;
+
+        let cardClass = "scheduled";
+        let countdownHtml = "";
+
+        if (isWindowClosed) {
+
+            cardClass = "none";
+            countdownHtml = `<div class="next-exam-countdown">Window Closed</div>`;
+
+        } else if (isOpenNow) {
+
+            cardClass = "open-now";
+            const remaining = scheduledEnd ? scheduledEnd - now : null;
+
+            if (remaining !== null && remaining > 0) {
+                const mins = Math.floor(remaining / 60000);
+                const secs = Math.floor((remaining % 60000) / 1000);
+                countdownHtml = `<div class="next-exam-countdown">🔴 OPEN NOW — ${mins}:${secs.toString().padStart(2,"0")} left</div>`;
+            } else {
+                countdownHtml = `<div class="next-exam-countdown">🔴 OPEN NOW</div>`;
+            }
+
+        } else {
+
+            const remaining = scheduledStart - now;
+            const days = Math.floor(remaining / 86400000);
+            const hours = Math.floor((remaining % 86400000) / 3600000);
+            const mins = Math.floor((remaining % 3600000) / 60000);
+            const secs = Math.floor((remaining % 60000) / 1000);
+
+            countdownHtml = `<div class="next-exam-countdown">${days > 0 ? days + "d " : ""}${hours.toString().padStart(2,"0")}:${mins.toString().padStart(2,"0")}:${secs.toString().padStart(2,"0")}</div>`;
+
+        }
+
+        let typeLabel = "Exam";
+        if (nextExam.is_final_exam) typeLabel = "Final Exam";
+        else if (nextExam.ca_number) typeLabel = `CA${nextExam.ca_number}`;
+
+        container.innerHTML = `
+            <a href="student-quizzes.html" class="next-exam-card ${cardClass}">
+                <div class="next-exam-top">
+                    <div>
+                        <div class="next-exam-label">🎯 Next Exam — ${escapeHtml(typeLabel)}</div>
+                        <div class="next-exam-title">${escapeHtml(nextExam.title)}</div>
+                        <div class="next-exam-course">${escapeHtml(courseIdToCode[nextExam.course_id] || "")}</div>
+                    </div>
+                </div>
+                ${countdownHtml}
+                <div class="next-exam-meta">
+                    ${new Date(nextExam.scheduled_start).toLocaleString()}
+                    ${nextExam.duration_minutes ? " • " + nextExam.duration_minutes + " min" : ""}
+                </div>
+            </a>
+        `;
+
+    }
+
+    renderNextExamCard();
+
+    if (nextExamTickerInterval) clearInterval(nextExamTickerInterval);
+    nextExamTickerInterval = setInterval(renderNextExamCard, 1000);
 
 }
 
@@ -1058,6 +1265,8 @@ async function startDashboard() {
     const courseIds = enrolledCourses.map(c => c.id);
 
     document.getElementById("statCourses").textContent = enrolledCourses.length;
+
+    await loadNextExam(studentProfile.id, user.id, courseIds);
 
 
     let modules = [];
