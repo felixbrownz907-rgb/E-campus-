@@ -21,23 +21,33 @@ body { font-family: Arial, Helvetica, sans-serif; background: #f4f6f9; color: #1
 .page-title h2 { font-size: 28px; margin-bottom: 6px; }
 .page-title p { color: #6b7280; }
 
-.section-heading { font-size: 16px; font-weight: bold; margin: 20px 0 10px; color: #374151; }
-
 .message { padding: 14px; border-radius: 8px; margin-bottom: 20px; display: none; }
 .message.success { display: block; background: #dcfce7; color: #166534; }
 .message.error { display: block; background: #fee2e2; color: #991b1b; }
 
-.card { background: white; padding: 22px; border-radius: 14px; margin-bottom: 18px; box-shadow: 0 3px 12px rgba(0,0,0,0.06); }
-.card.missed { border: 2px solid #fca5a5; }
+.section-heading { font-size: 17px; font-weight: bold; margin: 24px 0 12px; }
+.section-heading.missed { color: #991b1b; }
+
+.card { background: white; padding: 20px; border-radius: 14px; margin-bottom: 14px; box-shadow: 0 3px 12px rgba(0,0,0,0.06); }
+
+.missed-card { border: 2px solid #fca5a5; background: #fef2f2; }
 
 .course-tag { color: #d4af37; font-size: 12px; font-weight: bold; }
-.course-name { font-size: 16px; font-weight: bold; margin: 4px 0 12px; }
-.missed-date { color: #991b1b; font-weight: bold; font-size: 13px; margin-bottom: 10px; }
+.session-date { font-size: 16px; font-weight: bold; margin: 4px 0 10px; }
 
-.activity-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 14px; }
-.activity-box { background: #f9fafb; border-radius: 8px; padding: 10px; text-align: center; }
-.activity-box .num { font-size: 18px; font-weight: bold; }
-.activity-box .label { font-size: 11px; color: #6b7280; }
+.evidence-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+.evidence-pill { background: #f9fafb; border: 1px solid #e5e7eb; padding: 5px 12px; border-radius: 20px; font-size: 12px; font-weight: bold; }
+.evidence-pill.has-evidence { background: #dcfce7; color: #166534; border-color: #86efac; }
+
+.no-evidence-note {
+    background: #fef3c7;
+    color: #92400e;
+    padding: 10px 12px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: bold;
+    margin-bottom: 12px;
+}
 
 textarea {
     width: 100%;
@@ -45,13 +55,13 @@ textarea {
     border: 1px solid #d1d5db;
     border-radius: 8px;
     font-size: 14px;
-    min-height: 70px;
-    margin-bottom: 12px;
+    min-height: 80px;
+    margin-bottom: 10px;
 }
 
 .submit-button {
-    background: #d4af37;
-    color: #111827;
+    background: #111827;
+    color: white;
     border: none;
     padding: 12px 20px;
     border-radius: 8px;
@@ -62,27 +72,28 @@ textarea {
 
 .submit-button:disabled { opacity: 0.5; cursor: not-allowed; }
 
-.evidence-warning {
-    background: #fee2e2;
-    color: #991b1b;
-    padding: 10px;
-    border-radius: 8px;
-    font-size: 13px;
-    margin-bottom: 12px;
+.pending-badge {
+    background: #fef3c7;
+    color: #92400e;
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 11px;
     font-weight: bold;
 }
 
-.status-badge { padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: bold; display: inline-block; }
-.status-badge.pending { background: #fef3c7; color: #92400e; }
-.status-badge.present { background: #dcfce7; color: #166534; }
-.status-badge.late { background: #fef3c7; color: #92400e; }
-.status-badge.absent { background: #fee2e2; color: #991b1b; }
+.approved-badge {
+    background: #dcfce7;
+    color: #166534;
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: bold;
+}
 
-.note-shown { font-size: 13px; color: #374151; margin-top: 8px; font-style: italic; }
+.history-row { display: flex; justify-content: space-between; padding: 10px; border-bottom: 1px solid #e5e7eb; font-size: 13px; }
+.history-row:last-child { border-bottom: none; }
 
-.history-row { display: flex; justify-content: space-between; padding: 10px; border-bottom: 1px solid #e5e7eb; font-size: 13px; align-items: center; }
-
-.empty-note { color: #9ca3af; text-align: center; padding: 30px 0; }
+.empty-note { color: #9ca3af; text-align: center; padding: 20px 0; }
 </style>
 </head>
 
@@ -105,22 +116,19 @@ textarea {
 
     <section class="page-title">
         <h2>My Attendance</h2>
-        <p>On days your course has a class, log what you did. Missed days must be caught up before you can continue in that course.</p>
+        <p>On days your course has a class, log what you did. Missed days must be caught up before you can continue.</p>
     </section>
 
     <div id="message" class="message"></div>
 
-    <div id="missedSectionWrapper"></div>
+    <h3 class="section-heading">Today</h3>
+    <div id="todayContainer"><p class="empty-note">Loading...</p></div>
 
-    <div class="section-heading">Today</div>
-    <div id="todayContainer">
-        <div class="card"><p class="empty-note">Loading...</p></div>
-    </div>
+    <h3 class="section-heading missed" id="missedHeading" style="display:none;">⚠️ Missed Classes — Catch-Up Required</h3>
+    <div id="missedContainer"></div>
 
-    <section class="card">
-        <h3 style="margin-bottom:14px;">Recent History</h3>
-        <div id="historyContainer"><p class="empty-note">Loading...</p></div>
-    </section>
+    <h3 class="section-heading">Recent History</h3>
+    <div id="historyContainer"><p class="empty-note">Loading...</p></div>
 
 </main>
 
@@ -131,18 +139,18 @@ textarea {
 
 <script>
 
-const message = document.getElementById("message");
+const WEEKDAY_NAMES = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+const LOOKBACK_DAYS = 30;
+
 let authUserId = null;
 let studentProfileId = null;
 
-const WEEKDAY_NAMES = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-
+const message = document.getElementById("message");
 
 function showMessage(text, type) {
     message.textContent = text;
     message.className = "message " + type;
 }
-
 
 function escapeHtml(value) {
     return String(value ?? "")
@@ -153,33 +161,15 @@ function escapeHtml(value) {
         .replace(/'/g, "&#039;");
 }
 
-
-function todayDateString() {
-    return new Date().toISOString().split("T")[0];
+function dateToLocalString(d) {
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, "0");
+    const dd = String(d.getDate()).padStart(2, "0");
+    return `${yyyy}-${mm}-${dd}`;
 }
 
 
-function getPastClassDates(classDays, enrollmentDate) {
-
-    if (!classDays || classDays.length === 0) return [];
-
-    const dates = [];
-    const start = new Date(enrollmentDate + "T00:00:00");
-    const today = new Date(todayDateString() + "T00:00:00");
-
-    for (let d = new Date(start); d < today; d.setDate(d.getDate() + 1)) {
-        const weekday = WEEKDAY_NAMES[d.getDay()];
-        if (classDays.includes(weekday)) {
-            dates.push(new Date(d).toISOString().split("T")[0]);
-        }
-    }
-
-    return dates;
-
-}
-
-
-async function startPage() {
+async function loadAttendance() {
 
     const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
 
@@ -200,172 +190,272 @@ async function startPage() {
 
     studentProfileId = studentProfile.id;
 
-    await loadMissedDays();
-    await loadTodayCards();
-    await loadHistory();
-
-}
-
-
-async function getActivityForDate(courseId, dateString) {
-
-    const { data: modules } =
-        await supabaseClient.from("course_modules").select("id").eq("course_id", courseId);
-
-    const moduleIds = (modules || []).map(m => m.id);
-
-    let lessonsCount = 0;
-    let quizzesCount = 0;
-    let assignmentsCount = 0;
-
-    if (moduleIds.length > 0) {
-
-        const { data: lessons } =
-            await supabaseClient.from("lessons").select("id").in("module_id", moduleIds);
-        const lessonIds = (lessons || []).map(l => l.id);
-
-        if (lessonIds.length > 0) {
-            const { count } = await supabaseClient
-                .from("lesson_progress")
-                .select("id", { count: "exact", head: true })
-                .eq("student_id", authUserId)
-                .in("lesson_id", lessonIds)
-                .gte("completed_at", dateString + "T00:00:00")
-                .lte("completed_at", dateString + "T23:59:59");
-            lessonsCount = count || 0;
-        }
-
-        const { data: quizzes } =
-            await supabaseClient.from("quizzes").select("id").in("module_id", moduleIds);
-        const quizIds = (quizzes || []).map(q => q.id);
-
-        if (quizIds.length > 0) {
-            const { count } = await supabaseClient
-                .from("quiz_attempts")
-                .select("id", { count: "exact", head: true })
-                .eq("student_id", authUserId)
-                .in("quiz_id", quizIds)
-                .gte("submitted_at", dateString + "T00:00:00")
-                .lte("submitted_at", dateString + "T23:59:59");
-            quizzesCount = count || 0;
-        }
-
-        const { data: assignmentsList } =
-            await supabaseClient.from("assignments").select("id").in("module_id", moduleIds);
-        const assignmentIds = (assignmentsList || []).map(a => a.id);
-
-        if (assignmentIds.length > 0) {
-            const { count } = await supabaseClient
-                .from("submissions")
-                .select("id", { count: "exact", head: true })
-                .eq("student_id", authUserId)
-                .in("assignment_id", assignmentIds)
-                .gte("submitted_at", dateString + "T00:00:00")
-                .lte("submitted_at", dateString + "T23:59:59");
-            assignmentsCount = count || 0;
-        }
-
-    }
-
-    return { lessons: lessonsCount, quizzes: quizzesCount, assignments: assignmentsCount };
-
-}
-
-
-/* ================= MISSED DAYS (CATCH-UP REQUIRED) ================= */
-
-async function loadMissedDays() {
-
-    const wrapper = document.getElementById("missedSectionWrapper");
-
     const { data: enrollments } =
         await supabaseClient
             .from("enrollments")
-            .select("enrollment_date, courses ( id, code, name, class_days )")
+            .select("courses ( id, code, name, class_days )")
             .eq("student_id", studentProfileId)
             .eq("status", "enrolled");
 
-    let missedCards = "";
+    const courses = (enrollments || []).map(e => e.courses).filter(c => c && c.class_days && c.class_days.length > 0);
 
-    for (const e of (enrollments || [])) {
+    if (courses.length === 0) {
+        document.getElementById("todayContainer").innerHTML = `<div class="card"><p class="empty-note">No enrolled courses with scheduled class days yet.</p></div>`;
+        document.getElementById("historyContainer").innerHTML = `<div class="card"><p class="empty-note">No attendance history yet.</p></div>`;
+        return;
+    }
 
-        const course = e.courses;
-        if (!course || !course.class_days) continue;
+    const courseIds = courses.map(c => c.id);
 
-        const pastDates = getPastClassDates(course.class_days, e.enrollment_date || "2020-01-01");
+    // Get today's evidence: lessons completed today, quizzes attempted today, assignments submitted today
+    const todayStr = dateToLocalString(new Date());
+    const todayStart = new Date(todayStr + "T00:00:00");
+    const todayEnd = new Date(todayStr + "T23:59:59");
 
-        for (const dateStr of pastDates) {
+    const { data: todayLessonProgress } =
+        await supabaseClient
+            .from("lesson_progress")
+            .select("id, completed_at")
+            .eq("student_id", authUserId)
+            .gte("completed_at", todayStart.toISOString())
+            .lte("completed_at", todayEnd.toISOString());
 
-            const { data: existing } =
-                await supabaseClient
-                    .from("attendance")
-                    .select("*")
-                    .eq("student_id", studentProfileId)
-                    .eq("course_id", course.id)
-                    .eq("session_date", dateStr)
-                    .maybeSingle();
+    const { data: todayQuizAttempts } =
+        await supabaseClient
+            .from("quiz_attempts")
+            .select("id, submitted_at")
+            .eq("student_id", authUserId)
+            .gte("submitted_at", todayStart.toISOString())
+            .lte("submitted_at", todayEnd.toISOString());
 
-            if (existing && existing.approval_status === "approved") continue;
+    const { data: todaySubmissions } =
+        await supabaseClient
+            .from("submissions")
+            .select("id, submitted_at")
+            .eq("student_id", authUserId)
+            .gte("submitted_at", todayStart.toISOString())
+            .lte("submitted_at", todayEnd.toISOString());
 
-            const dateLabel = new Date(dateStr).toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" });
+    const evidenceLessons = (todayLessonProgress || []).length;
+    const evidenceQuizzes = (todayQuizAttempts || []).length;
+    const evidenceAssignments = (todaySubmissions || []).length;
+    const hasAnyEvidence = evidenceLessons > 0 || evidenceQuizzes > 0 || evidenceAssignments > 0;
 
-            if (existing && existing.approval_status === "pending") {
+    // Get ALL existing attendance records for this student across these courses (to know what's already logged)
+    const { data: existingRecords } =
+        await supabaseClient
+            .from("attendance")
+            .select("*")
+            .eq("student_id", studentProfileId)
+            .in("course_id", courseIds)
+            .order("session_date", { ascending: false });
 
-                missedCards += `
-                    <div class="card missed">
+    const recordsByCoursDate = {};
+    (existingRecords || []).forEach(r => {
+        recordsByCoursDate[`${r.course_id}_${r.session_date}`] = r;
+    });
+
+    const todayWeekday = WEEKDAY_NAMES[new Date().getDay()];
+
+    // ===== TODAY'S LOG =====
+
+    const todayContainer = document.getElementById("todayContainer");
+    const coursesWithClassToday = courses.filter(c => c.class_days.includes(todayWeekday));
+
+    if (coursesWithClassToday.length === 0) {
+        todayContainer.innerHTML = `<div class="card"><p class="empty-note">No courses have a scheduled class today (${todayWeekday}).</p></div>`;
+    } else {
+
+        todayContainer.innerHTML = coursesWithClassToday.map(course => {
+
+            const existing = recordsByCoursDate[`${course.id}_${todayStr}`];
+
+            if (existing) {
+
+                const statusBadge = existing.approval_status === "approved"
+                    ? `<span class="approved-badge">✓ Approved</span>`
+                    : `<span class="pending-badge">📝 Pending review</span>`;
+
+                return `
+                    <div class="card">
                         <div class="course-tag">${escapeHtml(course.code)}</div>
-                        <div class="course-name">${escapeHtml(course.name)}</div>
-                        <div class="missed-date">Missed: ${dateLabel}</div>
-                        <span class="status-badge pending">⏳ Catch-up submitted — awaiting lecturer approval</span>
-                        ${existing.student_note ? `<div class="note-shown">Your note: "${escapeHtml(existing.student_note)}"</div>` : ""}
-                    </div>
-                `;
-
-            } else {
-
-                const todayActivity = await getActivityForDate(course.id, todayDateString());
-                const hasEvidence = todayActivity.lessons > 0 || todayActivity.quizzes > 0 || todayActivity.assignments > 0;
-                const fieldId = `catchup-${course.id}-${dateStr}`;
-
-                missedCards += `
-                    <div class="card missed">
-                        <div class="course-tag">${escapeHtml(course.code)}</div>
-                        <div class="course-name">${escapeHtml(course.name)}</div>
-                        <div class="missed-date">🔒 Missed: ${dateLabel} — you cannot continue in this course until this is caught up</div>
-
-                        ${!hasEvidence ? `<div class="evidence-warning">You haven't completed any course material today yet. Go complete some Topics, then come back here to submit your catch-up.</div>` : ""}
-
-                        <div class="activity-grid">
-                            <div class="activity-box"><div class="num">${todayActivity.lessons}</div><div class="label">Topics completed today</div></div>
-                            <div class="activity-box"><div class="num">${todayActivity.quizzes}</div><div class="label">Quizzes taken today</div></div>
-                            <div class="activity-box"><div class="num">${todayActivity.assignments}</div><div class="label">Assignments submitted today</div></div>
-                        </div>
-
-                        <textarea id="${fieldId}" placeholder="Explain how you caught up on this missed class..."></textarea>
-
-                        <button class="submit-button" ${!hasEvidence ? "disabled" : ""} onclick="submitCatchup('${course.id}', '${dateStr}', '${fieldId}')">
-                            Submit Catch-Up for ${escapeHtml(dateLabel)}
-                        </button>
+                        <div class="session-date">${escapeHtml(course.name)} — Today</div>
+                        <p style="font-size:13px; color:#374151; margin-bottom:8px;">Already submitted. ${statusBadge}</p>
+                        ${existing.student_note ? `<p style="font-size:13px; color:#6b7280; font-style:italic;">"${escapeHtml(existing.student_note)}"</p>` : ""}
                     </div>
                 `;
 
             }
 
-        }
+            return `
+                <div class="card">
+                    <div class="course-tag">${escapeHtml(course.code)}</div>
+                    <div class="session-date">${escapeHtml(course.name)} — Today</div>
+
+                    <div class="evidence-row">
+                        <span class="evidence-pill ${evidenceLessons > 0 ? "has-evidence" : ""}">📖 ${evidenceLessons} Topics done today</span>
+                        <span class="evidence-pill ${evidenceQuizzes > 0 ? "has-evidence" : ""}">🎯 ${evidenceQuizzes} Quizzes today</span>
+                        <span class="evidence-pill ${evidenceAssignments > 0 ? "has-evidence" : ""}">📝 ${evidenceAssignments} Assignments today</span>
+                    </div>
+
+                    ${!hasAnyEvidence ? `<div class="no-evidence-note">⚠️ You need to complete at least one Topic, Quiz, or Assignment today before you can log attendance.</div>` : ""}
+
+                    <textarea id="note-today-${course.id}" placeholder="Briefly describe what you studied or did today..."></textarea>
+
+                    <button class="submit-button" ${!hasAnyEvidence ? "disabled" : ""} onclick="submitLog('${course.id}', '${todayStr}', 'note-today-${course.id}')">
+                        Submit Today's Log
+                    </button>
+                </div>
+            `;
+
+        }).join("");
 
     }
 
-    wrapper.innerHTML = missedCards
-        ? `<div class="section-heading">⚠️ Missed Classes — Catch-Up Required</div>` + missedCards
-        : "";
+
+    // ===== MISSED CLASSES =====
+
+    const missedContainer = document.getElementById("missedContainer");
+    const missedHeading = document.getElementById("missedHeading");
+
+    const missedDays = [];
+
+    courses.forEach(course => {
+
+        for (let i = 1; i <= LOOKBACK_DAYS; i++) {
+
+            const checkDate = new Date();
+            checkDate.setDate(checkDate.getDate() - i);
+            const checkWeekday = WEEKDAY_NAMES[checkDate.getDay()];
+
+            if (!course.class_days.includes(checkWeekday)) continue;
+
+            const checkDateStr = dateToLocalString(checkDate);
+            const existing = recordsByCoursDate[`${course.id}_${checkDateStr}`];
+
+            if (!existing) {
+                missedDays.push({ course, dateStr: checkDateStr, dateObj: new Date(checkDate) });
+            }
+
+        }
+
+    });
+
+    missedDays.sort((a, b) => b.dateObj - a.dateObj);
+
+    if (missedDays.length === 0) {
+
+        missedHeading.style.display = "none";
+        missedContainer.innerHTML = "";
+
+    } else {
+
+        missedHeading.style.display = "block";
+
+        missedContainer.innerHTML = missedDays.map((missed, idx) => `
+            <div class="card missed-card">
+                <div class="course-tag">${escapeHtml(missed.course.code)}</div>
+                <div class="session-date">${escapeHtml(missed.course.name)} — Missed: ${missed.dateObj.toLocaleDateString()}</div>
+
+                <div class="evidence-row">
+                    <span class="evidence-pill ${evidenceLessons > 0 ? "has-evidence" : ""}">📖 ${evidenceLessons} Topics done today</span>
+                    <span class="evidence-pill ${evidenceQuizzes > 0 ? "has-evidence" : ""}">🎯 ${evidenceQuizzes} Quizzes today</span>
+                    <span class="evidence-pill ${evidenceAssignments > 0 ? "has-evidence" : ""}">📝 ${evidenceAssignments} Assignments today</span>
+                </div>
+
+                <p style="font-size:12px; color:#991b1b; margin-bottom:10px;">To catch up on this missed day, show real evidence of work completed today, then explain what you covered.</p>
+
+                ${!hasAnyEvidence ? `<div class="no-evidence-note">⚠️ Complete at least one Topic, Quiz, or Assignment today before you can submit this catch-up.</div>` : ""}
+
+                <textarea id="note-missed-${idx}" placeholder="Explain what you studied to catch up on this missed class..."></textarea>
+
+                <button class="submit-button" ${!hasAnyEvidence ? "disabled" : ""} onclick="submitLog('${missed.course.id}', '${missed.dateStr}', 'note-missed-${idx}', true)">
+                    Submit Catch-Up
+                </button>
+            </div>
+        `).join("");
+
+    }
+
+
+    // ===== RECENT HISTORY =====
+
+    const historyContainer = document.getElementById("historyContainer");
+
+    if (!existingRecords || existingRecords.length === 0) {
+        historyContainer.innerHTML = `<div class="card"><p class="empty-note">No attendance history yet.</p></div>`;
+    } else {
+
+        const courseMap = {};
+        courses.forEach(c => courseMap[c.id] = c);
+
+        historyContainer.innerHTML = `<div class="card">` + existingRecords.slice(0, 15).map(r => {
+
+            const course = courseMap[r.course_id];
+            const statusText = r.submitted_by_student
+                ? (r.approval_status === "approved" ? "✓ Approved" : "📝 Pending review")
+                : (r.status === "present" ? "✓ Present (marked by lecturer)" : "✗ Absent (marked by lecturer)");
+
+            return `
+                <div class="history-row">
+                    <span>${escapeHtml(course ? course.code : "")} — ${new Date(r.session_date).toLocaleDateString()}</span>
+                    <span>${statusText}</span>
+                </div>
+            `;
+
+        }).join("") + `</div>`;
+
+    }
 
 }
 
 
-async function submitCatchup(courseId, dateStr, fieldId) {
+async function submitLog(courseId, dateStr, textareaId, isCatchUp) {
 
-    const note = document.getElementById(fieldId).value.trim();
-    const activity = await getActivityForDate(courseId, todayDateString());
+    const note = document.getElementById(textareaId).value.trim();
+
+    if (!note) {
+        showMessage("Please describe what you did before submitting.", "error");
+        return;
+    }
+
+    // Re-check today's evidence at submit time
+    const todayStr = dateToLocalString(new Date());
+    const todayStart = new Date(todayStr + "T00:00:00");
+    const todayEnd = new Date(todayStr + "T23:59:59");
+
+    const { data: todayLessonProgress } =
+        await supabaseClient
+            .from("lesson_progress")
+            .select("id")
+            .eq("student_id", authUserId)
+            .gte("completed_at", todayStart.toISOString())
+            .lte("completed_at", todayEnd.toISOString());
+
+    const { data: todayQuizAttempts } =
+        await supabaseClient
+            .from("quiz_attempts")
+            .select("id")
+            .eq("student_id", authUserId)
+            .gte("submitted_at", todayStart.toISOString())
+            .lte("submitted_at", todayEnd.toISOString());
+
+    const { data: todaySubmissions } =
+        await supabaseClient
+            .from("submissions")
+            .select("id")
+            .eq("student_id", authUserId)
+            .gte("submitted_at", todayStart.toISOString())
+            .lte("submitted_at", todayEnd.toISOString());
+
+    const evidenceLessons = (todayLessonProgress || []).length;
+    const evidenceQuizzes = (todayQuizAttempts || []).length;
+    const evidenceAssignments = (todaySubmissions || []).length;
+
+    if (evidenceLessons === 0 && evidenceQuizzes === 0 && evidenceAssignments === 0) {
+        showMessage("You need real evidence of work completed today (a Topic, Quiz, or Assignment) before submitting.", "error");
+        return;
+    }
 
     const { error } =
         await supabaseClient.from("attendance").insert({
@@ -374,11 +464,11 @@ async function submitCatchup(courseId, dateStr, fieldId) {
             session_date: dateStr,
             status: "present",
             submitted_by_student: true,
+            student_note: note,
             approval_status: "pending",
-            student_note: note || null,
-            evidence_lessons: activity.lessons,
-            evidence_quizzes: activity.quizzes,
-            evidence_assignments: activity.assignments
+            evidence_lessons: evidenceLessons,
+            evidence_quizzes: evidenceQuizzes,
+            evidence_assignments: evidenceAssignments
         });
 
     if (error) {
@@ -386,162 +476,13 @@ async function submitCatchup(courseId, dateStr, fieldId) {
         return;
     }
 
-    showMessage("Catch-up submitted. Your lecturer will review it before you can continue.", "success");
-    await loadMissedDays();
-    await loadHistory();
+    showMessage(isCatchUp ? "Catch-up submitted. Awaiting your lecturer's approval." : "Today's log submitted. Awaiting your lecturer's approval.", "success");
+    await loadAttendance();
 
 }
 
 
-/* ================= TODAY'S LOG ================= */
-
-async function loadTodayCards() {
-
-    const container = document.getElementById("todayContainer");
-    const today = todayDateString();
-    const todayWeekday = WEEKDAY_NAMES[new Date().getDay()];
-
-    const { data: enrollments } =
-        await supabaseClient
-            .from("enrollments")
-            .select("courses ( id, code, name, class_days )")
-            .eq("student_id", studentProfileId)
-            .eq("status", "enrolled");
-
-    const coursesWithClassToday = (enrollments || [])
-        .map(e => e.courses)
-        .filter(c => c && c.class_days && c.class_days.includes(todayWeekday));
-
-    if (coursesWithClassToday.length === 0) {
-        container.innerHTML = `<div class="card"><p class="empty-note">No courses have a scheduled class today (${todayWeekday}).</p></div>`;
-        return;
-    }
-
-    container.innerHTML = "";
-
-    for (const course of coursesWithClassToday) {
-
-        const { data: existing } =
-            await supabaseClient
-                .from("attendance")
-                .select("*")
-                .eq("student_id", studentProfileId)
-                .eq("course_id", course.id)
-                .eq("session_date", today)
-                .maybeSingle();
-
-        const card = document.createElement("div");
-        card.className = "card";
-
-        if (existing) {
-
-            const statusClass = existing.approval_status === "pending" ? "pending" : existing.status;
-            const statusLabel = existing.approval_status === "pending"
-                ? "⏳ Submitted — awaiting lecturer review"
-                : `Confirmed: ${existing.status}`;
-
-            card.innerHTML = `
-                <div class="course-tag">${escapeHtml(course.code)}</div>
-                <div class="course-name">${escapeHtml(course.name)}</div>
-                <span class="status-badge ${statusClass}">${statusLabel}</span>
-                ${existing.student_note ? `<div class="note-shown">Your note: "${escapeHtml(existing.student_note)}"</div>` : ""}
-            `;
-
-        } else {
-
-            const activity = await getActivityForDate(course.id, today);
-
-            card.innerHTML = `
-                <div class="course-tag">${escapeHtml(course.code)}</div>
-                <div class="course-name">${escapeHtml(course.name)}</div>
-
-                <div class="activity-grid">
-                    <div class="activity-box"><div class="num">${activity.lessons}</div><div class="label">Topics completed today</div></div>
-                    <div class="activity-box"><div class="num">${activity.quizzes}</div><div class="label">Quizzes taken today</div></div>
-                    <div class="activity-box"><div class="num">${activity.assignments}</div><div class="label">Assignments submitted today</div></div>
-                </div>
-
-                <textarea id="note-${course.id}" placeholder="Optional note — e.g. 'Watched the recorded lecture and did the reading' or 'Attended the live session'"></textarea>
-
-                <button class="submit-button" onclick="submitLog('${course.id}')">Submit Today's Log</button>
-            `;
-
-        }
-
-        container.appendChild(card);
-
-    }
-
-}
-
-
-async function submitLog(courseId) {
-
-    const note = document.getElementById(`note-${courseId}`).value.trim();
-    const activity = await getActivityForDate(courseId, todayDateString());
-    const hadActivity = activity.lessons > 0 || activity.quizzes > 0 || activity.assignments > 0;
-
-    const { error } =
-        await supabaseClient.from("attendance").insert({
-            student_id: studentProfileId,
-            course_id: courseId,
-            session_date: todayDateString(),
-            status: hadActivity || note ? "present" : "absent",
-            submitted_by_student: true,
-            approval_status: "pending",
-            student_note: note || null,
-            evidence_lessons: activity.lessons,
-            evidence_quizzes: activity.quizzes,
-            evidence_assignments: activity.assignments
-        });
-
-    if (error) {
-        showMessage("Unable to submit: " + error.message, "error");
-        return;
-    }
-
-    showMessage("Submitted. Your lecturer will review and confirm it.", "success");
-    await loadTodayCards();
-    await loadHistory();
-
-}
-
-
-async function loadHistory() {
-
-    const container = document.getElementById("historyContainer");
-
-    const { data, error } =
-        await supabaseClient
-            .from("attendance")
-            .select(`
-                session_date, status, approval_status, student_note,
-                courses ( code, name )
-            `)
-            .eq("student_id", studentProfileId)
-            .order("session_date", { ascending: false })
-            .limit(15);
-
-    if (error || !data || data.length === 0) {
-        container.innerHTML = `<p class="empty-note">No attendance history yet.</p>`;
-        return;
-    }
-
-    container.innerHTML = data.map(r => {
-        const statusClass = r.approval_status === "pending" ? "pending" : r.status;
-        const label = r.approval_status === "pending" ? "Pending review" : r.status;
-        return `
-            <div class="history-row">
-                <span>${new Date(r.session_date).toLocaleDateString()} — ${r.courses ? escapeHtml(r.courses.code) : "-"}</span>
-                <span class="status-badge ${statusClass}">${escapeHtml(label)}</span>
-            </div>
-        `;
-    }).join("");
-
-}
-
-
-startPage();
+loadAttendance();
 
 </script>
 
