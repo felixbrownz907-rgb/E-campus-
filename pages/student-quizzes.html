@@ -376,7 +376,6 @@ function isTimeToOpen(quiz) {
 }
 
 
-// The ONE fixed end time for everyone, based on the schedule — not per-student
 function getAbsoluteEndTime(quiz) {
     if (!quiz.scheduled_start || !quiz.duration_minutes) return null;
     return new Date(quiz.scheduled_start).getTime() + (quiz.duration_minutes * 60000);
@@ -429,7 +428,7 @@ async function loadQuizzes() {
         return;
     }
 
-    const { data: quizzes, error } =
+    const { data: allQuizzes, error } =
         await supabaseClient
             .from("quizzes")
             .select("*")
@@ -439,6 +438,10 @@ async function loadQuizzes() {
         container.innerHTML = `<div class="card"><p class="empty-note">Unable to load: ${escapeHtml(error.message)}</p></div>`;
         return;
     }
+
+    // ===== KEY FIX: exams (is_exam = true) only show once a lecturer has actually scheduled a date. =====
+    // Regular non-exam quizzes still show without needing a schedule.
+    const quizzes = (allQuizzes || []).filter(q => !q.is_exam || q.scheduled_start);
 
     if (!quizzes || quizzes.length === 0) {
         container.innerHTML = `<div class="card"><p class="empty-note">No quizzes or exams available yet.</p></div>`;
@@ -468,8 +471,9 @@ async function loadQuizzes() {
         }
     });
 
+    // Use ALL quizzes (including unscheduled ones) to correctly determine CA1/CA2 lock relationships
     const quizzesByCourse = {};
-    quizzes.forEach(q => {
+    (allQuizzes || []).forEach(q => {
         if (!quizzesByCourse[q.course_id]) quizzesByCourse[q.course_id] = [];
         quizzesByCourse[q.course_id].push(q);
     });
@@ -718,7 +722,6 @@ async function beginQuiz(quizId) {
         return;
     }
 
-    // Final safety check — window may have closed in the seconds since the page loaded
     if (quiz.is_exam && isWindowClosed(quiz)) {
         alert("This exam's window has just closed. You can no longer start it.");
         await loadQuizzes();
@@ -776,15 +779,12 @@ async function beginQuiz(quizId) {
         document.addEventListener("contextmenu", handleCopyPasteAttempt);
     }
 
-    // ===== KEY FIX: use the FIXED, SHARED end time based on the schedule, not personal click time =====
-
     const absoluteEnd = getAbsoluteEndTime(quiz);
 
     if (absoluteEnd) {
         examEndTime = absoluteEnd;
         startTimer();
     } else if (quiz.duration_minutes) {
-        // Fallback: no schedule set, only manually opened — each student gets their own countdown
         examEndTime = Date.now() + (quiz.duration_minutes * 60000);
         startTimer();
     } else {
