@@ -237,43 +237,69 @@ body {
 .term-countdown-days { font-size: 30px; font-weight: bold; }
 .term-countdown-note { font-size: 12px; opacity: 0.9; margin-top: 4px; }
 
-/* ===== NEXT EXAM CARD — the one specific exam that matters right now ===== */
+/* ===== ALL EXAMS LIST — full visibility on main screen ===== */
 
-.next-exam-card {
+.exams-list-card {
+    background: white;
     border-radius: 14px;
     padding: 20px;
     margin-bottom: 16px;
-    color: white;
-    box-shadow: 0 5px 18px rgba(0,0,0,0.12);
-    text-decoration: none;
-    display: block;
+    box-shadow: 0 3px 12px rgba(0,0,0,0.06);
 }
 
-.next-exam-card.scheduled { background: linear-gradient(135deg, #7c2d12, #78350f); }
-.next-exam-card.open-now { background: linear-gradient(135deg, #991b1b, #7f1d1d); }
-.next-exam-card.none { background: linear-gradient(135deg, #374151, #1f2937); }
+.exams-list-card h3 { font-size: 17px; margin-bottom: 4px; }
+.exams-list-card .sub { font-size: 12px; color: #6b7280; margin-bottom: 14px; }
 
-.next-exam-top {
+.exam-row {
+    padding: 14px;
+    border-radius: 10px;
+    margin-bottom: 10px;
+    border: 1px solid #e5e7eb;
+}
+
+.exam-row.open-now { background: #fef2f2; border-color: #fca5a5; }
+.exam-row.scheduled { background: #fff7ed; border-color: #fed7aa; }
+.exam-row.locked { background: #f9fafb; border-color: #e5e7eb; opacity: 0.75; }
+.exam-row.closed { background: #f3f4f6; border-color: #d1d5db; opacity: 0.6; }
+
+.exam-row-top {
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
     flex-wrap: wrap;
-    gap: 10px;
-    margin-bottom: 8px;
+    gap: 8px;
+    margin-bottom: 4px;
 }
 
-.next-exam-label { font-size: 12px; opacity: 0.8; font-weight: bold; text-transform: uppercase; letter-spacing: 0.5px; }
-.next-exam-title { font-size: 16px; font-weight: bold; margin-top: 4px; }
-.next-exam-course { font-size: 12px; opacity: 0.85; margin-top: 2px; }
+.exam-row-course { font-size: 11px; color: #d4af37; font-weight: bold; }
+.exam-row-title { font-size: 14px; font-weight: bold; margin-top: 2px; }
 
-.next-exam-countdown {
-    font-size: 24px;
+.exam-row-type {
+    font-size: 10px;
     font-weight: bold;
-    font-family: monospace;
-    margin: 10px 0 6px;
+    padding: 3px 8px;
+    border-radius: 20px;
 }
 
-.next-exam-meta { font-size: 12px; opacity: 0.9; }
+.exam-row-type.ca { background: #fef3c7; color: #92400e; }
+.exam-row-type.final { background: #dbeafe; color: #1d4ed8; }
+.exam-row-type.quiz { background: #f3f4f6; color: #374151; }
+
+.exam-row-status {
+    font-size: 11px;
+    font-weight: bold;
+    padding: 3px 9px;
+    border-radius: 20px;
+}
+
+.exam-row-status.open { background: #fee2e2; color: #991b1b; }
+.exam-row-status.scheduled { background: #fef3c7; color: #92400e; }
+.exam-row-status.locked { background: #f3f4f6; color: #6b7280; }
+.exam-row-status.closed { background: #e5e7eb; color: #6b7280; }
+.exam-row-status.done { background: #dcfce7; color: #166534; }
+
+.exam-row-date { font-size: 12px; color: #374151; margin-top: 6px; }
+.exam-row-reason { font-size: 11px; color: #991b1b; margin-top: 4px; }
 
 /* ===== ROOMS ===== */
 
@@ -721,7 +747,11 @@ body {
     <div id="termCountdownContainer"></div>
 
 
-    <div id="nextExamContainer"></div>
+    <section class="exams-list-card" id="examsListCard" style="display:none;">
+        <h3>🎯 Your Exams</h3>
+        <div class="sub">Every CA, Quiz and Final Exam across your courses, with its scheduled date.</div>
+        <div id="examsListContainer"></div>
+    </section>
 
 
     <div class="rooms-grid" id="roomsGrid">
@@ -771,7 +801,7 @@ body {
 
 const WEEKDAY_NAMES = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 const PASS_THRESHOLD = 70;
-let nextExamTickerInterval = null;
+let examsListTickerInterval = null;
 
 function escapeHtml(value) {
     return String(value ?? "")
@@ -888,12 +918,13 @@ async function loadTermCountdown(studentProfileId) {
 }
 
 
-async function loadNextExam(studentProfileId, authUserId, courseIds) {
+async function loadAllExamsList(studentProfileId, authUserId, courseIds) {
 
-    const container = document.getElementById("nextExamContainer");
+    const card = document.getElementById("examsListCard");
+    const container = document.getElementById("examsListContainer");
 
     if (courseIds.length === 0) {
-        container.innerHTML = "";
+        card.style.display = "none";
         return;
     }
 
@@ -904,26 +935,34 @@ async function loadNextExam(studentProfileId, authUserId, courseIds) {
             .in("course_id", courseIds);
 
     if (!quizzes || quizzes.length === 0) {
-        container.innerHTML = "";
+        card.style.display = "none";
         return;
     }
+
+    card.style.display = "block";
 
     const quizIds = quizzes.map(q => q.id);
 
     const { data: attempts } =
         await supabaseClient
             .from("quiz_attempts")
-            .select("quiz_id, score, violation_flag")
+            .select("quiz_id, score, violation_flag, cleared_by_lecturer")
             .eq("student_id", authUserId)
             .in("quiz_id", quizIds);
 
     const bestScoreByQuiz = {};
-    const attemptedQuizIds = new Set();
+    const doneQuizIds = new Set();
+    const pendingViolationQuizIds = new Set();
+
     (attempts || []).forEach(a => {
-        attemptedQuizIds.add(a.quiz_id);
-        if (a.score === null || a.violation_flag) return;
-        if (!bestScoreByQuiz[a.quiz_id] || a.score > bestScoreByQuiz[a.quiz_id]) {
-            bestScoreByQuiz[a.quiz_id] = a.score;
+        if (a.violation_flag && !a.cleared_by_lecturer) {
+            pendingViolationQuizIds.add(a.quiz_id);
+        }
+        if (a.score !== null && !a.violation_flag) {
+            doneQuizIds.add(a.quiz_id);
+            if (!bestScoreByQuiz[a.quiz_id] || a.score > bestScoreByQuiz[a.quiz_id]) {
+                bestScoreByQuiz[a.quiz_id] = a.score;
+            }
         }
     });
 
@@ -933,9 +972,9 @@ async function loadNextExam(studentProfileId, authUserId, courseIds) {
         quizzesByCourse[q.course_id].push(q);
     });
 
-    function isLocked(quiz) {
+    function getLockInfo(quiz) {
 
-        if (!quiz.is_final_exam && !quiz.ca_number) return false;
+        if (!quiz.is_final_exam && !quiz.ca_number) return { locked: false };
 
         const courseQuizzes = quizzesByCourse[quiz.course_id] || [];
         const ca1 = courseQuizzes.find(q => q.ca_number === 1);
@@ -944,111 +983,135 @@ async function loadNextExam(studentProfileId, authUserId, courseIds) {
         const ca1Passed = ca1 && bestScoreByQuiz[ca1.id] !== undefined && bestScoreByQuiz[ca1.id] >= PASS_THRESHOLD;
         const ca2Passed = ca2 && bestScoreByQuiz[ca2.id] !== undefined && bestScoreByQuiz[ca2.id] >= PASS_THRESHOLD;
 
-        if (quiz.is_final_exam) return !(ca1 && ca2 && ca1Passed && ca2Passed);
-        if (quiz.ca_number === 1) return false;
-        if (quiz.ca_number === 2) return !(ca1 && ca1Passed);
-
-        return false;
-
-    }
-
-    // Only consider exams: locked exam type, not yet attempted, not locked by prerequisite, has a scheduled start
-    const candidates = quizzes.filter(q =>
-        q.is_exam &&
-        !attemptedQuizIds.has(q.id) &&
-        !isLocked(q) &&
-        q.scheduled_start
-    );
-
-    if (candidates.length === 0) {
-        container.innerHTML = `
-            <div class="next-exam-card none">
-                <div class="next-exam-label">🎯 Next Exam</div>
-                <div class="next-exam-title">Nothing scheduled right now</div>
-                <div class="next-exam-meta">Check back once your lecturer schedules your next exam.</div>
-            </div>
-        `;
-        return;
-    }
-
-    // Pick the one with the earliest scheduled_start (soonest matters most)
-    candidates.sort((a, b) => new Date(a.scheduled_start) - new Date(b.scheduled_start));
-    const nextExam = candidates[0];
-
-    const courseIdToCode = {};
-    // We'll fetch course codes quickly
-    const { data: coursesData } = await supabaseClient.from("courses").select("id, code").in("id", courseIds);
-    (coursesData || []).forEach(c => courseIdToCode[c.id] = c.code);
-
-    function renderNextExamCard() {
-
-        const now = Date.now();
-        const scheduledStart = new Date(nextExam.scheduled_start).getTime();
-        const scheduledEnd = nextExam.duration_minutes ? scheduledStart + (nextExam.duration_minutes * 60000) : null;
-
-        const isOpenNow = nextExam.is_open || (now >= scheduledStart && (!scheduledEnd || now <= scheduledEnd));
-        const isWindowClosed = scheduledEnd && now > scheduledEnd;
-
-        let cardClass = "scheduled";
-        let countdownHtml = "";
-
-        if (isWindowClosed) {
-
-            cardClass = "none";
-            countdownHtml = `<div class="next-exam-countdown">Window Closed</div>`;
-
-        } else if (isOpenNow) {
-
-            cardClass = "open-now";
-            const remaining = scheduledEnd ? scheduledEnd - now : null;
-
-            if (remaining !== null && remaining > 0) {
-                const mins = Math.floor(remaining / 60000);
-                const secs = Math.floor((remaining % 60000) / 1000);
-                countdownHtml = `<div class="next-exam-countdown">🔴 OPEN NOW — ${mins}:${secs.toString().padStart(2,"0")} left</div>`;
-            } else {
-                countdownHtml = `<div class="next-exam-countdown">🔴 OPEN NOW</div>`;
-            }
-
-        } else {
-
-            const remaining = scheduledStart - now;
-            const days = Math.floor(remaining / 86400000);
-            const hours = Math.floor((remaining % 86400000) / 3600000);
-            const mins = Math.floor((remaining % 3600000) / 60000);
-            const secs = Math.floor((remaining % 60000) / 1000);
-
-            countdownHtml = `<div class="next-exam-countdown">${days > 0 ? days + "d " : ""}${hours.toString().padStart(2,"0")}:${mins.toString().padStart(2,"0")}:${secs.toString().padStart(2,"0")}</div>`;
-
+        if (quiz.is_final_exam) {
+            if (!(ca1 && ca2)) return { locked: true, reason: "CA1 and CA2 not yet set up." };
+            if (ca1Passed && ca2Passed) return { locked: false };
+            return { locked: true, reason: "Pass CA1 and CA2 (70%+) to unlock." };
         }
 
-        let typeLabel = "Exam";
-        if (nextExam.is_final_exam) typeLabel = "Final Exam";
-        else if (nextExam.ca_number) typeLabel = `CA${nextExam.ca_number}`;
+        if (quiz.ca_number === 1) return { locked: false };
 
-        container.innerHTML = `
-            <a href="student-quizzes.html" class="next-exam-card ${cardClass}">
-                <div class="next-exam-top">
-                    <div>
-                        <div class="next-exam-label">🎯 Next Exam — ${escapeHtml(typeLabel)}</div>
-                        <div class="next-exam-title">${escapeHtml(nextExam.title)}</div>
-                        <div class="next-exam-course">${escapeHtml(courseIdToCode[nextExam.course_id] || "")}</div>
-                    </div>
-                </div>
-                ${countdownHtml}
-                <div class="next-exam-meta">
-                    ${new Date(nextExam.scheduled_start).toLocaleString()}
-                    ${nextExam.duration_minutes ? " • " + nextExam.duration_minutes + " min" : ""}
-                </div>
-            </a>
-        `;
+        if (quiz.ca_number === 2) {
+            if (!ca1) return { locked: true, reason: "CA1 not yet set up." };
+            if (ca1Passed) return { locked: false };
+            return { locked: true, reason: "Pass CA1 (70%+) to unlock." };
+        }
+
+        return { locked: false };
 
     }
 
-    renderNextExamCard();
+    const { data: coursesData } = await supabaseClient.from("courses").select("id, code").in("id", courseIds);
+    const courseIdToCode = {};
+    (coursesData || []).forEach(c => courseIdToCode[c.id] = c.code);
 
-    if (nextExamTickerInterval) clearInterval(nextExamTickerInterval);
-    nextExamTickerInterval = setInterval(renderNextExamCard, 1000);
+    function renderList() {
+
+        const now = Date.now();
+
+        const rows = quizzes.map(quiz => {
+
+            const lockInfo = getLockInfo(quiz);
+            const isDone = doneQuizIds.has(quiz.id);
+            const isPendingViolation = pendingViolationQuizIds.has(quiz.id);
+
+            const scheduledStart = quiz.scheduled_start ? new Date(quiz.scheduled_start).getTime() : null;
+            const scheduledEnd = (scheduledStart && quiz.duration_minutes) ? scheduledStart + (quiz.duration_minutes * 60000) : null;
+
+            let statusClass = "locked";
+            let statusLabel = "Locked";
+            let rowClass = "locked";
+            let reasonText = lockInfo.locked ? lockInfo.reason : "";
+
+            if (isDone) {
+
+                statusClass = "done";
+                statusLabel = "Completed";
+                rowClass = "closed";
+
+            } else if (isPendingViolation) {
+
+                statusClass = "locked";
+                statusLabel = "Awaiting Lecturer";
+                rowClass = "locked";
+                reasonText = "Flagged attempt — awaiting your lecturer's review.";
+
+            } else if (lockInfo.locked) {
+
+                statusClass = "locked";
+                statusLabel = "Locked";
+                rowClass = "locked";
+
+            } else if (!quiz.is_exam) {
+
+                statusClass = "scheduled";
+                statusLabel = "Available";
+                rowClass = "scheduled";
+
+            } else if (scheduledEnd && now > scheduledEnd) {
+
+                statusClass = "closed";
+                statusLabel = "Window Closed";
+                rowClass = "closed";
+
+            } else if (quiz.is_open || (scheduledStart && now >= scheduledStart && (!scheduledEnd || now <= scheduledEnd))) {
+
+                statusClass = "open";
+                statusLabel = "🔴 Open Now";
+                rowClass = "open-now";
+
+            } else if (scheduledStart) {
+
+                statusClass = "scheduled";
+                statusLabel = "Scheduled";
+                rowClass = "scheduled";
+
+            } else {
+
+                statusClass = "locked";
+                statusLabel = "No Date Set Yet";
+                rowClass = "locked";
+
+            }
+
+            let typeLabel = "Quiz";
+            let typeClass = "quiz";
+            if (quiz.is_final_exam) { typeLabel = "FINAL EXAM"; typeClass = "final"; }
+            else if (quiz.ca_number) { typeLabel = `CA${quiz.ca_number}`; typeClass = "ca"; }
+
+            const dateText = scheduledStart
+                ? new Date(scheduledStart).toLocaleString() + (quiz.duration_minutes ? ` • ${quiz.duration_minutes} min` : "")
+                : "No date set yet";
+
+            return {
+                sortKey: scheduledStart || Infinity,
+                html: `
+                    <div class="exam-row ${rowClass}">
+                        <div class="exam-row-top">
+                            <div>
+                                <div class="exam-row-course">${escapeHtml(courseIdToCode[quiz.course_id] || "")}</div>
+                                <div class="exam-row-title">${escapeHtml(quiz.title)} <span class="exam-row-type ${typeClass}">${typeLabel}</span></div>
+                            </div>
+                            <span class="exam-row-status ${statusClass}">${statusLabel}</span>
+                        </div>
+                        <div class="exam-row-date">📅 ${dateText}</div>
+                        ${reasonText ? `<div class="exam-row-reason">🔒 ${escapeHtml(reasonText)}</div>` : ""}
+                    </div>
+                `
+            };
+
+        });
+
+        rows.sort((a, b) => a.sortKey - b.sortKey);
+
+        container.innerHTML = rows.map(r => r.html).join("");
+
+    }
+
+    renderList();
+
+    if (examsListTickerInterval) clearInterval(examsListTickerInterval);
+    examsListTickerInterval = setInterval(renderList, 1000);
 
 }
 
@@ -1266,7 +1329,7 @@ async function startDashboard() {
 
     document.getElementById("statCourses").textContent = enrolledCourses.length;
 
-    await loadNextExam(studentProfile.id, user.id, courseIds);
+    await loadAllExamsList(studentProfile.id, user.id, courseIds);
 
 
     let modules = [];
