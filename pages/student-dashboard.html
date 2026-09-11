@@ -136,8 +136,6 @@ body {
     font-size: 13px;
 }
 
-/* ===== Menu list items (matching the reference style) ===== */
-
 .menu-list { padding: 8px 0; }
 
 .menu-item {
@@ -177,7 +175,6 @@ body {
     letter-spacing: 0.5px;
 }
 
-/* Detail panels that were previously inline (stats, learning list, etc.) still available below the quick nav */
 .menu-detail-section {
     background: #f4f6f9;
     padding: 16px;
@@ -210,6 +207,35 @@ body {
 
 .welcome-card h2 { font-size: 22px; margin-bottom: 6px; }
 .welcome-card p { color: #d4af37; font-size: 13px; }
+
+/* ===== TERM COUNTDOWN — personal, per-student ===== */
+
+.term-countdown-card {
+    border-radius: 14px;
+    padding: 20px;
+    margin-bottom: 16px;
+    color: white;
+    box-shadow: 0 5px 18px rgba(0,0,0,0.12);
+}
+
+.term-countdown-card.plenty { background: linear-gradient(135deg, #166534, #14532d); }
+.term-countdown-card.soon { background: linear-gradient(135deg, #b45309, #92400e); }
+.term-countdown-card.urgent { background: linear-gradient(135deg, #991b1b, #7f1d1d); }
+.term-countdown-card.upcoming { background: linear-gradient(135deg, #1d4ed8, #1e3a8a); }
+.term-countdown-card.ended { background: linear-gradient(135deg, #374151, #1f2937); }
+
+.term-countdown-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 6px;
+}
+
+.term-countdown-label { font-size: 13px; opacity: 0.85; font-weight: bold; }
+.term-countdown-days { font-size: 30px; font-weight: bold; }
+.term-countdown-note { font-size: 12px; opacity: 0.9; margin-top: 4px; }
 
 .rooms-grid {
     display: grid;
@@ -449,7 +475,7 @@ body {
 </header>
 
 
-<!-- ============ SLIDE-OUT MENU (reorganized to match reference layout) ============ -->
+<!-- ============ SLIDE-OUT MENU ============ -->
 
 <div class="menu-overlay" id="menuOverlay" onclick="closeMenu()"></div>
 
@@ -652,6 +678,9 @@ body {
     </section>
 
 
+    <div id="termCountdownContainer"></div>
+
+
     <div class="rooms-grid" id="roomsGrid">
         <a href="student-quizzes.html" class="room-card exam-room" id="examRoomCard">
             <div class="room-icon">🎯</div>
@@ -723,6 +752,97 @@ function openMenu() {
 function closeMenu() {
     document.getElementById("menuOverlay").classList.remove("open");
     document.getElementById("menuPanel").classList.remove("open");
+}
+
+
+async function loadTermCountdown(studentProfileId) {
+
+    const container = document.getElementById("termCountdownContainer");
+
+    const { data: terms } =
+        await supabaseClient
+            .from("student_terms")
+            .select("*")
+            .eq("student_id", studentProfileId)
+            .order("term_number", { ascending: true });
+
+    if (!terms || terms.length === 0) {
+        container.innerHTML = "";
+        return;
+    }
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    // Find the currently active term (today falls between start and end)
+    const activeTerm = terms.find(t => {
+        const start = new Date(t.start_date + "T00:00:00");
+        const end = new Date(t.end_date + "T00:00:00");
+        return today >= start && today <= end;
+    });
+
+    // If no active term, find the next upcoming one (start date in the future)
+    const upcomingTerm = !activeTerm
+        ? terms.filter(t => new Date(t.start_date + "T00:00:00") > today).sort((a, b) => new Date(a.start_date) - new Date(b.start_date))[0]
+        : null;
+
+    // If neither active nor upcoming, the most recent term has ended
+    const mostRecentTerm = terms[terms.length - 1];
+
+    let html = "";
+
+    if (activeTerm) {
+
+        const end = new Date(activeTerm.end_date + "T00:00:00");
+        const daysRemaining = Math.ceil((end - today) / (1000 * 60 * 60 * 24));
+
+        let urgencyClass = "plenty";
+        if (daysRemaining <= 7) urgencyClass = "urgent";
+        else if (daysRemaining <= 14) urgencyClass = "soon";
+
+        html = `
+            <div class="term-countdown-card ${urgencyClass}">
+                <div class="term-countdown-top">
+                    <span class="term-countdown-label">TERM ${activeTerm.term_number} — TIME REMAINING</span>
+                </div>
+                <div class="term-countdown-days">${daysRemaining} ${daysRemaining === 1 ? "day" : "days"} left</div>
+                <div class="term-countdown-note">Term ${activeTerm.term_number} ends on ${end.toLocaleDateString()}</div>
+            </div>
+        `;
+
+    } else if (upcomingTerm) {
+
+        const start = new Date(upcomingTerm.start_date + "T00:00:00");
+        const daysUntilStart = Math.ceil((start - today) / (1000 * 60 * 60 * 24));
+
+        html = `
+            <div class="term-countdown-card upcoming">
+                <div class="term-countdown-top">
+                    <span class="term-countdown-label">TERM ${upcomingTerm.term_number} — STARTING SOON</span>
+                </div>
+                <div class="term-countdown-days">${daysUntilStart} ${daysUntilStart === 1 ? "day" : "days"} until it begins</div>
+                <div class="term-countdown-note">Term ${upcomingTerm.term_number} starts on ${start.toLocaleDateString()}</div>
+            </div>
+        `;
+
+    } else if (mostRecentTerm) {
+
+        const end = new Date(mostRecentTerm.end_date + "T00:00:00");
+
+        html = `
+            <div class="term-countdown-card ended">
+                <div class="term-countdown-top">
+                    <span class="term-countdown-label">TERM ${mostRecentTerm.term_number} — ENDED</span>
+                </div>
+                <div class="term-countdown-days">Term ${mostRecentTerm.term_number} finished</div>
+                <div class="term-countdown-note">Ended on ${end.toLocaleDateString()}. Waiting for your next term to be scheduled.</div>
+            </div>
+        `;
+
+    }
+
+    container.innerHTML = html;
+
 }
 
 
@@ -920,6 +1040,7 @@ async function startDashboard() {
     document.getElementById("studentMeta").textContent =
         `${studentProfile.student_number} • ${programmeName} • ${levelName} • Status: ${status}`;
 
+    await loadTermCountdown(studentProfile.id);
     await loadFeesSummary(studentProfile.id);
 
 
