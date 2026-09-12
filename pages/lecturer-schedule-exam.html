@@ -38,6 +38,54 @@ select, input {
     margin-bottom: 18px;
 }
 
+.scope-toggle {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 18px;
+}
+
+.scope-button {
+    flex: 1;
+    padding: 12px;
+    border: 2px solid #e5e7eb;
+    border-radius: 8px;
+    background: white;
+    font-weight: bold;
+    font-size: 14px;
+    cursor: pointer;
+    color: #6b7280;
+}
+
+.scope-button.active {
+    border-color: #0e7490;
+    background: #ecfeff;
+    color: #0e7490;
+}
+
+.students-picker {
+    display: none;
+    background: #f4f6f9;
+    border-radius: 8px;
+    padding: 14px;
+    margin-bottom: 18px;
+    max-height: 260px;
+    overflow-y: auto;
+}
+
+.students-picker.show { display: block; }
+
+.student-checkbox-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 0;
+    border-bottom: 1px solid #e5e7eb;
+    font-size: 14px;
+}
+
+.student-checkbox-row:last-child { border-bottom: none; }
+.student-checkbox-row input { width: auto; margin: 0; }
+
 .current-info {
     background: #f4f6f9;
     border-radius: 8px;
@@ -50,6 +98,19 @@ select, input {
 
 .current-info.show { display: block; }
 .current-info strong { color: #111827; }
+
+.overrides-list {
+    background: #fff7ed;
+    border-radius: 8px;
+    padding: 12px;
+    margin-bottom: 18px;
+    font-size: 12px;
+    color: #92400e;
+    display: none;
+}
+
+.overrides-list.show { display: block; }
+.overrides-list .override-row { padding: 4px 0; }
 
 .submit-button {
     background: #0e7490;
@@ -133,6 +194,19 @@ select, input {
 
         <div class="current-info" id="currentInfo"></div>
 
+        <label>Who is this schedule for?</label>
+        <div class="scope-toggle">
+            <button type="button" class="scope-button active" id="scopeClassButton" onclick="setScope('class')">👥 Whole Class</button>
+            <button type="button" class="scope-button" id="scopeIndividualButton" onclick="setScope('individual')">👤 Specific Student(s)</button>
+        </div>
+
+        <div class="students-picker" id="studentsPicker">
+            <p style="font-size:12px; color:#6b7280; margin-bottom:8px;">Tick the student(s) this specific schedule applies to. Everyone else keeps the whole-class schedule above (if any).</p>
+            <div id="studentsCheckboxList"><p class="empty-note">Select an exam first</p></div>
+        </div>
+
+        <div class="overrides-list" id="overridesList"></div>
+
         <label for="examDate">Date it will be written</label>
         <input type="date" id="examDate">
 
@@ -160,10 +234,21 @@ select, input {
 const message = document.getElementById("message");
 let lecturerProfileId = null;
 let currentQuizIsOpen = false;
+let currentScope = "class";
+let enrolledStudentsForCourse = [];
 
 function showMessage(text, type) {
     message.textContent = text;
     message.className = "message " + type;
+}
+
+function escapeHtml(value) {
+    return String(value ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
 }
 
 
@@ -202,6 +287,17 @@ async function startPage() {
 }
 
 
+function setScope(scope) {
+
+    currentScope = scope;
+
+    document.getElementById("scopeClassButton").classList.toggle("active", scope === "class");
+    document.getElementById("scopeIndividualButton").classList.toggle("active", scope === "individual");
+    document.getElementById("studentsPicker").classList.toggle("show", scope === "individual");
+
+}
+
+
 document.getElementById("courseSelect").addEventListener("change", async function() {
 
     const courseId = this.value;
@@ -211,6 +307,7 @@ document.getElementById("courseSelect").addEventListener("change", async functio
     document.getElementById("currentInfo").classList.remove("show");
     document.getElementById("openButton").classList.remove("show");
     document.getElementById("deleteButton").classList.remove("show");
+    document.getElementById("overridesList").classList.remove("show");
 
     if (!courseId) {
         examSelect.innerHTML = `<option value="">Select course first</option>`;
@@ -242,32 +339,66 @@ document.getElementById("courseSelect").addEventListener("change", async functio
 
     examSelect.disabled = false;
 
+    // Load enrolled students for this course, for the individual picker
+    const { data: enrollments } =
+        await supabaseClient
+            .from("enrollments")
+            .select("student_id, student_profiles ( id, student_number, user_profiles ( first_name, last_name ) )")
+            .eq("course_id", courseId)
+            .eq("status", "enrolled");
+
+    enrolledStudentsForCourse = (enrollments || [])
+        .map(e => e.student_profiles)
+        .filter(Boolean);
+
+    const checkboxList = document.getElementById("studentsCheckboxList");
+
+    if (enrolledStudentsForCourse.length === 0) {
+        checkboxList.innerHTML = `<p class="empty-note">No students enrolled in this course yet.</p>`;
+    } else {
+        checkboxList.innerHTML = enrolledStudentsForCourse.map(s => {
+            const name = s.user_profiles ? `${s.user_profiles.first_name} ${s.user_profiles.last_name}` : "Unknown";
+            return `
+                <label class="student-checkbox-row">
+                    <input type="checkbox" class="studentOverrideCheckbox" value="${s.id}">
+                    ${escapeHtml(name)} (${escapeHtml(s.student_number)})
+                </label>
+            `;
+        }).join("");
+    }
+
 });
 
 
-document.getElementById("examSelect").addEventListener("change", function() {
+document.getElementById("examSelect").addEventListener("change", async function() {
 
     const selectedOption = this.options[this.selectedIndex];
     const currentInfo = document.getElementById("currentInfo");
     const openButton = document.getElementById("openButton");
     const deleteButton = document.getElementById("deleteButton");
+    const overridesList = document.getElementById("overridesList");
 
     if (!this.value) {
         currentInfo.classList.remove("show");
         openButton.classList.remove("show");
         deleteButton.classList.remove("show");
+        overridesList.classList.remove("show");
         return;
     }
 
     const quiz = JSON.parse(selectedOption.dataset.quiz);
 
-    document.getElementById("examDate").value = quiz.scheduled_start ? quiz.scheduled_start.split("T")[0] : "";
-    document.getElementById("examTime").value = quiz.scheduled_start ? quiz.scheduled_start.split("T")[1]?.slice(0,5) : "";
-    document.getElementById("durationHours").value = quiz.duration_minutes ? (quiz.duration_minutes / 60) : "";
+    if (currentScope === "class") {
+
+        document.getElementById("examDate").value = quiz.scheduled_start ? quiz.scheduled_start.split("T")[0] : "";
+        document.getElementById("examTime").value = quiz.scheduled_start ? quiz.scheduled_start.split("T")[1]?.slice(0,5) : "";
+        document.getElementById("durationHours").value = quiz.duration_minutes ? (quiz.duration_minutes / 60) : "";
+
+    }
 
     currentInfo.innerHTML = `
-        <strong>Currently:</strong> ${quiz.scheduled_start ? "Scheduled for " + new Date(quiz.scheduled_start).toLocaleString() : "No date set yet"}<br>
-        <strong>Exam Room:</strong> ${quiz.is_open ? "✅ Currently OPEN — students can write it now" : "🔒 Currently closed"}
+        <strong>Whole-class schedule:</strong> ${quiz.scheduled_start ? new Date(quiz.scheduled_start).toLocaleString() : "No date set yet"}<br>
+        <strong>Exam Room:</strong> ${quiz.is_open ? "✅ Currently OPEN" : "🔒 Currently closed"}
     `;
     currentInfo.classList.add("show");
 
@@ -275,6 +406,28 @@ document.getElementById("examSelect").addEventListener("change", function() {
     openButton.textContent = currentQuizIsOpen ? "Close Exam Room Now" : "Open Exam Room Now";
     openButton.classList.add("show");
     deleteButton.classList.add("show");
+
+    // Load and show any existing individual overrides for this exam
+    const { data: overrides } =
+        await supabaseClient
+            .from("quiz_student_overrides")
+            .select("id, student_id, scheduled_start, duration_minutes, student_profiles ( student_number, user_profiles ( first_name, last_name ) )")
+            .eq("quiz_id", this.value);
+
+    if (overrides && overrides.length > 0) {
+
+        overridesList.innerHTML = `<strong>Individual schedules already set:</strong><br>` +
+            overrides.map(o => {
+                const name = o.student_profiles?.user_profiles
+                    ? `${o.student_profiles.user_profiles.first_name} ${o.student_profiles.user_profiles.last_name}`
+                    : "Unknown";
+                return `<div class="override-row">👤 ${escapeHtml(name)} (${escapeHtml(o.student_profiles?.student_number || "")}) — ${new Date(o.scheduled_start).toLocaleString()}</div>`;
+            }).join("");
+        overridesList.classList.add("show");
+
+    } else {
+        overridesList.classList.remove("show");
+    }
 
 });
 
@@ -299,22 +452,58 @@ async function saveSchedule() {
     const scheduledStart = new Date(`${date}T${time}:00`).toISOString();
     const durationMinutes = hours ? Math.round(Number(hours) * 60) : null;
 
-    const { error } =
-        await supabaseClient
-            .from("quizzes")
-            .update({
-                scheduled_start: scheduledStart,
-                duration_minutes: durationMinutes
-            })
-            .eq("id", quizId);
+    if (currentScope === "class") {
 
-    if (error) {
-        showMessage("Unable to save: " + error.message, "error");
-        return;
+        const { error } =
+            await supabaseClient
+                .from("quizzes")
+                .update({
+                    scheduled_start: scheduledStart,
+                    duration_minutes: durationMinutes
+                })
+                .eq("id", quizId);
+
+        if (error) {
+            showMessage("Unable to save: " + error.message, "error");
+            return;
+        }
+
+        showMessage("Whole-class schedule saved.", "success");
+
+    } else {
+
+        const selectedStudentIds = Array.from(document.querySelectorAll(".studentOverrideCheckbox:checked")).map(cb => cb.value);
+
+        if (selectedStudentIds.length === 0) {
+            showMessage("Please tick at least one student for an individual schedule.", "error");
+            return;
+        }
+
+        const { data: { user } } = await supabaseClient.auth.getUser();
+
+        const rows = selectedStudentIds.map(studentId => ({
+            quiz_id: quizId,
+            student_id: studentId,
+            scheduled_start: scheduledStart,
+            duration_minutes: durationMinutes,
+            created_by: user.id
+        }));
+
+        const { error } =
+            await supabaseClient
+                .from("quiz_student_overrides")
+                .upsert(rows, { onConflict: "quiz_id,student_id" });
+
+        if (error) {
+            showMessage("Unable to save individual schedule: " + error.message, "error");
+            return;
+        }
+
+        showMessage(`Individual schedule saved for ${selectedStudentIds.length} student(s).`, "success");
+
     }
 
-    showMessage("Schedule saved. Students will see this date and time.", "success");
-    document.getElementById("courseSelect").dispatchEvent(new Event("change"));
+    document.getElementById("examSelect").dispatchEvent(new Event("change"));
 
 }
 
@@ -336,7 +525,7 @@ async function toggleOpen() {
     }
 
     showMessage(newState ? "Exam room opened — students can write it now." : "Exam room closed.", "success");
-    document.getElementById("courseSelect").dispatchEvent(new Event("change"));
+    document.getElementById("examSelect").dispatchEvent(new Event("change"));
 
 }
 
@@ -349,11 +538,12 @@ async function deleteExam() {
 
     if (!quizId) return;
 
-    const confirmed = confirm(`Delete "${examLabel}" permanently?\n\nThis will remove all its questions and any student attempts. This cannot be undone.`);
+    const confirmed = confirm(`Delete "${examLabel}" permanently?\n\nThis will remove all its questions, individual schedules, and any student attempts. This cannot be undone.`);
     if (!confirmed) return;
 
     await supabaseClient.from("quiz_attempts").delete().eq("quiz_id", quizId);
     await supabaseClient.from("quiz_questions").delete().eq("quiz_id", quizId);
+    await supabaseClient.from("quiz_student_overrides").delete().eq("quiz_id", quizId);
 
     const { error } = await supabaseClient.from("quizzes").delete().eq("id", quizId);
 
