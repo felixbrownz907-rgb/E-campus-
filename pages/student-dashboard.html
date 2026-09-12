@@ -237,77 +237,6 @@ body {
 .term-countdown-days { font-size: 30px; font-weight: bold; }
 .term-countdown-note { font-size: 12px; opacity: 0.9; margin-top: 4px; }
 
-/* ===== ALL EXAMS LIST — only exams that have an actual date set ===== */
-
-.exams-list-card {
-    background: white;
-    border-radius: 14px;
-    padding: 20px;
-    margin-bottom: 16px;
-    box-shadow: 0 3px 12px rgba(0,0,0,0.06);
-}
-
-.exams-list-card h3 { font-size: 17px; margin-bottom: 4px; }
-.exams-list-card .sub { font-size: 12px; color: #6b7280; margin-bottom: 14px; }
-
-.exam-row {
-    padding: 14px;
-    border-radius: 10px;
-    margin-bottom: 10px;
-    border: 1px solid #e5e7eb;
-}
-
-.exam-row.open-now { background: #fef2f2; border-color: #fca5a5; }
-.exam-row.scheduled { background: #fff7ed; border-color: #fed7aa; }
-.exam-row.locked { background: #f9fafb; border-color: #e5e7eb; opacity: 0.75; }
-.exam-row.closed { background: #f3f4f6; border-color: #d1d5db; opacity: 0.6; }
-
-.exam-row-top {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    flex-wrap: wrap;
-    gap: 8px;
-    margin-bottom: 4px;
-}
-
-.exam-row-course { font-size: 11px; color: #d4af37; font-weight: bold; }
-.exam-row-title { font-size: 14px; font-weight: bold; margin-top: 2px; }
-
-.exam-row-type {
-    font-size: 10px;
-    font-weight: bold;
-    padding: 3px 8px;
-    border-radius: 20px;
-}
-
-.exam-row-type.ca { background: #fef3c7; color: #92400e; }
-.exam-row-type.final { background: #dbeafe; color: #1d4ed8; }
-.exam-row-type.quiz { background: #f3f4f6; color: #374151; }
-
-.exam-row-status {
-    font-size: 11px;
-    font-weight: bold;
-    padding: 3px 9px;
-    border-radius: 20px;
-}
-
-.exam-row-status.open { background: #fee2e2; color: #991b1b; }
-.exam-row-status.scheduled { background: #fef3c7; color: #92400e; }
-.exam-row-status.locked { background: #f3f4f6; color: #6b7280; }
-.exam-row-status.closed { background: #e5e7eb; color: #6b7280; }
-.exam-row-status.done { background: #dcfce7; color: #166534; }
-
-.exam-row-countdown {
-    font-size: 16px;
-    font-weight: bold;
-    font-family: monospace;
-    margin-top: 8px;
-}
-
-.exam-row-date { font-size: 12px; color: #374151; margin-top: 4px; }
-.exam-row-reason { font-size: 11px; color: #991b1b; margin-top: 4px; }
-
 /* ===== ROOMS ===== */
 
 .rooms-grid {
@@ -754,13 +683,6 @@ body {
     <div id="termCountdownContainer"></div>
 
 
-    <section class="exams-list-card" id="examsListCard" style="display:none;">
-        <h3>🎯 Your Exams</h3>
-        <div class="sub">Only exams a lecturer has actually scheduled with a real date appear here.</div>
-        <div id="examsListContainer"></div>
-    </section>
-
-
     <div class="rooms-grid" id="roomsGrid">
         <a href="student-quizzes.html" class="room-card exam-room" id="examRoomCard">
             <div class="room-icon">🎯</div>
@@ -807,8 +729,6 @@ body {
 <script>
 
 const WEEKDAY_NAMES = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-const PASS_THRESHOLD = 70;
-let examsListTickerInterval = null;
 
 function escapeHtml(value) {
     return String(value ?? "")
@@ -925,201 +845,6 @@ async function loadTermCountdown(studentProfileId) {
 }
 
 
-async function loadAllExamsList(studentProfileId, authUserId, courseIds) {
-
-    const card = document.getElementById("examsListCard");
-    const container = document.getElementById("examsListContainer");
-
-    if (courseIds.length === 0) {
-        card.style.display = "none";
-        return;
-    }
-
-    const { data: allQuizzes } =
-        await supabaseClient
-            .from("quizzes")
-            .select("*")
-            .in("course_id", courseIds);
-
-    // ===== KEY FIX: only exams with an actual scheduled_start ever appear anywhere on the dashboard =====
-    const quizzes = (allQuizzes || []).filter(q => q.scheduled_start);
-
-    if (quizzes.length === 0) {
-        card.style.display = "none";
-        return;
-    }
-
-    card.style.display = "block";
-
-    const quizIds = quizzes.map(q => q.id);
-
-    const { data: attempts } =
-        await supabaseClient
-            .from("quiz_attempts")
-            .select("quiz_id, score, violation_flag, cleared_by_lecturer")
-            .eq("student_id", authUserId)
-            .in("quiz_id", quizIds);
-
-    const bestScoreByQuiz = {};
-    const doneQuizIds = new Set();
-    const pendingViolationQuizIds = new Set();
-
-    (attempts || []).forEach(a => {
-        if (a.violation_flag && !a.cleared_by_lecturer) {
-            pendingViolationQuizIds.add(a.quiz_id);
-        }
-        if (a.score !== null && !a.violation_flag) {
-            doneQuizIds.add(a.quiz_id);
-            if (!bestScoreByQuiz[a.quiz_id] || a.score > bestScoreByQuiz[a.quiz_id]) {
-                bestScoreByQuiz[a.quiz_id] = a.score;
-            }
-        }
-    });
-
-    // Use ALL quizzes (not just scheduled ones) to correctly determine CA1/CA2 lock relationships
-    const quizzesByCourseAll = {};
-    (allQuizzes || []).forEach(q => {
-        if (!quizzesByCourseAll[q.course_id]) quizzesByCourseAll[q.course_id] = [];
-        quizzesByCourseAll[q.course_id].push(q);
-    });
-
-    function getLockInfo(quiz) {
-
-        if (!quiz.is_final_exam && !quiz.ca_number) return { locked: false };
-
-        const courseQuizzes = quizzesByCourseAll[quiz.course_id] || [];
-        const ca1 = courseQuizzes.find(q => q.ca_number === 1);
-        const ca2 = courseQuizzes.find(q => q.ca_number === 2);
-
-        const ca1Passed = ca1 && bestScoreByQuiz[ca1.id] !== undefined && bestScoreByQuiz[ca1.id] >= PASS_THRESHOLD;
-        const ca2Passed = ca2 && bestScoreByQuiz[ca2.id] !== undefined && bestScoreByQuiz[ca2.id] >= PASS_THRESHOLD;
-
-        if (quiz.is_final_exam) {
-            if (!(ca1 && ca2)) return { locked: true, reason: "CA1 and CA2 not yet set up." };
-            if (ca1Passed && ca2Passed) return { locked: false };
-            return { locked: true, reason: "Pass CA1 and CA2 (70%+) to unlock." };
-        }
-
-        if (quiz.ca_number === 1) return { locked: false };
-
-        if (quiz.ca_number === 2) {
-            if (!ca1) return { locked: true, reason: "CA1 not yet set up." };
-            if (ca1Passed) return { locked: false };
-            return { locked: true, reason: "Pass CA1 (70%+) to unlock." };
-        }
-
-        return { locked: false };
-
-    }
-
-    const { data: coursesData } = await supabaseClient.from("courses").select("id, code").in("id", courseIds);
-    const courseIdToCode = {};
-    (coursesData || []).forEach(c => courseIdToCode[c.id] = c.code);
-
-    function formatCountdown(ms) {
-        if (ms <= 0) return null;
-        const days = Math.floor(ms / 86400000);
-        const hours = Math.floor((ms % 86400000) / 3600000);
-        const mins = Math.floor((ms % 3600000) / 60000);
-        const secs = Math.floor((ms % 60000) / 1000);
-        return days > 0
-            ? `${days}d ${hours}h ${mins}m`
-            : `${hours.toString().padStart(2,"0")}:${mins.toString().padStart(2,"0")}:${secs.toString().padStart(2,"0")}`;
-    }
-
-    function renderList() {
-
-        const now = Date.now();
-
-        const rows = quizzes.map(quiz => {
-
-            const lockInfo = getLockInfo(quiz);
-            const isDone = doneQuizIds.has(quiz.id);
-            const isPendingViolation = pendingViolationQuizIds.has(quiz.id);
-
-            const scheduledStart = new Date(quiz.scheduled_start).getTime();
-            const scheduledEnd = quiz.duration_minutes ? scheduledStart + (quiz.duration_minutes * 60000) : null;
-
-            let statusClass = "locked";
-            let statusLabel = "Locked";
-            let rowClass = "locked";
-            let reasonText = lockInfo.locked ? lockInfo.reason : "";
-            let countdownHtml = "";
-
-            if (isDone) {
-
-                statusClass = "done"; statusLabel = "Completed"; rowClass = "closed";
-
-            } else if (isPendingViolation) {
-
-                statusClass = "locked"; statusLabel = "Awaiting Lecturer"; rowClass = "locked";
-                reasonText = "Flagged attempt — awaiting your lecturer's review.";
-
-            } else if (lockInfo.locked) {
-
-                statusClass = "locked"; statusLabel = "Locked"; rowClass = "locked";
-
-            } else if (scheduledEnd && now > scheduledEnd) {
-
-                statusClass = "closed"; statusLabel = "Window Closed"; rowClass = "closed";
-
-            } else if (quiz.is_open || (now >= scheduledStart && (!scheduledEnd || now <= scheduledEnd))) {
-
-                statusClass = "open"; statusLabel = "🔴 Open Now"; rowClass = "open-now";
-                if (scheduledEnd) {
-                    const remaining = formatCountdown(scheduledEnd - now);
-                    if (remaining) countdownHtml = `<div class="exam-row-countdown">⏰ ${remaining} left</div>`;
-                }
-
-            } else {
-
-                statusClass = "scheduled"; statusLabel = "Scheduled"; rowClass = "scheduled";
-                const remaining = formatCountdown(scheduledStart - now);
-                if (remaining) countdownHtml = `<div class="exam-row-countdown">⏳ Opens in ${remaining}</div>`;
-
-            }
-
-            let typeLabel = "Quiz";
-            let typeClass = "quiz";
-            if (quiz.is_final_exam) { typeLabel = "FINAL EXAM"; typeClass = "final"; }
-            else if (quiz.ca_number) { typeLabel = `CA${quiz.ca_number}`; typeClass = "ca"; }
-
-            const dateText = new Date(scheduledStart).toLocaleString() + (quiz.duration_minutes ? ` • ${quiz.duration_minutes} min` : "");
-
-            return {
-                sortKey: scheduledStart,
-                html: `
-                    <div class="exam-row ${rowClass}">
-                        <div class="exam-row-top">
-                            <div>
-                                <div class="exam-row-course">${escapeHtml(courseIdToCode[quiz.course_id] || "")}</div>
-                                <div class="exam-row-title">${escapeHtml(quiz.title)} <span class="exam-row-type ${typeClass}">${typeLabel}</span></div>
-                            </div>
-                            <span class="exam-row-status ${statusClass}">${statusLabel}</span>
-                        </div>
-                        ${countdownHtml}
-                        <div class="exam-row-date">📅 ${dateText}</div>
-                        ${reasonText ? `<div class="exam-row-reason">🔒 ${escapeHtml(reasonText)}</div>` : ""}
-                    </div>
-                `
-            };
-
-        });
-
-        rows.sort((a, b) => a.sortKey - b.sortKey);
-
-        container.innerHTML = rows.map(r => r.html).join("");
-
-    }
-
-    renderList();
-
-    if (examsListTickerInterval) clearInterval(examsListTickerInterval);
-    examsListTickerInterval = setInterval(renderList, 1000);
-
-}
-
-
 async function loadFeesSummary(studentProfileId) {
 
     const container = document.getElementById("feesSummaryContainer");
@@ -1206,8 +931,6 @@ async function loadFeesSummary(studentProfileId) {
 
 
 async function loadRoomsSummary(studentProfileId, authUserId, moduleIds, courseIds) {
-
-    // ===== KEY FIX: Exam Room count now only includes exams with an actual scheduled_start =====
 
     let allExamQuizzes = [];
     if (courseIds && courseIds.length > 0) {
@@ -1319,8 +1042,6 @@ async function startDashboard() {
     const courseIds = enrolledCourses.map(c => c.id);
 
     document.getElementById("statCourses").textContent = enrolledCourses.length;
-
-    await loadAllExamsList(studentProfile.id, user.id, courseIds);
 
 
     let modules = [];
