@@ -439,9 +439,9 @@ async function loadQuizzes() {
         return;
     }
 
-    // ===== KEY FIX: exams (is_exam = true) only show once a lecturer has actually scheduled a date. =====
-    // Regular non-exam quizzes still show without needing a schedule.
-    const quizzes = (allQuizzes || []).filter(q => !q.is_exam || q.scheduled_start);
+    // ===== KEY FIX: anything that is a CA, Final Exam, or marked is_exam only shows once it has a real scheduled date. =====
+    // Ordinary practice quizzes (none of the above) still show without needing a schedule.
+    const quizzes = (allQuizzes || []).filter(q => !(q.is_exam || q.is_final_exam || q.ca_number) || q.scheduled_start);
 
     if (!quizzes || quizzes.length === 0) {
         container.innerHTML = `<div class="card"><p class="empty-note">No quizzes or exams available yet.</p></div>`;
