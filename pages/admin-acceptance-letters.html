@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Acceptance Letters | E-Campus Admin</title>
+
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: Arial, Helvetica, sans-serif; background: #f4f6f9; color: #172033; }
+
+.header { background: #111827; color: white; padding: 18px 25px; display: flex; align-items: center; justify-content: space-between; }
+.brand { display: flex; align-items: center; gap: 14px; }
+.logo { width: 55px; height: 55px; object-fit: contain; background: white; border-radius: 8px; }
+.brand h1 { font-size: 22px; }
+.brand p { color: #d4af37; margin-top: 3px; }
+.back-button { background: #d4af37; color: #111827; text-decoration: none; padding: 11px 18px; border-radius: 8px; font-weight: bold; }
+
+.container { max-width: 1100px; margin: 30px auto; padding: 0 20px; }
+.page-title { margin-bottom: 20px; }
+.page-title h2 { font-size: 28px; margin-bottom: 6px; }
+.page-title p { color: #6b7280; }
+
+.message { padding: 14px; border-radius: 8px; margin-bottom: 20px; display: none; }
+.message.success { display: block; background: #dcfce7; color: #166534; }
+.message.error { display: block; background: #fee2e2; color: #991b1b; }
+
+.applicant-card {
+    background: white;
+    border-radius: 14px;
+    padding: 20px;
+    margin-bottom: 16px;
+    box-shadow: 0 3px 12px rgba(0,0,0,0.06);
+}
+
+.applicant-top { display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 10px; margin-bottom: 14px; }
+.applicant-name { font-size: 16px; font-weight: bold; }
+.applicant-meta { font-size: 13px; color: #6b7280; margin-top: 3px; }
+
+.tag-row { display: flex; gap: 8px; flex-wrap: wrap; }
+
+.tag {
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: bold;
+    white-space: nowrap;
+}
+
+.tag.bursary { background: #fef3c7; color: #92400e; }
+.tag.self { background: #dbeafe; color: #1d4ed8; }
+.tag.fulltime { background: #ede9fe; color: #6d28d9; }
+.tag.online { background: #e0f2fe; color: #0369a1; }
+.tag.paid-yes { background: #dcfce7; color: #166534; }
+.tag.paid-no { background: #fee2e2; color: #991b1b; }
+
+.form-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin-bottom: 14px;
+}
+
+.form-grid label { font-size: 12px; font-weight: bold; display: block; margin-bottom: 5px; }
+.form-grid input { width: 100%; padding: 10px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 14px; }
+
+.checkbox-row { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; font-weight: bold; font-size: 14px; }
+
+.save-button {
+    background: #111827;
+    color: white;
+    border: none;
+    padding: 10px 18px;
+    border-radius: 8px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.filter-bar { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
+.filter-bar select { padding: 12px; border-radius: 8px; border: 1px solid #d1d5db; font-size: 14px; }
+
+.empty-note { color: #9ca3af; text-align: center; padding: 30px 0; }
+
+@media (max-width: 800px) {
+    .form-grid { grid-template-columns: 1fr 1fr; }
+}
+
+</style>
+</head>
+
+
+<body>
+
+<header class="header">
+    <div class="brand">
+        <img src="https://pub-b3e2d39712e84119875e84c5ec5f5c09.r2.dev/Logo/IMG-20260816-WA0050(1).jpg" alt="Sunningdale University Logo" class="logo">
+        <div><h1>E-Campus Administration</h1><p>Sunningdale University</p></div>
+    </div>
+    <a href="admin-dashboard.html" class="back-button">← Admin Dashboard</a>
+</header>
+
+
+<main class="container">
+
+    <section class="page-title">
+        <h2>Acceptance Letters</h2>
+        <p>Confirm application fee payment and set bursary details so students can download their acceptance letter.</p>
+    </section>
+
+    <div id="message" class="message"></div>
+
+    <div class="filter-bar">
+        <select id="statusFilter" onchange="loadApplicants()">
+            <option value="all">All Applicants</option>
+            <option value="pending">Fee Not Yet Confirmed</option>
+            <option value="paid">Fee Confirmed</option>
+        </select>
+
+        <select id="modeFilter" onchange="loadApplicants()">
+            <option value="all">All Modes</option>
+            <option value="full-time">Full-Time Only</option>
+            <option value="online">Online Only</option>
+        </select>
+    </div>
+
+    <div id="applicantsContainer"><p class="empty-note">Loading...</p></div>
+
+</main>
+
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../supabase-config.js"></script>
+
+
+<script>
+
+const message = document.getElementById("message");
+
+function showMessage(text, type) {
+    message.textContent = text;
+    message.className = "message " + type;
+    setTimeout(() => { message.className = "message"; }, 4000);
+}
+
+function escapeHtml(value) {
+    return String(value ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+}
+
+
+async function loadApplicants() {
+
+    const container = document.getElementById("applicantsContainer");
+    container.innerHTML = `<p class="empty-note">Loading...</p>`;
+
+    const statusFilter = document.getElementById("statusFilter").value;
+    const modeFilter = document.getElementById("modeFilter").value;
+
+    let query = supabaseClient
+        .from("student_profiles")
+        .select(`
+            id, student_number, sponsorship_type, application_fee_paid, mode_of_study,
+            bursary_percentage, reporting_date, remaining_fee_amount,
+            user_profiles ( first_name, last_name, phone ),
+            programmes ( name, code )
+        `)
+        .order("created_at", { ascending: false });
+
+    if (statusFilter === "pending") query = query.eq("application_fee_paid", false);
+    if (statusFilter === "paid") query = query.eq("application_fee_paid", true);
+    if (modeFilter !== "all") query = query.eq("mode_of_study", modeFilter);
+
+    const { data: applicants, error } = await query;
+
+    if (error) {
+        container.innerHTML = `<p class="empty-note">Unable to load: ${escapeHtml(error.message)}</p>`;
+        return;
+    }
+
+    if (!applicants || applicants.length === 0) {
+        container.innerHTML = `<p class="empty-note">No applicants found.</p>`;
+        return;
+    }
+
+    container.innerHTML = applicants.map(a => {
+
+        const name = a.user_profiles ? `${a.user_profiles.first_name} ${a.user_profiles.last_name}` : "Unknown";
+        const sponsorship = a.sponsorship_type || "not set";
+        const mode = a.mode_of_study || "not set";
+
+        return `
+            <div class="applicant-card">
+                <div class="applicant-top">
+                    <div>
+                        <div class="applicant-name">${escapeHtml(name)}</div>
+                        <div class="applicant-meta">${escapeHtml(a.student_number || "No student number")} • ${escapeHtml(a.programmes?.name || "No programme")} • 📞 ${escapeHtml(a.user_profiles?.phone || "-")}</div>
+                    </div>
+                    <div class="tag-row">
+                        <span class="tag ${mode === "full-time" ? "fulltime" : "online"}">${mode === "full-time" ? "🏫 Full-Time" : mode === "online" ? "💻 Online" : "— Mode Not Set"}</span>
+                        <span class="tag ${sponsorship}">${sponsorship === "bursary" ? "🎓 Bursary" : sponsorship === "self" ? "💳 Self-Sponsored" : "— Not Set"}</span>
+                        <span class="tag ${a.application_fee_paid ? "paid-yes" : "paid-no"}">${a.application_fee_paid ? "✓ Fee Confirmed" : "⏳ Fee Pending"}</span>
+                    </div>
+                </div>
+
+                <div class="form-grid">
+                    ${sponsorship === "bursary" ? `
+                    <div>
+                        <label>Bursary %</label>
+                        <input type="number" id="bursary-${a.id}" value="${a.bursary_percentage ?? ""}" min="0" max="100">
+                    </div>
+                    ` : ""}
+                    <div>
+                        <label>Remaining Fee Owed (K)</label>
+                        <input type="number" id="fee-${a.id}" value="${a.remaining_fee_amount ?? ""}" min="0">
+                    </div>
+                    <div>
+                        <label>${mode === "full-time" ? "Reporting Date" : "Portal Access Date"}</label>
+                        <input type="date" id="date-${a.id}" value="${a.reporting_date ?? ""}">
+                    </div>
+                </div>
+
+                <div class="checkbox-row">
+                    <input type="checkbox" id="paid-${a.id}" ${a.application_fee_paid ? "checked" : ""}>
+                    <label for="paid-${a.id}">Application fee (K100) has been received and confirmed</label>
+                </div>
+
+                <button class="save-button" onclick="saveApplicant('${a.id}')">Save</button>
+            </div>
+        `;
+
+    }).join("");
+
+}
+
+
+async function saveApplicant(studentProfileId) {
+
+    const bursaryInput = document.getElementById(`bursary-${studentProfileId}`);
+    const feeInput = document.getElementById(`fee-${studentProfileId}`);
+    const dateInput = document.getElementById(`date-${studentProfileId}`);
+    const paidInput = document.getElementById(`paid-${studentProfileId}`);
+
+    const payload = {
+        remaining_fee_amount: feeInput.value ? Number(feeInput.value) : null,
+        reporting_date: dateInput.value || null,
+        application_fee_paid: paidInput.checked
+    };
+
+    if (bursaryInput) {
+        payload.bursary_percentage = bursaryInput.value ? Number(bursaryInput.value) : null;
+    }
+
+    const { error } =
+        await supabaseClient
+            .from("student_profiles")
+            .update(payload)
+            .eq("id", studentProfileId);
+
+    if (error) {
+        showMessage("Unable to save: " + error.message, "error");
+        return;
+    }
+
+    showMessage("Saved successfully.", "success");
+    await loadApplicants();
+
+}
+
+
+loadApplicants();
+
+</script>
+
+</body>
+</html>
