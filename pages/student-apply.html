@@ -75,13 +75,13 @@ input:focus, select:focus {
     border-color: #d4af37;
 }
 
-.sponsorship-choice {
+.choice-row {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 12px;
 }
 
-.sponsorship-option {
+.choice-option {
     border: 2px solid #e5e7eb;
     border-radius: 10px;
     padding: 14px;
@@ -92,7 +92,7 @@ input:focus, select:focus {
     color: #6b7280;
 }
 
-.sponsorship-option.selected {
+.choice-option.selected {
     border-color: #d4af37;
     background: #fffbeb;
     color: #92400e;
@@ -146,7 +146,7 @@ input:focus, select:focus {
 @media (max-width: 600px) {
     .form-grid { grid-template-columns: 1fr; }
     .form-group.full { grid-column: auto; }
-    .sponsorship-choice { grid-template-columns: 1fr; }
+    .choice-row { grid-template-columns: 1fr; }
 }
 
 </style>
@@ -233,12 +233,25 @@ input:focus, select:focus {
                     </div>
 
                     <div class="form-group full">
+                        <label>Mode of Study</label>
+                        <div class="choice-row">
+                            <div class="choice-option" id="fullTimeOption" onclick="selectMode('full-time')">
+                                🏫 Full-Time (On Campus)
+                            </div>
+                            <div class="choice-option" id="onlineOption" onclick="selectMode('online')">
+                                💻 Online Learning
+                            </div>
+                        </div>
+                        <input type="hidden" id="modeOfStudy" required>
+                    </div>
+
+                    <div class="form-group full">
                         <label>How will your studies be funded?</label>
-                        <div class="sponsorship-choice">
-                            <div class="sponsorship-option" id="bursaryOption" onclick="selectSponsorship('bursary')">
+                        <div class="choice-row">
+                            <div class="choice-option" id="bursaryOption" onclick="selectSponsorship('bursary')">
                                 🎓 Applying for a Bursary
                             </div>
-                            <div class="sponsorship-option" id="selfOption" onclick="selectSponsorship('self')">
+                            <div class="choice-option" id="selfOption" onclick="selectSponsorship('self')">
                                 💳 Self-Sponsorship
                             </div>
                         </div>
@@ -310,6 +323,7 @@ input:focus, select:focus {
 
 const message = document.getElementById("message");
 let selectedSponsorship = "";
+let selectedMode = "";
 
 
 function showMessage(text, type) {
@@ -325,6 +339,17 @@ function selectSponsorship(type) {
 
     document.getElementById("bursaryOption").classList.toggle("selected", type === "bursary");
     document.getElementById("selfOption").classList.toggle("selected", type === "self");
+
+}
+
+
+function selectMode(mode) {
+
+    selectedMode = mode;
+    document.getElementById("modeOfStudy").value = mode;
+
+    document.getElementById("fullTimeOption").classList.toggle("selected", mode === "full-time");
+    document.getElementById("onlineOption").classList.toggle("selected", mode === "online");
 
 }
 
@@ -356,6 +381,11 @@ document.getElementById("applyForm").addEventListener("submit", async function(e
 
     if (!selectedSponsorship) {
         showMessage("Please select whether you are applying for a bursary or self-sponsorship.", "error");
+        return;
+    }
+
+    if (!selectedMode) {
+        showMessage("Please select your mode of study.", "error");
         return;
     }
 
@@ -407,7 +437,7 @@ document.getElementById("applyForm").addEventListener("submit", async function(e
             await supabaseClient.from("student_profiles").insert({
                 user_id: newUserId,
                 programme_id: document.getElementById("programme").value,
-                mode_of_study: "full-time",
+                mode_of_study: selectedMode,
                 admission_status: "active",
                 application_status: "pending",
                 sponsorship_type: selectedSponsorship,
