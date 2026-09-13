@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Acceptance Letter | Sunningdale University</title>
+
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body { font-family: Arial, Helvetica, sans-serif; background: #f4f6f9; color: #172033; }
+
+.header {
+    background: #111827;
+    color: white;
+    padding: 18px 25px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+
+.logo { width: 55px; height: 55px; object-fit: contain; background: white; border-radius: 8px; }
+.header h1 { font-size: 22px; }
+.header p { color: #d4af37; font-size: 13px; margin-top: 3px; }
+
+.container { max-width: 800px; margin: 25px auto; padding: 0 20px; }
+
+.blocked-card {
+    background: white;
+    border-radius: 14px;
+    padding: 30px;
+    text-align: center;
+    box-shadow: 0 5px 20px rgba(0,0,0,0.07);
+}
+
+.blocked-card .icon { font-size: 40px; margin-bottom: 14px; }
+.blocked-card h2 { font-size: 22px; margin-bottom: 12px; color: #991b1b; }
+.blocked-card p { color: #374151; margin-bottom: 10px; line-height: 1.6; }
+.blocked-card .phone { font-weight: bold; font-size: 18px; margin: 10px 0; color: #111827; }
+
+.back-link {
+    display: inline-block;
+    margin-top: 18px;
+    color: #374151;
+    text-decoration: none;
+    font-weight: bold;
+}
+
+.letter-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-bottom: 16px;
+}
+
+.print-button {
+    background: #d4af37;
+    color: #111827;
+    border: none;
+    padding: 12px 20px;
+    border-radius: 8px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.letter-paper {
+    background: white;
+    border-radius: 10px;
+    padding: 40px;
+    box-shadow: 0 5px 20px rgba(0,0,0,0.07);
+    line-height: 1.7;
+}
+
+.letter-header { text-align: center; margin-bottom: 25px; }
+.letter-header .letter-logo { width: 70px; height: 70px; object-fit: contain; margin-bottom: 10px; }
+.letter-header h1 { font-size: 24px; letter-spacing: 1px; }
+.letter-header .tagline { color: #6b7280; font-style: italic; margin-top: 4px; }
+
+.letter-title { text-align: center; margin-bottom: 25px; }
+.letter-title h2 { font-size: 16px; letter-spacing: 0.5px; }
+.letter-title .congrats { color: #d4af37; font-weight: bold; font-size: 18px; margin-top: 8px; }
+
+.letter-body p { margin-bottom: 14px; }
+.letter-body strong { color: #111827; }
+
+.info-line { margin: 18px 0; }
+.info-line strong { display: inline-block; min-width: 160px; }
+
+.requirements-list { margin: 10px 0 18px 20px; }
+.requirements-list li { margin-bottom: 6px; }
+
+.notice-box {
+    background: #fffbeb;
+    border: 1px solid #fde68a;
+    border-radius: 8px;
+    padding: 16px;
+    margin: 20px 0;
+}
+
+.section-heading {
+    font-weight: bold;
+    font-size: 15px;
+    margin: 25px 0 10px;
+    border-bottom: 2px solid #d4af37;
+    padding-bottom: 6px;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 12px 0 20px;
+    font-size: 14px;
+}
+
+th, td {
+    border: 1px solid #d1d5db;
+    padding: 8px 10px;
+    text-align: left;
+}
+
+th { background: #f4f6f9; }
+
+.confirmation-block {
+    margin-top: 20px;
+    font-size: 13px;
+    color: #374151;
+}
+
+.issuer-block { margin-top: 20px; }
+
+.footer-tagline {
+    text-align: center;
+    margin-top: 30px;
+    font-weight: bold;
+    color: #d4af37;
+}
+
+@media print {
+    .header, .letter-actions, .back-link { display: none; }
+    body { background: white; }
+    .container { max-width: 100%; margin: 0; padding: 0; }
+}
+
+</style>
+</head>
+
+
+<body>
+
+<header class="header">
+    <img src="https://pub-b3e2d39712e84119875e84c5ec5f5c09.r2.dev/Logo/IMG-20260816-WA0050(1).jpg" alt="Sunningdale University Logo" class="logo">
+    <div>
+        <h1>E-Campus</h1>
+        <p>Sunningdale University</p>
+    </div>
+</header>
+
+
+<main class="container">
+
+    <div id="content">
+        <div class="blocked-card">
+            <p class="empty-note">Loading...</p>
+        </div>
+    </div>
+
+</main>
+
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../supabase-config.js"></script>
+
+
+<script>
+
+function escapeHtml(value) {
+    return String(value ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+}
+
+function formatDate(dateStr) {
+    if (!dateStr) return "To be confirmed";
+    return new Date(dateStr + "T00:00:00").toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
+}
+
+function formatMoney(value) {
+    if (value === null || value === undefined) return "________";
+    return Number(value).toLocaleString();
+}
+
+
+async function loadLetter() {
+
+    const content = document.getElementById("content");
+
+    const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
+
+    if (authError || !user) {
+        window.location.href = "student-login.html";
+        return;
+    }
+
+    const { data: studentProfile, error: profileError } =
+        await supabaseClient
+            .from("student_profiles")
+            .select(`
+                student_number, admission_date, application_fee_paid, mode_of_study,
+                bursary_percentage, reporting_date, remaining_fee_amount, sponsorship_type,
+                user_profiles ( first_name, last_name ),
+                programmes ( name, code )
+            `)
+            .eq("user_id", user.id)
+            .single();
+
+    if (profileError || !studentProfile) {
+        content.innerHTML = `
+            <div class="blocked-card">
+                <div class="icon">⚠️</div>
+                <h2>Unable to Load Your Application</h2>
+                <p>We could not find your application details. Please contact the admissions office.</p>
+            </div>
+        `;
+        return;
+    }
+
+    if (!studentProfile.application_fee_paid) {
+
+        content.innerHTML = `
+            <div class="blocked-card">
+                <div class="icon">🔒</div>
+                <h2>Application Fee Required</h2>
+                <p>Your acceptance letter is ready, but it can only be released once your K100 application form fee has been received and confirmed by our admissions office.</p>
+                <p style="font-weight:bold; color:#b08b00;">Please send the K100 application form fee via mobile money to:</p>
+                <div class="phone">0779417675 or 0766149405</div>
+                <p>Once payment is confirmed, refresh this page to download your acceptance letter.</p>
+                <a href="student-apply.html" class="back-link">← Back</a>
+            </div>
+        `;
+        return;
+    }
+
+    const firstName = studentProfile.user_profiles?.first_name || "";
+    const lastName = studentProfile.user_profiles?.last_name || "";
+    const programmeName = studentProfile.programmes?.name || "________";
+    const bursaryPct = studentProfile.bursary_percentage;
+    const remainingFee = studentProfile.remaining_fee_amount;
+    const reportingDate = studentProfile.reporting_date;
+    const isBursary = studentProfile.sponsorship_type === "bursary";
+    const isFullTime = studentProfile.mode_of_study === "full-time";
+
+    content.innerHTML = `
+
+        <div class="letter-actions">
+            <button class="print-button" onclick="window.print()">🖨️ Print / Save as PDF</button>
+        </div>
+
+        <div class="letter-paper">
+
+            <div class="letter-header">
+                <img src="https://pub-b3e2d39712e84119875e84c5ec5f5c09.r2.dev/Logo/IMG-20260816-WA0050(1).jpg" alt="Sunningdale University Logo" class="letter-logo">
+                <h1>SUNNINGDALE UNIVERSITY</h1>
+                <div class="tagline">"Excellence through Technology"</div>
+            </div>
+
+            <div class="letter-title">
+                <h2>OFFICIAL LETTER OF ACCEPTANCE ${isBursary ? "&amp; BURSARY AWARD" : ""}</h2>
+                <div class="congrats">CONGRATULATIONS!</div>
+            </div>
+
+            <div class="letter-body">
+
+                <p>Dear ${escapeHtml(firstName)} ${escapeHtml(lastName)},</p>
+
+                <p>On behalf of Sunningdale University community, we congratulate you on your successful admission to study <strong>${escapeHtml(programmeName)}</strong> (${isFullTime ? "Full-Time" : "Online Learning"}).</p>
+
+                <p>We are pleased to inform you that you have been officially accepted to study at Sunningdale University. Your application has been successful, and you have been selected to join a community dedicated to academic excellence, innovation, leadership, and professional development.</p>
+
+                ${isBursary ? `
+                <p>As part of our commitment to making quality education accessible, we are pleased to inform you that you have been awarded an Academic Bursary of <strong>${bursaryPct !== null ? bursaryPct + "%" : "____"}</strong> towards your tuition fees, which will be <strong>K${formatMoney(remainingFee)}</strong>.</p>
+                ` : `
+                <p>Your studies will proceed under self-sponsorship. Your outstanding tuition balance is <strong>K${formatMoney(remainingFee)}</strong>.</p>
+                `}
+
+                ${isFullTime ? `
+                <div class="info-line"><strong>Reporting Date:</strong> ${formatDate(reportingDate)}</div>
+                <div class="info-line"><strong>Reporting Venue:</strong> Sunningdale University – Lusaka Campus, along Kudu Road.</div>
+
+                <p>Upon reporting, please proceed to the Admissions and Registration Office with all the required registration documents and proof of payment to complete your enrolment.</p>
+                ` : `
+                <div class="info-line"><strong>Access Date:</strong> ${formatDate(reportingDate)}</div>
+
+                <p>As an online student, you will complete registration and submit your documents through the E-Campus student portal — there is no need to report physically to campus.</p>
+                `}
+
+                <div class="section-heading">Registration Requirements</div>
+                <p>To secure your admission ${isBursary ? "and retain your bursary" : ""}, you are required to:</p>
+                <ol class="requirements-list">
+                    <li>Pay the prescribed Fees.</li>
+                    <li>Submit certified copies of your academic certificates or examination results.</li>
+                    <li>Submit a copy of your National Registration Card (NRC) or Passport.</li>
+                    <li>Submit two (2) recent passport-size photographs.</li>
+                    <li>Complete all University registration forms.</li>
+                    <li>Attend the compulsory orientation programme.</li>
+                </ol>
+
+                ${isBursary ? `
+                <div class="notice-box">
+                    <strong>Important Notice</strong>
+                    <p style="margin-top:8px;">Your bursary has been awarded specifically for this academic intake and has been reserved exclusively for you. To maintain your bursary, you must complete your registration by paying the required Registration Fee and at least 20% of your tuition fees within the stipulated registration period.</p>
+                    <p style="margin-top:8px;">Failure to meet these requirements may result in the bursary being withdrawn and offered to another deserving applicant.</p>
+                </div>
+                ` : ""}
+
+                <p>Students are therefore encouraged to complete the registration process as early as possible ${isBursary ? "to secure both their admission and bursary award" : "to secure their admission"}. Online Registration: 2 weeks before the reporting date. During this time, students are required to register on the student portal and obtain a student number and password.</p>
+
+                <p class="footer-tagline">"Shaping Minds, Transforming Futures."<br>WELCOME TO SUNNINGDALE UNIVERSITY!</p>
+
+                <div class="section-heading">Registration Period</div>
+                <p>In total, registration (online and physical combined) runs for one week and a late registration penalty fee applies after this period.</p>
+
+                <div class="section-heading">Additional Fee Schedule</div>
+                <table>
+                    <tr><th>Item</th><th>Amount</th></tr>
+                    <tr><td>Student Union (once off)</td><td>K100</td></tr>
+                    <tr><td>Registration</td><td>K150 — per semester</td></tr>
+                    <tr><td>Scholarship Activation</td><td>K150 — per year</td></tr>
+                    <tr><td>Examination Fee — Yearly</td><td>K1300 – Every year</td></tr>
+                </table>
+
+                <div class="section-heading">Programme Duration and Requirements</div>
+                <table>
+                    <tr><th>Programme Type</th><th>Duration</th><th>Example Programmes</th><th>Entry Requirement</th></tr>
+                    <tr><td>Diploma</td><td>3 Years</td><td>Registered Nursing, Clinical Medicine</td><td>5 O-Level credits or better, including English, Mathematics and Science</td></tr>
+                    <tr><td>Bachelor Degree</td><td>4 Years</td><td>Business Administration, Banking and Finance</td><td>5 O-Level credits or better, including English, Mathematics and Science</td></tr>
+                    <tr><td>Masters Degree</td><td>2 Years</td><td>—</td><td>Bachelor's Degree</td></tr>
+                    <tr><td>Short Course</td><td>1 Year (including attachment)</td><td>—</td><td>Grade 9 / Grade 7 Certificate</td></tr>
+                </table>
+
+                <div class="section-heading">ARTICLE 7: CONFIRMATION SLIP</div>
+                <div class="confirmation-block">
+                    To abide by Rules and Regulations of the institute. I do hereby acknowledge that I have read and understood the terms and conditions of my offer to study at Sunningdale University and that I will not claim any refunds if I fail to pursue my studies.
+                </div>
+
+                <div class="issuer-block">
+                    Issued by: <strong>FELIX CHISENGA</strong><br>
+                    Admissions Office<br>
+                    <strong>SUNNINGDALE UNIVERSITY</strong>
+                </div>
+
+                ${isFullTime ? `
+                <div class="section-heading">School Account Details</div>
+                <table>
+                    <tr><th>Internal User Fees</th><th>External User Fees</th><th>Internal</th></tr>
+                    <tr>
+                        <td>SUNNINGDALE UNIVERSITY, AB BANK, ACCOUNT No: 0124101608595</td>
+                        <td>SUNNINGDALE UNIVERSITY, AB BANK, ACCOUNT No: 0424101199016</td>
+                        <td>SUNNINGDALE UNIVERSITY, ZANACO BANK, ACCOUNT No: 2019236500134</td>
+                    </tr>
+                </table>
+                ` : ""}
+
+                <p>We trust that you will find your academic journey with us both fulfilling and rewarding. While you are a student at Sunningdale University, our doors remain open to support you throughout your studies.</p>
+
+                <p class="footer-tagline">"Shaping Minds, Transforming Futures."<br>WELCOME TO SUNNINGDALE UNIVERSITY!</p>
+
+            </div>
+
+        </div>
+
+    `;
+
+}
+
+
+loadLetter();
+
+</script>
+
+</body>
+</html>
