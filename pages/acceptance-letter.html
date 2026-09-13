@@ -209,7 +209,7 @@ async function loadLetter() {
             .from("student_profiles")
             .select(`
                 student_number, admission_date, application_fee_paid, mode_of_study,
-                bursary_percentage, reporting_date, remaining_fee_amount, sponsorship_type,
+                bursary_percentage, reporting_date, remaining_fee_amount, fee_period_note, sponsorship_type,
                 user_profiles ( first_name, last_name ),
                 programmes ( name, code )
             `)
@@ -248,9 +248,12 @@ async function loadLetter() {
     const programmeName = studentProfile.programmes?.name || "________";
     const bursaryPct = studentProfile.bursary_percentage;
     const remainingFee = studentProfile.remaining_fee_amount;
+    const feePeriodNote = studentProfile.fee_period_note;
     const reportingDate = studentProfile.reporting_date;
     const isBursary = studentProfile.sponsorship_type === "bursary";
     const isFullTime = studentProfile.mode_of_study === "full-time";
+
+    const feeWithPeriod = `K${formatMoney(remainingFee)}${feePeriodNote ? " (" + escapeHtml(feePeriodNote) + ")" : ""}`;
 
     content.innerHTML = `
 
@@ -280,9 +283,9 @@ async function loadLetter() {
                 <p>We are pleased to inform you that you have been officially accepted to study at Sunningdale University. Your application has been successful, and you have been selected to join a community dedicated to academic excellence, innovation, leadership, and professional development.</p>
 
                 ${isBursary ? `
-                <p>As part of our commitment to making quality education accessible, we are pleased to inform you that you have been awarded an Academic Bursary of <strong>${bursaryPct !== null ? bursaryPct + "%" : "____"}</strong> towards your tuition fees, which will be <strong>K${formatMoney(remainingFee)}</strong>.</p>
+                <p>As part of our commitment to making quality education accessible, we are pleased to inform you that you have been awarded an Academic Bursary of <strong>${bursaryPct !== null ? bursaryPct + "%" : "____"}</strong> towards your tuition fees. The amount you are required to pay is <strong>${feeWithPeriod}</strong>.</p>
                 ` : `
-                <p>Your studies will proceed under self-sponsorship. Your outstanding tuition balance is <strong>K${formatMoney(remainingFee)}</strong>.</p>
+                <p>Your studies will proceed under self-sponsorship. The amount you are required to pay is <strong>${feeWithPeriod}</strong>.</p>
                 `}
 
                 ${isFullTime ? `
