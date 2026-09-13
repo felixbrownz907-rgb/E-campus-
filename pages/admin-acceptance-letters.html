@@ -61,8 +61,12 @@ body { font-family: Arial, Helvetica, sans-serif; background: #f4f6f9; color: #1
     margin-bottom: 14px;
 }
 
+.form-grid.fee-row { grid-template-columns: 1fr 1.5fr; }
+
 .form-grid label { font-size: 12px; font-weight: bold; display: block; margin-bottom: 5px; }
 .form-grid input { width: 100%; padding: 10px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 14px; }
+
+.fee-period-hint { font-size: 11px; color: #9ca3af; margin-top: 4px; }
 
 .checkbox-row { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; font-weight: bold; font-size: 14px; }
 
@@ -83,6 +87,7 @@ body { font-family: Arial, Helvetica, sans-serif; background: #f4f6f9; color: #1
 
 @media (max-width: 800px) {
     .form-grid { grid-template-columns: 1fr 1fr; }
+    .form-grid.fee-row { grid-template-columns: 1fr; }
 }
 
 </style>
@@ -164,7 +169,7 @@ async function loadApplicants() {
         .from("student_profiles")
         .select(`
             id, user_id, student_number, sponsorship_type, application_fee_paid, mode_of_study,
-            bursary_percentage, reporting_date, remaining_fee_amount,
+            bursary_percentage, reporting_date, remaining_fee_amount, fee_period_note,
             user_profiles ( first_name, last_name, phone ),
             programmes ( name, code )
         `)
@@ -214,12 +219,20 @@ async function loadApplicants() {
                     </div>
                     ` : ""}
                     <div>
+                        <label>${mode === "full-time" ? "Reporting Date" : "Portal Access Date"}</label>
+                        <input type="date" id="date-${a.id}" value="${a.reporting_date ?? ""}">
+                    </div>
+                </div>
+
+                <div class="form-grid fee-row">
+                    <div>
                         <label>Remaining Fee Owed (K)</label>
                         <input type="number" id="fee-${a.id}" value="${a.remaining_fee_amount ?? ""}" min="0">
                     </div>
                     <div>
-                        <label>${mode === "full-time" ? "Reporting Date" : "Portal Access Date"}</label>
-                        <input type="date" id="date-${a.id}" value="${a.reporting_date ?? ""}">
+                        <label>What Period Does This Cover?</label>
+                        <input type="text" id="period-${a.id}" value="${escapeHtml(a.fee_period_note ?? "")}" placeholder="e.g. per month, per semester, for the first 4 months">
+                        <div class="fee-period-hint">This is shown right next to the amount on the letter, so there's no confusion about whether it covers the whole programme or just a period.</div>
                     </div>
                 </div>
 
@@ -241,6 +254,7 @@ async function saveApplicant(studentProfileId, studentUserId) {
 
     const bursaryInput = document.getElementById(`bursary-${studentProfileId}`);
     const feeInput = document.getElementById(`fee-${studentProfileId}`);
+    const periodInput = document.getElementById(`period-${studentProfileId}`);
     const dateInput = document.getElementById(`date-${studentProfileId}`);
     const paidInput = document.getElementById(`paid-${studentProfileId}`);
 
@@ -249,6 +263,7 @@ async function saveApplicant(studentProfileId, studentUserId) {
 
     const payload = {
         remaining_fee_amount: feeInput.value ? Number(feeInput.value) : null,
+        fee_period_note: periodInput.value.trim() || null,
         reporting_date: dateInput.value || null,
         application_fee_paid: isNowPaid
     };
