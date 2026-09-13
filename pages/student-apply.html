@@ -75,6 +75,29 @@ input:focus, select:focus {
     border-color: #d4af37;
 }
 
+.sponsorship-choice {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+
+.sponsorship-option {
+    border: 2px solid #e5e7eb;
+    border-radius: 10px;
+    padding: 14px;
+    text-align: center;
+    cursor: pointer;
+    font-weight: bold;
+    font-size: 14px;
+    color: #6b7280;
+}
+
+.sponsorship-option.selected {
+    border-color: #d4af37;
+    background: #fffbeb;
+    color: #92400e;
+}
+
 .submit-button {
     margin-top: 20px;
     background: #d4af37;
@@ -109,9 +132,21 @@ input:focus, select:focus {
 .pending-screen h2 { font-size: 24px; margin-bottom: 12px; }
 .pending-screen p { color: #6b7280; margin-bottom: 10px; }
 
+.letter-link {
+    display: inline-block;
+    margin-top: 18px;
+    background: #111827;
+    color: white;
+    text-decoration: none;
+    padding: 12px 20px;
+    border-radius: 8px;
+    font-weight: bold;
+}
+
 @media (max-width: 600px) {
     .form-grid { grid-template-columns: 1fr; }
     .form-group.full { grid-column: auto; }
+    .sponsorship-choice { grid-template-columns: 1fr; }
 }
 
 </style>
@@ -198,6 +233,19 @@ input:focus, select:focus {
                     </div>
 
                     <div class="form-group full">
+                        <label>How will your studies be funded?</label>
+                        <div class="sponsorship-choice">
+                            <div class="sponsorship-option" id="bursaryOption" onclick="selectSponsorship('bursary')">
+                                🎓 Applying for a Bursary
+                            </div>
+                            <div class="sponsorship-option" id="selfOption" onclick="selectSponsorship('self')">
+                                💳 Self-Sponsorship
+                            </div>
+                        </div>
+                        <input type="hidden" id="sponsorshipType" required>
+                    </div>
+
+                    <div class="form-group full">
                         <label for="address">Address</label>
                         <input type="text" id="address">
                     </div>
@@ -244,6 +292,9 @@ input:focus, select:focus {
             <p style="margin-top:10px;">
                 Once payment is confirmed, your application will be approved and you will receive your acceptance letter and login details via WhatsApp.
             </p>
+
+            <a href="acceptance-letter.html" class="letter-link">📄 Click here to download your acceptance letter</a>
+
         </div>
     </div>
 
@@ -258,11 +309,23 @@ input:focus, select:focus {
 <script>
 
 const message = document.getElementById("message");
+let selectedSponsorship = "";
 
 
 function showMessage(text, type) {
     message.textContent = text;
     message.className = "message " + type;
+}
+
+
+function selectSponsorship(type) {
+
+    selectedSponsorship = type;
+    document.getElementById("sponsorshipType").value = type;
+
+    document.getElementById("bursaryOption").classList.toggle("selected", type === "bursary");
+    document.getElementById("selfOption").classList.toggle("selected", type === "self");
+
 }
 
 
@@ -290,6 +353,11 @@ async function loadProgrammes() {
 document.getElementById("applyForm").addEventListener("submit", async function(event) {
 
     event.preventDefault();
+
+    if (!selectedSponsorship) {
+        showMessage("Please select whether you are applying for a bursary or self-sponsorship.", "error");
+        return;
+    }
 
     const submitButton = document.getElementById("submitButton");
     submitButton.disabled = true;
@@ -341,7 +409,9 @@ document.getElementById("applyForm").addEventListener("submit", async function(e
                 programme_id: document.getElementById("programme").value,
                 mode_of_study: "full-time",
                 admission_status: "active",
-                application_status: "pending"
+                application_status: "pending",
+                sponsorship_type: selectedSponsorship,
+                application_fee_paid: false
             });
 
         if (studentError) {
