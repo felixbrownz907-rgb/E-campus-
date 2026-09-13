@@ -1362,10 +1362,10 @@ async function startDashboard() {
     }
 
 
-    const orConditions = [`user_id.eq.${user.id}`, `course_id.is.null`];
-    if (courseIds.length > 0) {
-        orConditions.push(`course_id.in.(${courseIds.join(",")})`);
-    }
+    // KEY FIX: broadcast announcements are (user_id IS NULL AND course_id IS NULL).
+    // A personal notification (like the acceptance-letter alert) has a real user_id set,
+    // so it now only matches the intended student instead of leaking to everyone.
+    const orConditions = [`user_id.eq.${user.id}`, `and(user_id.is.null,course_id.is.null)`];
 
     const { data: announcements } =
         await supabaseClient
