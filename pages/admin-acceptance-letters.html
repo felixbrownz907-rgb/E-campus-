@@ -104,7 +104,7 @@ body { font-family: Arial, Helvetica, sans-serif; background: #f4f6f9; color: #1
 
     <section class="page-title">
         <h2>Acceptance Letters</h2>
-        <p>Confirm application fee payment and set bursary details so students can download their acceptance letter.</p>
+        <p>Confirm application fee payment and set bursary details so students can download their acceptance letter. The student is automatically notified in-app the moment you confirm their fee.</p>
     </section>
 
     <div id="message" class="message"></div>
@@ -163,7 +163,7 @@ async function loadApplicants() {
     let query = supabaseClient
         .from("student_profiles")
         .select(`
-            id, student_number, sponsorship_type, application_fee_paid, mode_of_study,
+            id, user_id, student_number, sponsorship_type, application_fee_paid, mode_of_study,
             bursary_percentage, reporting_date, remaining_fee_amount,
             user_profiles ( first_name, last_name, phone ),
             programmes ( name, code )
@@ -224,11 +224,11 @@ async function loadApplicants() {
                 </div>
 
                 <div class="checkbox-row">
-                    <input type="checkbox" id="paid-${a.id}" ${a.application_fee_paid ? "checked" : ""}>
+                    <input type="checkbox" id="paid-${a.id}" data-was-paid="${a.application_fee_paid}" ${a.application_fee_paid ? "checked" : ""}>
                     <label for="paid-${a.id}">Application fee (K100) has been received and confirmed</label>
                 </div>
 
-                <button class="save-button" onclick="saveApplicant('${a.id}')">Save</button>
+                <button class="save-button" onclick="saveApplicant('${a.id}', '${a.user_id}')">Save</button>
             </div>
         `;
 
@@ -237,17 +237,20 @@ async function loadApplicants() {
 }
 
 
-async function saveApplicant(studentProfileId) {
+async function saveApplicant(studentProfileId, studentUserId) {
 
     const bursaryInput = document.getElementById(`bursary-${studentProfileId}`);
     const feeInput = document.getElementById(`fee-${studentProfileId}`);
     const dateInput = document.getElementById(`date-${studentProfileId}`);
     const paidInput = document.getElementById(`paid-${studentProfileId}`);
 
+    const wasAlreadyPaid = paidInput.dataset.wasPaid === "true";
+    const isNowPaid = paidInput.checked;
+
     const payload = {
         remaining_fee_amount: feeInput.value ? Number(feeInput.value) : null,
         reporting_date: dateInput.value || null,
-        application_fee_paid: paidInput.checked
+        application_fee_paid: isNowPaid
     };
 
     if (bursaryInput) {
@@ -265,7 +268,19 @@ async function saveApplicant(studentProfileId) {
         return;
     }
 
-    showMessage("Saved successfully.", "success");
+    // Automatically notify the student in-app the moment their fee is newly confirmed
+    if (isNowPaid && !wasAlreadyPaid && studentUserId) {
+
+        await supabaseClient.from("notifications").insert({
+            user_id: studentUserId,
+            title: "Acceptance Letter Ready",
+            message: "Your application fee has been confirmed. Your official acceptance letter is now ready — go to Menu → Acceptance Letter to view and download it.",
+            course_id: null
+        });
+
+    }
+
+    showMessage(isNowPaid && !wasAlreadyPaid ? "Saved — student has been notified in-app." : "Saved successfully.", "success");
     await loadApplicants();
 
 }
