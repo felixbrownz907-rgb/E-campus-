@@ -739,6 +739,44 @@ async function beginQuiz(quizId) {
         return;
     }
 
+    // ===== SELF-HEALING FIX: check for a genuine completed attempt vs a leftover "phantom" attempt =====
+    const { data: existingAttempts } =
+        await supabaseClient
+            .from("quiz_attempts")
+            .select("id, score, violation_flag, answers")
+            .eq("quiz_id", quizId)
+            .eq("student_id", authUserId);
+
+    const genuineCompletion = (existingAttempts || []).find(a =>
+        a.score !== null && !a.violation_flag
+    );
+
+    if (genuineCompletion) {
+        alert("You have already completed this exam. Your score has been recorded.");
+        await loadQuizzes();
+        return;
+    }
+
+    const pendingViolationExisting = (existingAttempts || []).find(a =>
+        a.violation_flag && !a.cleared_by_lecturer
+    );
+
+    if (pendingViolationExisting) {
+        alert("Your previous attempt was flagged and is awaiting your lecturer's review. You cannot start a new attempt until it is cleared.");
+        await loadQuizzes();
+        return;
+    }
+
+    // Any remaining attempts here are "phantom" — score is null, not flagged as a violation,
+    // meaning they never actually completed a real attempt (e.g. a refresh interrupted them).
+    // Clear those out automatically so a fresh attempt can be created without error.
+    const phantomAttemptIds = (existingAttempts || []).map(a => a.id);
+
+    if (phantomAttemptIds.length > 0) {
+        await supabaseClient.from("quiz_attempts").delete().in("id", phantomAttemptIds);
+    }
+    // ===== END SELF-HEALING FIX =====
+
     const { data: questions, error: qError } =
         await supabaseClient.from("quiz_questions").select("*").eq("quiz_id", quizId);
 
