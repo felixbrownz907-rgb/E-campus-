@@ -439,7 +439,7 @@ async function loadQuizzes() {
         return;
     }
 
-    // ===== KEY FIX: anything that is a CA, Final Exam, or marked is_exam only shows once it has a real scheduled date. =====
+    // Exams (is_exam / is_final_exam / ca_number) only show once a lecturer has actually scheduled a date.
     // Ordinary practice quizzes (none of the above) still show without needing a schedule.
     const quizzes = (allQuizzes || []).filter(q => !(q.is_exam || q.is_final_exam || q.ca_number) || q.scheduled_start);
 
@@ -484,6 +484,17 @@ async function loadQuizzes() {
 
 
 function getCALockInfo(quiz, quizzesByCourse, bestScoreByQuiz) {
+
+    // ============================================================
+    // TEMPORARY EMERGENCY BYPASS — 15 September 2026
+    // The CA1 → CA2 → Final prerequisite check is disabled below.
+    // Every CA and Final Exam currently shows as unlocked for everyone,
+    // regardless of previous scores, so students can write CA2 right now.
+    //
+    // TO RESTORE THE RULE LATER: delete this "return" line only.
+    // Everything below it is the original, untouched logic.
+    // ============================================================
+    return { locked: false };
 
     if (!quiz.is_final_exam && !quiz.ca_number) {
         return { locked: false };
