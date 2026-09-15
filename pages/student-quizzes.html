@@ -571,11 +571,21 @@ function renderQuizzes(quizzes, courseMap, attemptsByQuiz, bestScoreByQuiz, quiz
         const windowClosed = isWindowClosed(quiz);
         const absoluteEnd = getAbsoluteEndTime(quiz);
 
+        // ===== FIX: a genuine completed score is checked BEFORE any pending violation flag. =====
+        // A student can only have one "current" state — if they already have a real recorded score,
+        // that always wins, even if a later stray/violation attempt also exists for the same exam.
+
         if (lockInfo.locked) {
 
             statusLabel = quiz.is_final_exam ? "Final Exam Locked" : "Locked";
             statusClass = "locked";
             buttonText = "Prerequisite Not Met";
+
+        } else if (validCompletion) {
+
+            statusLabel = "Completed";
+            statusClass = "done";
+            buttonText = "Already Submitted";
 
         } else if (pendingViolation) {
 
@@ -585,13 +595,7 @@ function renderQuizzes(quizzes, courseMap, attemptsByQuiz, bestScoreByQuiz, quiz
 
         } else if (quiz.is_exam) {
 
-            if (validCompletion) {
-
-                statusLabel = "Completed";
-                statusClass = "done";
-                buttonText = "Already Submitted";
-
-            } else if (windowClosed) {
+            if (windowClosed) {
 
                 statusLabel = "Exam Window Closed";
                 statusClass = "closed";
@@ -663,7 +667,7 @@ function renderQuizzes(quizzes, courseMap, attemptsByQuiz, bestScoreByQuiz, quiz
             ` : ""}
             <button class="start-button" ${buttonDisabled ? "disabled" : ""} onclick="beginQuiz('${quiz.id}')">${buttonText}</button>
             ${lockInfo.locked ? `<div class="locked-reason">🔒 ${escapeHtml(lockInfo.reason)}</div>` : ""}
-            ${pendingViolation ? `<div class="locked-reason">⚠️ Your previous attempt was flagged for leaving the exam page. Your lecturer must review and reopen it before you can try again.</div>` : ""}
+            ${(pendingViolation && !validCompletion) ? `<div class="locked-reason">⚠️ Your previous attempt was flagged for leaving the exam page. Your lecturer must review and reopen it before you can try again.</div>` : ""}
             ${windowClosedNote ? `<div class="window-note">${escapeHtml(windowClosedNote)}</div>` : ""}
         `;
 
