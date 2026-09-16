@@ -204,7 +204,8 @@ async function loadRecord() {
         attempts = data || [];
     }
 
-    // Best genuine (non-violation) score per quiz
+    // Best genuine (non-violation) score per quiz — this is the single source of truth.
+    // A real score here ALWAYS takes priority over any lock/prerequisite reasoning below.
     const bestScoreByQuiz = {};
     attempts.forEach(a => {
         if (a.score === null || a.violation_flag) return;
@@ -229,33 +230,29 @@ async function loadRecord() {
         const ca1Passed = ca1Score !== undefined && ca1Score >= PASS_THRESHOLD;
         const ca2Passed = ca2Score !== undefined && ca2Score >= PASS_THRESHOLD;
 
-        function renderBox(label, score, isLocked, lockReason) {
+        // ===== FIX: a real recorded score is checked FIRST, before any lock/prerequisite reasoning. =====
+        // A completed exam must always show its mark, regardless of what the unlock chain says.
+        function renderResultBox(label, quiz, score, prerequisiteMet, lockMessage) {
 
-            if (isLocked) {
-                return `<div class="result-box locked"><div class="label">${label}</div><div class="value locked">${lockReason}</div></div>`;
+            if (!quiz) {
+                return `<div class="result-box"><div class="label">${label}</div><div class="value pending">Not set up</div></div>`;
             }
 
             if (score !== undefined) {
                 return `<div class="result-box has-score"><div class="label">${label}</div><div class="value has-score">${score}%</div></div>`;
             }
 
+            if (!prerequisiteMet) {
+                return `<div class="result-box locked"><div class="label">${label}</div><div class="value locked">${lockMessage}</div></div>`;
+            }
+
             return `<div class="result-box"><div class="label">${label}</div><div class="value pending">Not yet attempted</div></div>`;
 
         }
 
-        const ca1Box = ca1Quiz ? renderBox("CA1", ca1Score, false, "") : `<div class="result-box"><div class="label">CA1</div><div class="value pending">Not set up</div></div>`;
-
-        const ca2Box = !ca2Quiz
-            ? `<div class="result-box"><div class="label">CA2</div><div class="value pending">Not set up</div></div>`
-            : (!ca1Passed
-                ? renderBox("CA2", ca2Score, true, "Locked until CA1 passed")
-                : renderBox("CA2", ca2Score, false, ""));
-
-        const finalBox = !finalQuiz
-            ? `<div class="result-box"><div class="label">Final Exam</div><div class="value pending">Not set up</div></div>`
-            : (!(ca1Passed && ca2Passed)
-                ? renderBox("Final Exam", finalScore, true, "Locked until CA1 & CA2 passed")
-                : renderBox("Final Exam", finalScore, false, ""));
+        const ca1Box = renderResultBox("CA1", ca1Quiz, ca1Score, true, "");
+        const ca2Box = renderResultBox("CA2", ca2Quiz, ca2Score, ca1Passed, "Locked until CA1 passed");
+        const finalBox = renderResultBox("Final Exam", finalQuiz, finalScore, ca1Passed && ca2Passed, "Locked until CA1 & CA2 passed");
 
         // Overall: only shown once all three genuine scores exist
         let overallHtml;
