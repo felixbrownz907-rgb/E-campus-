@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Manage Videos | Lecturer Portal</title>
+
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: Arial, Helvetica, sans-serif; background: #f4f6f9; color: #172033; }
+
+.header { background: #0e7490; color: white; padding: 18px 25px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+.brand { display: flex; align-items: center; gap: 14px; }
+.logo { width: 55px; height: 55px; object-fit: contain; background: white; border-radius: 8px; }
+.brand h1 { font-size: 22px; }
+.brand p { color: #cffafe; margin-top: 3px; font-size: 13px; }
+.back-button { background: white; color: #0e7490; text-decoration: none; padding: 10px 16px; border-radius: 8px; font-weight: bold; font-size: 13px; }
+
+.container { max-width: 900px; margin: 25px auto; padding: 0 20px; }
+.page-title { margin-bottom: 20px; }
+.page-title h2 { font-size: 26px; margin-bottom: 6px; }
+.page-title p { color: #6b7280; font-size: 14px; }
+
+.message { padding: 14px; border-radius: 8px; margin-bottom: 20px; display: none; }
+.message.success { display: block; background: #dcfce7; color: #166534; }
+.message.error { display: block; background: #fee2e2; color: #991b1b; }
+
+.card { background: white; padding: 22px; border-radius: 14px; margin-bottom: 20px; box-shadow: 0 3px 12px rgba(0,0,0,0.06); }
+.card h3 { font-size: 18px; margin-bottom: 16px; }
+
+label { font-size: 13px; font-weight: bold; display: block; margin-bottom: 6px; }
+
+select, input, textarea {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    font-size: 14px;
+    margin-bottom: 14px;
+}
+
+textarea { min-height: 70px; resize: vertical; }
+
+.type-choice { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px; }
+
+.type-option {
+    border: 2px solid #e5e7eb;
+    border-radius: 10px;
+    padding: 12px;
+    text-align: center;
+    cursor: pointer;
+    font-weight: bold;
+    font-size: 13px;
+    color: #6b7280;
+}
+
+.type-option.selected { border-color: #0e7490; background: #ecfeff; color: #0e7490; }
+
+.save-button {
+    background: #0e7490;
+    color: white;
+    border: none;
+    padding: 13px 20px;
+    border-radius: 8px;
+    font-weight: bold;
+    cursor: pointer;
+    width: 100%;
+}
+
+.video-item {
+    background: white;
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 12px;
+    box-shadow: 0 3px 12px rgba(0,0,0,0.06);
+}
+
+.video-top { display: flex; justify-content: space-between; align-items: start; gap: 10px; flex-wrap: wrap; }
+.video-title { font-weight: bold; font-size: 15px; }
+.video-desc { color: #6b7280; font-size: 13px; margin-top: 4px; }
+.video-type-tag { padding: 3px 9px; border-radius: 20px; font-size: 11px; font-weight: bold; }
+.video-type-tag.youtube { background: #fee2e2; color: #991b1b; }
+.video-type-tag.uploaded { background: #dbeafe; color: #1d4ed8; }
+
+.video-actions { display: flex; gap: 8px; margin-top: 10px; }
+
+.action-button { border: none; padding: 7px 12px; border-radius: 6px; font-weight: bold; font-size: 12px; cursor: pointer; }
+.delete-button { background: #fee2e2; color: #991b1b; }
+
+.empty-note { color: #9ca3af; text-align: center; padding: 20px 0; }
+
+</style>
+</head>
+
+
+<body>
+
+<header class="header">
+    <div class="brand">
+        <img src="https://pub-b3e2d39712e84119875e84c5ec5f5c09.r2.dev/Logo/IMG-20260816-WA0050(1).jpg" alt="Sunningdale University Logo" class="logo">
+        <div>
+            <h1>E-Campus</h1>
+            <p>Lecturer Portal</p>
+        </div>
+    </div>
+    <a href="lecturer-dashboard.html" class="back-button">← Dashboard</a>
+</header>
+
+
+<main class="container">
+
+    <section class="page-title">
+        <h2>Manage Videos</h2>
+        <p>Add helpful videos for your courses — students can browse these in the Video Library.</p>
+    </section>
+
+    <div id="message" class="message"></div>
+
+    <section class="card">
+
+        <h3>Add a Video</h3>
+
+        <label for="courseSelect">Course</label>
+        <select id="courseSelect">
+            <option value="">Select course</option>
+        </select>
+
+        <label for="videoTitle">Video Title</label>
+        <input type="text" id="videoTitle" placeholder="e.g. Understanding Supply and Demand">
+
+        <label for="videoDescription">Short Description (optional)</label>
+        <textarea id="videoDescription" placeholder="What does this video cover?"></textarea>
+
+        <label>Video Source</label>
+        <div class="type-choice">
+            <div class="type-option selected" id="youtubeOption" onclick="selectVideoType('youtube')">▶️ YouTube Link</div>
+            <div class="type-option" id="uploadedOption" onclick="selectVideoType('uploaded')">📁 Uploaded File Link</div>
+        </div>
+
+        <label for="videoUrl" id="videoUrlLabel">YouTube Link</label>
+        <input type="text" id="videoUrl" placeholder="https://www.youtube.com/watch?v=...">
+
+        <button class="save-button" onclick="addVideo()">Add Video</button>
+
+    </section>
+
+    <section class="card">
+        <h3>Your Videos</h3>
+        <div id="videosContainer"><p class="empty-note">Select a course above to see its videos.</p></div>
+    </section>
+
+</main>
+
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../supabase-config.js"></script>
+
+
+<script>
+
+let lecturerProfileId = null;
+let selectedVideoType = "youtube";
+
+const message = document.getElementById("message");
+
+function showMessage(text, type) {
+    message.textContent = text;
+    message.className = "message " + type;
+    setTimeout(() => { message.className = "message"; }, 4000);
+}
+
+function escapeHtml(value) {
+    return String(value ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+}
+
+
+function selectVideoType(type) {
+
+    selectedVideoType = type;
+
+    document.getElementById("youtubeOption").classList.toggle("selected", type === "youtube");
+    document.getElementById("uploadedOption").classList.toggle("selected", type === "uploaded");
+
+    const label = document.getElementById("videoUrlLabel");
+    const input = document.getElementById("videoUrl");
+
+    if (type === "youtube") {
+        label.textContent = "YouTube Link";
+        input.placeholder = "https://www.youtube.com/watch?v=...";
+    } else {
+        label.textContent = "Uploaded File Link";
+        input.placeholder = "https://your-storage.example.com/video.mp4";
+    }
+
+}
+
+
+async function startPage() {
+
+    const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
+
+    if (authError || !user) {
+        window.location.href = "lecturer-login.html";
+        return;
+    }
+
+    const { data: lecturerProfile } =
+        await supabaseClient.from("lecturer_profiles").select("id").eq("user_id", user.id).single();
+
+    if (!lecturerProfile) return;
+
+    lecturerProfileId = lecturerProfile.id;
+
+    const { data: assignments } =
+        await supabaseClient
+            .from("course_lecturers")
+            .select("courses ( id, code, name )")
+            .eq("lecturer_id", lecturerProfileId);
+
+    const courses = (assignments || []).map(a => a.courses).filter(Boolean);
+    const select = document.getElementById("courseSelect");
+
+    courses.forEach(c => {
+        const option = document.createElement("option");
+        option.value = c.id;
+        option.textContent = `${c.code} — ${c.name}`;
+        select.appendChild(option);
+    });
+
+    select.addEventListener("change", loadVideos);
+
+}
+
+
+async function loadVideos() {
+
+    const courseId = document.getElementById("courseSelect").value;
+    const container = document.getElementById("videosContainer");
+
+    if (!courseId) {
+        container.innerHTML = `<p class="empty-note">Select a course above to see its videos.</p>`;
+        return;
+    }
+
+    container.innerHTML = `<p class="empty-note">Loading...</p>`;
+
+    const { data: videos, error } =
+        await supabaseClient
+            .from("course_videos")
+            .select("*")
+            .eq("course_id", courseId)
+            .order("created_at", { ascending: false });
+
+    if (error) {
+        container.innerHTML = `<p class="empty-note">Unable to load: ${escapeHtml(error.message)}</p>`;
+        return;
+    }
+
+    if (!videos || videos.length === 0) {
+        container.innerHTML = `<p class="empty-note">No videos added for this course yet.</p>`;
+        return;
+    }
+
+    container.innerHTML = videos.map(v => `
+        <div class="video-item">
+            <div class="video-top">
+                <div>
+                    <div class="video-title">${escapeHtml(v.title)}</div>
+                    ${v.description ? `<div class="video-desc">${escapeHtml(v.description)}</div>` : ""}
+                </div>
+                <span class="video-type-tag ${v.video_type}">${v.video_type === "youtube" ? "▶️ YouTube" : "📁 Uploaded"}</span>
+            </div>
+            <div class="video-actions">
+                <a href="${escapeHtml(v.video_url)}" target="_blank" class="action-button" style="background:#ecfeff; color:#0e7490; text-decoration:none;">🔗 Open Link</a>
+                <button class="action-button delete-button" onclick="deleteVideo('${v.id}')">Delete</button>
+            </div>
+        </div>
+    `).join("");
+
+}
+
+
+async function addVideo() {
+
+    const courseId = document.getElementById("courseSelect").value;
+    const title = document.getElementById("videoTitle").value.trim();
+    const description = document.getElementById("videoDescription").value.trim();
+    const url = document.getElementById("videoUrl").value.trim();
+
+    if (!courseId) {
+        showMessage("Please select a course first.", "error");
+        return;
+    }
+
+    if (!title || !url) {
+        showMessage("Please fill in the title and the video link.", "error");
+        return;
+    }
+
+    const { error } =
+        await supabaseClient.from("course_videos").insert({
+            course_id: courseId,
+            lecturer_id: lecturerProfileId,
+            title: title,
+            description: description || null,
+            video_type: selectedVideoType,
+            video_url: url
+        });
+
+    if (error) {
+        showMessage("Unable to add video: " + error.message, "error");
+        return;
+    }
+
+    showMessage("Video added successfully.", "success");
+    document.getElementById("videoTitle").value = "";
+    document.getElementById("videoDescription").value = "";
+    document.getElementById("videoUrl").value = "";
+
+    await loadVideos();
+
+}
+
+
+async function deleteVideo(videoId) {
+
+    const confirmed = confirm("Delete this video?");
+    if (!confirmed) return;
+
+    const { error } = await supabaseClient.from("course_videos").delete().eq("id", videoId);
+
+    if (error) {
+        showMessage("Unable to delete: " + error.message, "error");
+        return;
+    }
+
+    showMessage("Video deleted.", "success");
+    await loadVideos();
+
+}
+
+
+startPage();
+
+</script>
+
+</body>
+</html>
