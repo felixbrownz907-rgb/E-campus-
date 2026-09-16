@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Video Library | E-Campus</title>
+
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: Arial, Helvetica, sans-serif; background: #f4f6f9; color: #172033; }
+
+.header {
+    background: #111827;
+    color: white;
+    padding: 18px 25px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+
+.logo { width: 55px; height: 55px; object-fit: contain; background: white; border-radius: 8px; }
+.header h1 { font-size: 22px; }
+.header p { color: #d4af37; font-size: 13px; margin-top: 3px; }
+
+.back-button {
+    margin-left: auto;
+    background: #d4af37;
+    color: #111827;
+    text-decoration: none;
+    padding: 10px 16px;
+    border-radius: 8px;
+    font-weight: bold;
+    font-size: 13px;
+}
+
+.container { max-width: 900px; margin: 25px auto; padding: 0 20px; }
+
+.page-title { margin-bottom: 20px; }
+.page-title h2 { font-size: 28px; margin-bottom: 6px; }
+.page-title p { color: #6b7280; font-size: 14px; }
+
+.course-selector { margin-bottom: 20px; }
+
+.course-selector select {
+    width: 100%;
+    padding: 13px;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    font-size: 15px;
+}
+
+.video-card {
+    background: white;
+    border-radius: 14px;
+    padding: 18px;
+    margin-bottom: 16px;
+    box-shadow: 0 3px 12px rgba(0,0,0,0.06);
+}
+
+.video-card h3 { font-size: 16px; margin-bottom: 6px; }
+.video-desc { color: #6b7280; font-size: 13px; margin-bottom: 14px; }
+
+.video-frame-wrap {
+    position: relative;
+    width: 100%;
+    padding-top: 56.25%; /* 16:9 */
+    border-radius: 10px;
+    overflow: hidden;
+    background: #111827;
+    margin-bottom: 10px;
+}
+
+.video-frame-wrap iframe,
+.video-frame-wrap video {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%;
+    height: 100%;
+    border: none;
+}
+
+.video-source-tag {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: bold;
+}
+
+.video-source-tag.youtube { background: #fee2e2; color: #991b1b; }
+.video-source-tag.uploaded { background: #dbeafe; color: #1d4ed8; }
+
+.empty-note { color: #9ca3af; text-align: center; padding: 30px 0; }
+
+</style>
+</head>
+
+
+<body>
+
+<header class="header">
+    <img src="https://pub-b3e2d39712e84119875e84c5ec5f5c09.r2.dev/Logo/IMG-20260816-WA0050(1).jpg" alt="Sunningdale University Logo" class="logo">
+    <div>
+        <h1>E-Campus</h1>
+        <p>Sunningdale University</p>
+    </div>
+    <a href="student-dashboard.html" class="back-button">← Dashboard</a>
+</header>
+
+
+<main class="container">
+
+    <section class="page-title">
+        <h2>Video Library</h2>
+        <p>Helpful videos from your lecturers, organized by course.</p>
+    </section>
+
+    <div class="course-selector">
+        <select id="courseSelect" onchange="loadVideos()">
+            <option value="">Select a course</option>
+        </select>
+    </div>
+
+    <div id="videosContainer"><p class="empty-note">Select a course above to see its videos.</p></div>
+
+</main>
+
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../supabase-config.js"></script>
+
+
+<script>
+
+function escapeHtml(value) {
+    return String(value ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+}
+
+
+function getYouTubeEmbedUrl(url) {
+
+    let videoId = null;
+
+    const watchMatch = url.match(/[?&]v=([^&]+)/);
+    const shortMatch = url.match(/youtu\.be\/([^?&]+)/);
+    const embedMatch = url.match(/embed\/([^?&]+)/);
+
+    if (watchMatch) videoId = watchMatch[1];
+    else if (shortMatch) videoId = shortMatch[1];
+    else if (embedMatch) videoId = embedMatch[1];
+
+    return videoId ? `https://www.youtube.com/embed/${videoId}` : null;
+
+}
+
+
+async function startPage() {
+
+    const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
+
+    if (authError || !user) {
+        window.location.href = "student-login.html";
+        return;
+    }
+
+    const { data: studentProfile } =
+        await supabaseClient.from("student_profiles").select("id").eq("user_id", user.id).single();
+
+    if (!studentProfile) return;
+
+    const { data: enrollments } =
+        await supabaseClient
+            .from("enrollments")
+            .select("courses ( id, code, name )")
+            .eq("student_id", studentProfile.id)
+            .eq("status", "enrolled");
+
+    const courses = (enrollments || []).map(e => e.courses).filter(Boolean);
+    const select = document.getElementById("courseSelect");
+
+    if (courses.length === 0) {
+        document.getElementById("videosContainer").innerHTML = `<p class="empty-note">You are not enrolled in any courses yet.</p>`;
+        return;
+    }
+
+    courses.forEach(c => {
+        const option = document.createElement("option");
+        option.value = c.id;
+        option.textContent = `${c.code} — ${c.name}`;
+        select.appendChild(option);
+    });
+
+}
+
+
+async function loadVideos() {
+
+    const courseId = document.getElementById("courseSelect").value;
+    const container = document.getElementById("videosContainer");
+
+    if (!courseId) {
+        container.innerHTML = `<p class="empty-note">Select a course above to see its videos.</p>`;
+        return;
+    }
+
+    container.innerHTML = `<p class="empty-note">Loading...</p>`;
+
+    const { data: videos, error } =
+        await supabaseClient
+            .from("course_videos")
+            .select("*")
+            .eq("course_id", courseId)
+            .order("created_at", { ascending: false });
+
+    if (error) {
+        container.innerHTML = `<p class="empty-note">Unable to load videos: ${escapeHtml(error.message)}</p>`;
+        return;
+    }
+
+    if (!videos || videos.length === 0) {
+        container.innerHTML = `<p class="empty-note">No videos have been added for this course yet.</p>`;
+        return;
+    }
+
+    container.innerHTML = videos.map(v => {
+
+        let playerHtml = "";
+
+        if (v.video_type === "youtube") {
+
+            const embedUrl = getYouTubeEmbedUrl(v.video_url);
+
+            playerHtml = embedUrl
+                ? `<div class="video-frame-wrap"><iframe src="${escapeHtml(embedUrl)}" allowfullscreen></iframe></div>`
+                : `<p class="empty-note">Unable to play this link directly. <a href="${escapeHtml(v.video_url)}" target="_blank">Open on YouTube</a></p>`;
+
+        } else {
+
+            playerHtml = `<div class="video-frame-wrap"><video src="${escapeHtml(v.video_url)}" controls></video></div>`;
+
+        }
+
+        return `
+            <div class="video-card">
+                <span class="video-source-tag ${v.video_type}">${v.video_type === "youtube" ? "▶️ YouTube" : "📁 Uploaded"}</span>
+                <h3>${escapeHtml(v.title)}</h3>
+                ${v.description ? `<div class="video-desc">${escapeHtml(v.description)}</div>` : ""}
+                ${playerHtml}
+            </div>
+        `;
+
+    }).join("");
+
+}
+
+
+startPage();
+
+</script>
+
+</body>
+</html>
