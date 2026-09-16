@@ -169,14 +169,22 @@ async function loadRecord() {
         return;
     }
 
+    // ===== SOURCE 1: The manual/legacy system — scores lecturers typed in directly on enrollments =====
     const { data: enrollments } =
         await supabaseClient
             .from("enrollments")
-            .select("courses ( id, code, name, credits )")
+            .select(`
+                course_id, final_score, final_grade, results_published,
+                ca1_score, ca1_published, ca2_score, ca2_published,
+                final_exam_score, final_exam_published,
+                courses ( id, code, name, credits )
+            `)
             .eq("student_id", studentProfile.id)
             .eq("status", "enrolled");
 
     const courses = (enrollments || []).map(e => e.courses).filter(Boolean);
+    const enrollmentByCourse = {};
+    (enrollments || []).forEach(e => { if (e.courses) enrollmentByCourse[e.courses.id] = e; });
 
     if (courses.length === 0) {
         container.innerHTML = `<p class="empty-note">You are not enrolled in any courses yet.</p>`;
@@ -185,6 +193,7 @@ async function loadRecord() {
 
     const courseIds = courses.map(c => c.id);
 
+    // ===== SOURCE 2: The automatic online-exam system — scores from quiz_attempts =====
     const { data: quizzes } =
         await supabaseClient
             .from("quizzes")
@@ -204,8 +213,6 @@ async function loadRecord() {
         attempts = data || [];
     }
 
-    // Best genuine (non-violation) score per quiz — this is the single source of truth.
-    // A real score here ALWAYS takes priority over any lock/prerequisite reasoning below.
     const bestScoreByQuiz = {};
     attempts.forEach(a => {
         if (a.score === null || a.violation_flag) return;
@@ -218,28 +225,41 @@ async function loadRecord() {
 
     courses.forEach(course => {
 
+        const enrollment = enrollmentByCourse[course.id] || {};
+
         const courseQuizzes = (quizzes || []).filter(q => q.course_id === course.id);
         const ca1Quiz = courseQuizzes.find(q => q.ca_number === 1);
         const ca2Quiz = courseQuizzes.find(q => q.ca_number === 2);
         const finalQuiz = courseQuizzes.find(q => q.is_final_exam);
 
-        const ca1Score = ca1Quiz ? bestScoreByQuiz[ca1Quiz.id] : undefined;
-        const ca2Score = ca2Quiz ? bestScoreByQuiz[ca2Quiz.id] : undefined;
-        const finalScore = finalQuiz ? bestScoreByQuiz[finalQuiz.id] : undefined;
+        // ===== MERGE: whichever source has a real, published/valid score wins. Never hide either one. =====
+        const ca1FromLegacy = (enrollment.ca1_published && enrollment.ca1_score !== null) ? enrollment.ca1_score : undefined;
+        const ca1FromQuiz = ca1Quiz ? bestScoreByQuiz[ca1Quiz.id] : undefined;
+        const ca1Score = ca1FromLegacy !== undefined ? ca1FromLegacy : ca1FromQuiz;
+
+        const ca2FromLegacy = (enrollment.ca2_published && enrollment.ca2_score !== null) ? enrollment.ca2_score : undefined;
+        const ca2FromQuiz = ca2Quiz ? bestScoreByQuiz[ca2Quiz.id] : undefined;
+        const ca2Score = ca2FromLegacy !== undefined ? ca2FromLegacy : ca2FromQuiz;
+
+        const finalFromLegacy = (enrollment.final_exam_published && enrollment.final_exam_score !== null) ? enrollment.final_exam_score : undefined;
+        const finalFromQuiz = finalQuiz ? bestScoreByQuiz[finalQuiz.id] : undefined;
+        const finalScore = finalFromLegacy !== undefined ? finalFromLegacy : finalFromQuiz;
 
         const ca1Passed = ca1Score !== undefined && ca1Score >= PASS_THRESHOLD;
         const ca2Passed = ca2Score !== undefined && ca2Score >= PASS_THRESHOLD;
 
-        // ===== FIX: a real recorded score is checked FIRST, before any lock/prerequisite reasoning. =====
-        // A completed exam must always show its mark, regardless of what the unlock chain says.
-        function renderResultBox(label, quiz, score, prerequisiteMet, lockMessage) {
+        const hasCA1Slot = !!(ca1Quiz || enrollment.ca1_score !== null && enrollment.ca1_score !== undefined);
+        const hasCA2Slot = !!(ca2Quiz || enrollment.ca2_score !== null && enrollment.ca2_score !== undefined);
+        const hasFinalSlot = !!(finalQuiz || enrollment.final_exam_score !== null && enrollment.final_exam_score !== undefined);
 
-            if (!quiz) {
-                return `<div class="result-box"><div class="label">${label}</div><div class="value pending">Not set up</div></div>`;
-            }
+        function renderResultBox(label, hasSlot, score, prerequisiteMet, lockMessage) {
 
             if (score !== undefined) {
                 return `<div class="result-box has-score"><div class="label">${label}</div><div class="value has-score">${score}%</div></div>`;
+            }
+
+            if (!hasSlot) {
+                return `<div class="result-box"><div class="label">${label}</div><div class="value pending">Not set up</div></div>`;
             }
 
             if (!prerequisiteMet) {
@@ -250,13 +270,15 @@ async function loadRecord() {
 
         }
 
-        const ca1Box = renderResultBox("CA1", ca1Quiz, ca1Score, true, "");
-        const ca2Box = renderResultBox("CA2", ca2Quiz, ca2Score, ca1Passed, "Locked until CA1 passed");
-        const finalBox = renderResultBox("Final Exam", finalQuiz, finalScore, ca1Passed && ca2Passed, "Locked until CA1 & CA2 passed");
+        const ca1Box = renderResultBox("CA1", hasCA1Slot, ca1Score, true, "");
+        const ca2Box = renderResultBox("CA2", hasCA2Slot, ca2Score, ca1Passed, "Locked until CA1 passed");
+        const finalBox = renderResultBox("Final Exam", hasFinalSlot, finalScore, ca1Passed && ca2Passed, "Locked until CA1 & CA2 passed");
 
-        // Overall: only shown once all three genuine scores exist
+        // Overall: prefer an explicitly published overall result; otherwise compute from the merged CA scores.
         let overallHtml;
-        if (ca1Score !== undefined && ca2Score !== undefined && finalScore !== undefined) {
+        if (enrollment.results_published && enrollment.final_score !== null && enrollment.final_score !== undefined) {
+            overallHtml = `<span class="overall-value has-score">${enrollment.final_score}%${enrollment.final_grade ? " (" + escapeHtml(enrollment.final_grade) + ")" : ""}</span>`;
+        } else if (ca1Score !== undefined && ca2Score !== undefined && finalScore !== undefined) {
             const overall = Math.round((ca1Score + ca2Score + finalScore) / 3);
             overallHtml = `<span class="overall-value has-score">${overall}%</span>`;
         } else {
