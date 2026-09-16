@@ -41,6 +41,10 @@ select, input, textarea {
 
 textarea { min-height: 70px; resize: vertical; }
 
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+.field-hint { font-size: 11px; color: #9ca3af; margin-top: -10px; margin-bottom: 14px; }
+
 .type-choice { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px; }
 
 .type-option {
@@ -67,6 +71,17 @@ textarea { min-height: 70px; resize: vertical; }
     width: 100%;
 }
 
+.term-group-heading {
+    font-size: 13px;
+    font-weight: bold;
+    color: #6b7280;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin: 18px 0 10px;
+}
+
+.term-group-heading:first-child { margin-top: 0; }
+
 .video-item {
     background: white;
     border-radius: 12px;
@@ -77,6 +92,7 @@ textarea { min-height: 70px; resize: vertical; }
 
 .video-top { display: flex; justify-content: space-between; align-items: start; gap: 10px; flex-wrap: wrap; }
 .video-title { font-weight: bold; font-size: 15px; }
+.video-topic-tag { color: #0e7490; font-size: 11px; font-weight: bold; margin-top: 2px; }
 .video-desc { color: #6b7280; font-size: 13px; margin-top: 4px; }
 .video-type-tag { padding: 3px 9px; border-radius: 20px; font-size: 11px; font-weight: bold; }
 .video-type-tag.youtube { background: #fee2e2; color: #991b1b; }
@@ -88,6 +104,10 @@ textarea { min-height: 70px; resize: vertical; }
 .delete-button { background: #fee2e2; color: #991b1b; }
 
 .empty-note { color: #9ca3af; text-align: center; padding: 20px 0; }
+
+@media (max-width: 600px) {
+    .form-row { grid-template-columns: 1fr; }
+}
 
 </style>
 </head>
@@ -124,6 +144,18 @@ textarea { min-height: 70px; resize: vertical; }
         <select id="courseSelect">
             <option value="">Select course</option>
         </select>
+
+        <div class="form-row">
+            <div>
+                <label for="termLabel">Term / Year Label</label>
+                <input type="text" id="termLabel" placeholder="e.g. Term 1, Year 1, Semester 2">
+            </div>
+            <div>
+                <label for="videoTopic">Topic</label>
+                <input type="text" id="videoTopic" placeholder="e.g. Supply and Demand">
+            </div>
+        </div>
+        <div class="field-hint">These help students find this video quickly — use whatever terms your course actually follows.</div>
 
         <label for="videoTitle">Video Title</label>
         <input type="text" id="videoTitle" placeholder="e.g. Understanding Supply and Demand">
@@ -266,20 +298,40 @@ async function loadVideos() {
         return;
     }
 
-    container.innerHTML = videos.map(v => `
-        <div class="video-item">
-            <div class="video-top">
-                <div>
-                    <div class="video-title">${escapeHtml(v.title)}</div>
-                    ${v.description ? `<div class="video-desc">${escapeHtml(v.description)}</div>` : ""}
+    // Group by term_label so lecturers see their own videos organized the same way students will
+    const groups = {};
+    const NO_TERM_LABEL = "No term/year label set";
+
+    videos.forEach(v => {
+        const key = v.term_label && v.term_label.trim() ? v.term_label.trim() : NO_TERM_LABEL;
+        if (!groups[key]) groups[key] = [];
+        groups[key].push(v);
+    });
+
+    const groupNames = Object.keys(groups).sort((a, b) => {
+        if (a === NO_TERM_LABEL) return 1;
+        if (b === NO_TERM_LABEL) return -1;
+        return a.localeCompare(b);
+    });
+
+    container.innerHTML = groupNames.map(groupName => `
+        <div class="term-group-heading">${escapeHtml(groupName)}</div>
+        ${groups[groupName].map(v => `
+            <div class="video-item">
+                <div class="video-top">
+                    <div>
+                        <div class="video-title">${escapeHtml(v.title)}</div>
+                        ${v.topic ? `<div class="video-topic-tag">📌 ${escapeHtml(v.topic)}</div>` : ""}
+                        ${v.description ? `<div class="video-desc">${escapeHtml(v.description)}</div>` : ""}
+                    </div>
+                    <span class="video-type-tag ${v.video_type}">${v.video_type === "youtube" ? "▶️ YouTube" : "📁 Uploaded"}</span>
                 </div>
-                <span class="video-type-tag ${v.video_type}">${v.video_type === "youtube" ? "▶️ YouTube" : "📁 Uploaded"}</span>
+                <div class="video-actions">
+                    <a href="${escapeHtml(v.video_url)}" target="_blank" class="action-button" style="background:#ecfeff; color:#0e7490; text-decoration:none;">🔗 Open Link</a>
+                    <button class="action-button delete-button" onclick="deleteVideo('${v.id}')">Delete</button>
+                </div>
             </div>
-            <div class="video-actions">
-                <a href="${escapeHtml(v.video_url)}" target="_blank" class="action-button" style="background:#ecfeff; color:#0e7490; text-decoration:none;">🔗 Open Link</a>
-                <button class="action-button delete-button" onclick="deleteVideo('${v.id}')">Delete</button>
-            </div>
-        </div>
+        `).join("")}
     `).join("");
 
 }
@@ -288,6 +340,8 @@ async function loadVideos() {
 async function addVideo() {
 
     const courseId = document.getElementById("courseSelect").value;
+    const termLabel = document.getElementById("termLabel").value.trim();
+    const topic = document.getElementById("videoTopic").value.trim();
     const title = document.getElementById("videoTitle").value.trim();
     const description = document.getElementById("videoDescription").value.trim();
     const url = document.getElementById("videoUrl").value.trim();
@@ -308,6 +362,8 @@ async function addVideo() {
             lecturer_id: lecturerProfileId,
             title: title,
             description: description || null,
+            term_label: termLabel || null,
+            topic: topic || null,
             video_type: selectedVideoType,
             video_url: url
         });
@@ -321,6 +377,8 @@ async function addVideo() {
     document.getElementById("videoTitle").value = "";
     document.getElementById("videoDescription").value = "";
     document.getElementById("videoUrl").value = "";
+    document.getElementById("videoTopic").value = "";
+    // Term label intentionally kept — lecturers usually add several videos for the same term in a row
 
     await loadVideos();
 
