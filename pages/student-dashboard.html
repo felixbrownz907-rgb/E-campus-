@@ -506,7 +506,7 @@ body {
         </a>
 
         <a href="student-academic-records.html" class="menu-item">
-            <span class="item-left">📈 Results — Academic Records</span>
+            <span class="item-left">📈 Results — My Record</span>
             <span class="arrow">›</span>
         </a>
 
@@ -520,6 +520,11 @@ body {
 
         <a href="student-courses.html" class="menu-item">
             <span class="item-left">📖 My Lessons</span>
+            <span class="arrow">›</span>
+        </a>
+
+        <a href="student-videos.html" class="menu-item">
+            <span class="item-left">🎬 Video Library</span>
             <span class="arrow">›</span>
         </a>
 
@@ -714,6 +719,7 @@ body {
             <a href="student-courses.html" class="quick-action">▶ Continue Learning</a>
             <a href="student-register-courses.html" class="quick-action">📋 Register for Courses</a>
             <a href="student-timetable.html" class="quick-action">🗓️ My Timetable</a>
+            <a href="student-videos.html" class="quick-action">🎬 Video Library</a>
             <button class="quick-action" onclick="openMenu()" style="border:1px solid #e5e7eb; background:#f4f6f9;">☰ See More</button>
         </div>
     </section>
@@ -1362,7 +1368,7 @@ async function startDashboard() {
     }
 
 
-    // KEY FIX: broadcast announcements are (user_id IS NULL AND course_id IS NULL).
+    // Broadcast announcements are (user_id IS NULL AND course_id IS NULL).
     // A personal notification (like the acceptance-letter alert) has a real user_id set,
     // so it now only matches the intended student instead of leaking to everyone.
     const orConditions = [`user_id.eq.${user.id}`, `and(user_id.is.null,course_id.is.null)`];
