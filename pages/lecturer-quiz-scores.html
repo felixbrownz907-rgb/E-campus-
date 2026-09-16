@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Student Results | Lecturer Portal</title>
+
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: Arial, Helvetica, sans-serif; background: #f4f6f9; color: #172033; }
+
+.header { background: #0e7490; color: white; padding: 18px 25px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+.brand { display: flex; align-items: center; gap: 14px; }
+.logo { width: 55px; height: 55px; object-fit: contain; background: white; border-radius: 8px; }
+.brand h1 { font-size: 22px; }
+.brand p { color: #cffafe; margin-top: 3px; font-size: 13px; }
+.back-button { background: white; color: #0e7490; text-decoration: none; padding: 10px 16px; border-radius: 8px; font-weight: bold; font-size: 13px; }
+
+.container { max-width: 1000px; margin: 25px auto; padding: 0 20px; }
+.page-title { margin-bottom: 20px; }
+.page-title h2 { font-size: 26px; margin-bottom: 6px; }
+.page-title p { color: #6b7280; font-size: 14px; }
+
+.selectors { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px; }
+.selectors select { padding: 13px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 15px; }
+
+.summary-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 20px; }
+
+.summary-box {
+    background: white;
+    border-radius: 12px;
+    padding: 16px;
+    text-align: center;
+    box-shadow: 0 3px 12px rgba(0,0,0,0.06);
+}
+
+.summary-box .value { font-size: 22px; font-weight: bold; }
+.summary-box .label { font-size: 12px; color: #6b7280; margin-top: 4px; }
+.summary-box.pass .value { color: #166534; }
+.summary-box.fail .value { color: #991b1b; }
+.summary-box.pending .value { color: #92400e; }
+
+.results-table {
+    background: white;
+    border-radius: 14px;
+    overflow: hidden;
+    box-shadow: 0 3px 12px rgba(0,0,0,0.06);
+}
+
+.results-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr 100px 130px;
+    gap: 10px;
+    padding: 14px 18px;
+    border-bottom: 1px solid #f0f1f3;
+    align-items: center;
+    font-size: 14px;
+}
+
+.results-row.header-row {
+    background: #f4f6f9;
+    font-weight: bold;
+    font-size: 12px;
+    color: #6b7280;
+    text-transform: uppercase;
+}
+
+.results-row:last-child { border-bottom: none; }
+
+.student-name { font-weight: bold; }
+.student-number { font-size: 12px; color: #6b7280; }
+
+.score-value { font-weight: bold; font-size: 16px; }
+.score-value.pass { color: #166534; }
+.score-value.fail { color: #991b1b; }
+.score-value.pending { color: #92400e; }
+
+.status-tag {
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: bold;
+    display: inline-block;
+}
+
+.status-tag.pass { background: #dcfce7; color: #166534; }
+.status-tag.fail { background: #fee2e2; color: #991b1b; }
+.status-tag.pending { background: #fef3c7; color: #92400e; }
+.status-tag.violation { background: #fee2e2; color: #991b1b; }
+.status-tag.not-attempted { background: #f3f4f6; color: #9ca3af; }
+
+.grade-button {
+    background: #111827;
+    color: white;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.empty-note { color: #9ca3af; text-align: center; padding: 30px 0; }
+
+.modal-overlay {
+    display: none;
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 300;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+
+.modal-overlay.show { display: flex; }
+
+.modal-box {
+    background: white;
+    border-radius: 14px;
+    padding: 24px;
+    max-width: 600px;
+    width: 100%;
+    max-height: 85vh;
+    overflow-y: auto;
+}
+
+.modal-box h3 { margin-bottom: 16px; }
+
+.grade-question { padding: 14px; border: 1px solid #e5e7eb; border-radius: 10px; margin-bottom: 12px; }
+.grade-question .qtext { font-size: 13px; font-weight: bold; margin-bottom: 8px; }
+.grade-question .student-answer { background: #f4f6f9; padding: 10px; border-radius: 8px; font-size: 13px; margin-bottom: 8px; }
+.grade-question input { width: 100px; padding: 8px; border: 1px solid #d1d5db; border-radius: 6px; }
+
+.modal-buttons { display: flex; gap: 10px; margin-top: 16px; }
+.modal-buttons button { flex: 1; padding: 12px; border-radius: 8px; font-weight: bold; border: none; cursor: pointer; }
+.save-grade-button { background: #166534; color: white; }
+.close-modal-button { background: #f3f4f6; color: #374151; }
+
+@media (max-width: 700px) {
+    .results-row { grid-template-columns: 1fr 90px 90px; }
+    .results-row .col-course { display: none; }
+    .summary-grid { grid-template-columns: 1fr 1fr; }
+}
+
+</style>
+</head>
+
+
+<body>
+
+<header class="header">
+    <div class="brand">
+        <img src="https://pub-b3e2d39712e84119875e84c5ec5f5c09.r2.dev/Logo/IMG-20260816-WA0050(1).jpg" alt="Sunningdale University Logo" class="logo">
+        <div>
+            <h1>E-Campus</h1>
+            <p>Lecturer Portal</p>
+        </div>
+    </div>
+    <a href="lecturer-dashboard.html" class="back-button">← Dashboard</a>
+</header>
+
+
+<main class="container">
+
+    <section class="page-title">
+        <h2>Student Results</h2>
+        <p>Select a course and an exam or quiz to see every student's score in one place.</p>
+    </section>
+
+    <div class="selectors">
+        <select id="courseSelect" onchange="loadQuizzesForCourse()">
+            <option value="">Select course</option>
+        </select>
+        <select id="quizSelect" disabled onchange="loadResults()">
+            <option value="">Select exam/quiz first</option>
+        </select>
+    </div>
+
+    <div id="summaryContainer"></div>
+
+    <div id="resultsContainer">
+        <p class="empty-note">Select a course and an exam or quiz above to see results.</p>
+    </div>
+
+</main>
+
+
+<div class="modal-overlay" id="gradeModal">
+    <div class="modal-box">
+        <h3 id="gradeModalTitle">Grade Attempt</h3>
+        <div id="gradeQuestionsContainer"></div>
+        <div class="modal-buttons">
+            <button class="save-grade-button" onclick="saveManualGrade()">Save Grade</button>
+            <button class="close-modal-button" onclick="closeGradeModal()">Cancel</button>
+        </div>
+    </div>
+</div>
+
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../supabase-config.js"></script>
+
+
+<script>
+
+const PASS_THRESHOLD = 70;
+let lecturerProfileId = null;
+let currentGradingAttemptId = null;
+let currentGradingQuestions = [];
+
+function escapeHtml(value) {
+    return String(value ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+}
+
+
+async function startPage() {
+
+    const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
+
+    if (authError || !user) {
+        window.location.href = "lecturer-login.html";
+        return;
+    }
+
+    const { data: lecturerProfile } =
+        await supabaseClient.from("lecturer_profiles").select("id").eq("user_id", user.id).single();
+
+    if (!lecturerProfile) return;
+
+    lecturerProfileId = lecturerProfile.id;
+
+    const { data: assignments } =
+        await supabaseClient
+            .from("course_lecturers")
+            .select("courses ( id, code, name )")
+            .eq("lecturer_id", lecturerProfileId);
+
+    const courses = (assignments || []).map(a => a.courses).filter(Boolean);
+    const select = document.getElementById("courseSelect");
+
+    courses.forEach(c => {
+        const option = document.createElement("option");
+        option.value = c.id;
+        option.textContent = `${c.code} — ${c.name}`;
+        select.appendChild(option);
+    });
+
+}
+
+
+async function loadQuizzesForCourse() {
+
+    const courseId = document.getElementById("courseSelect").value;
+    const quizSelect = document.getElementById("quizSelect");
+
+    document.getElementById("summaryContainer").innerHTML = "";
+    document.getElementById("resultsContainer").innerHTML = `<p class="empty-note">Select an exam or quiz above.</p>`;
+
+    if (!courseId) {
+        quizSelect.innerHTML = `<option value="">Select exam/quiz first</option>`;
+        quizSelect.disabled = true;
+        return;
+    }
+
+    const { data: quizzes } =
+        await supabaseClient
+            .from("quizzes")
+            .select("id, title, ca_number, is_final_exam, is_exam")
+            .eq("course_id", courseId)
+            .order("ca_number");
+
+    quizSelect.innerHTML = `<option value="">Select exam/quiz</option>`;
+
+    (quizzes || []).forEach(q => {
+        const label = q.is_final_exam ? "Final Exam" : (q.ca_number ? `CA${q.ca_number}` : "Quiz");
+        const option = document.createElement("option");
+        option.value = q.id;
+        option.textContent = `${label} — ${q.title}`;
+        quizSelect.appendChild(option);
+    });
+
+    quizSelect.disabled = false;
+
+}
+
+
+async function loadResults() {
+
+    const quizId = document.getElementById("quizSelect").value;
+    const courseId = document.getElementById("courseSelect").value;
+    const summaryContainer = document.getElementById("summaryContainer");
+    const resultsContainer = document.getElementById("resultsContainer");
+
+    if (!quizId) {
+        summaryContainer.innerHTML = "";
+        resultsContainer.innerHTML = `<p class="empty-note">Select an exam or quiz above.</p>`;
+        return;
+    }
+
+    resultsContainer.innerHTML = `<p class="empty-note">Loading...</p>`;
+
+    const { data: enrollments } =
+        await supabaseClient
+            .from("enrollments")
+            .select("student_id, student_profiles ( id, student_number, user_profiles ( first_name, last_name ) )")
+            .eq("course_id", courseId)
+            .eq("status", "enrolled");
+
+    const students = (enrollments || []).map(e => e.student_profiles).filter(Boolean);
+
+    const { data: attempts } =
+        await supabaseClient
+            .from("quiz_attempts")
+            .select("id, student_id, score, violation_flag, cleared_by_lecturer, submitted_at, answers")
+            .eq("quiz_id", quizId);
+
+    const { data: studentProfilesFull } =
+        await supabaseClient
+            .from("student_profiles")
+            .select("id, user_id")
+            .in("id", students.map(s => s.id));
+
+    const profileIdToUserId = {};
+    (studentProfilesFull || []).forEach(sp => profileIdToUserId[sp.id] = sp.user_id);
+
+    const attemptsByUserId = {};
+    (attempts || []).forEach(a => {
+        if (!attemptsByUserId[a.student_id]) attemptsByUserId[a.student_id] = [];
+        attemptsByUserId[a.student_id].push(a);
+    });
+
+    let passCount = 0, failCount = 0, pendingCount = 0, notAttemptedCount = 0;
+
+    const rows = students.map(s => {
+
+        const name = s.user_profiles ? `${s.user_profiles.first_name} ${s.user_profiles.last_name}` : "Unknown";
+        const userId = profileIdToUserId[s.id];
+        const studentAttempts = attemptsByUserId[userId] || [];
+
+        const validAttempts = studentAttempts.filter(a => !a.violation_flag && a.score !== null);
+        const bestAttempt = validAttempts.length > 0
+            ? validAttempts.reduce((best, a) => (a.score > best.score) ? a : best, validAttempts[0])
+            : null;
+
+        const needsGradingAttempt = studentAttempts.find(a => !a.violation_flag && a.score === null && Object.values(a.answers || {}).some(v => v !== null && v !== ""));
+
+        const pendingViolation = studentAttempts.find(a => a.violation_flag && !a.cleared_by_lecturer);
+
+        let statusClass = "not-attempted";
+        let statusText = "Not Attempted";
+        let scoreDisplay = "—";
+        let attemptId = null;
+
+        if (bestAttempt) {
+
+            attemptId = bestAttempt.id;
+
+            if (bestAttempt.score >= PASS_THRESHOLD) {
+                statusClass = "pass";
+                statusText = "Pass";
+                scoreDisplay = bestAttempt.score + "%";
+                passCount++;
+            } else {
+                statusClass = "fail";
+                statusText = "Fail";
+                scoreDisplay = bestAttempt.score + "%";
+                failCount++;
+            }
+
+        } else if (needsGradingAttempt) {
+
+            statusClass = "pending";
+            statusText = "Needs Manual Grading";
+            scoreDisplay = "Pending";
+            attemptId = needsGradingAttempt.id;
+            pendingCount++;
+
+        } else if (pendingViolation) {
+
+            statusClass = "violation";
+            statusText = "Flagged — Awaiting Review";
+            attemptId = pendingViolation.id;
+            pendingCount++;
+
+        } else {
+            notAttemptedCount++;
+        }
+
+        return {
+            name, studentNumber: s.student_number, statusClass, statusText, scoreDisplay, attemptId,
+            needsGrading: statusClass === "pending"
+        };
+
+    });
+
+    rows.sort((a, b) => a.name.localeCompare(b.name));
+
+    summaryContainer.innerHTML = `
+        <div class="summary-grid">
+            <div class="summary-box pass"><div class="value">${passCount}</div><div class="label">Passed</div></div>
+            <div class="summary-box fail"><div class="value">${failCount}</div><div class="label">Failed</div></div>
+            <div class="summary-box pending"><div class="value">${pendingCount}</div><div class="label">Needs Attention</div></div>
+            <div class="summary-box"><div class="value">${notAttemptedCount}</div><div class="label">Not Attempted</div></div>
+        </div>
+    `;
+
+    if (rows.length === 0) {
+        resultsContainer.innerHTML = `<p class="empty-note">No students enrolled in this course yet.</p>`;
+        return;
+    }
+
+    resultsContainer.innerHTML = `
+        <div class="results-table">
+            <div class="results-row header-row">
+                <div>Student</div>
+                <div>Status</div>
+                <div>Score</div>
+                <div></div>
+            </div>
+            ${rows.map(r => `
+                <div class="results-row">
+                    <div>
+                        <div class="student-name">${escapeHtml(r.name)}</div>
+                        <div class="student-number">${escapeHtml(r.studentNumber)}</div>
+                    </div>
+                    <div><span class="status-tag ${r.statusClass}">${r.statusText}</span></div>
+                    <div class="score-value ${r.statusClass}">${r.scoreDisplay}</div>
+                    <div>
+                        ${r.needsGrading && r.attemptId ? `<button class="grade-button" onclick="openGradeModal('${r.attemptId}', '${escapeHtml(r.name)}')">Grade</button>` : ""}
+                    </div>
+                </div>
+            `).join("")}
+        </div>
+    `;
+
+}
+
+
+async function openGradeModal(attemptId, studentName) {
+
+    currentGradingAttemptId = attemptId;
+
+    const { data: attempt } =
+        await supabaseClient.from("quiz_attempts").select("quiz_id, answers").eq("id", attemptId).single();
+
+    if (!attempt) return;
+
+    const { data: questions } =
+        await supabaseClient.from("quiz_questions").select("*").eq("quiz_id", attempt.quiz_id);
+
+    currentGradingQuestions = (questions || []).filter(q => q.question_type === "short_answer");
+
+    document.getElementById("gradeModalTitle").textContent = `Grade ${studentName}'s Attempt`;
+
+    const container = document.getElementById("gradeQuestionsContainer");
+    container.innerHTML = currentGradingQuestions.map(q => `
+        <div class="grade-question">
+            <div class="qtext">${escapeHtml(q.question_text)}</div>
+            <div class="student-answer">${escapeHtml(attempt.answers?.[q.id] || "(No answer given)")}</div>
+            <label style="font-size:12px; font-weight:bold;">Marks awarded (out of ${q.points || 1}):</label><br>
+            <input type="number" id="grade-${q.id}" min="0" max="${q.points || 1}" step="0.5">
+        </div>
+    `).join("");
+
+    document.getElementById("gradeModal").classList.add("show");
+
+}
+
+
+function closeGradeModal() {
+    document.getElementById("gradeModal").classList.remove("show");
+    currentGradingAttemptId = null;
+}
+
+
+async function saveManualGrade() {
+
+    if (!currentGradingAttemptId) return;
+
+    let totalAwarded = 0;
+    let totalPossible = 0;
+
+    currentGradingQuestions.forEach(q => {
+        const input = document.getElementById(`grade-${q.id}`);
+        const awarded = input.value ? Number(input.value) : 0;
+        totalAwarded += awarded;
+        totalPossible += Number(q.points || 1);
+    });
+
+    const { data: attempt } = await supabaseClient.from("quiz_attempts").select("quiz_id, answers").eq("id", currentGradingAttemptId).single();
+    const { data: allQuestions } = await supabaseClient.from("quiz_questions").select("*").eq("quiz_id", attempt.quiz_id);
+
+    let autoAwarded = 0;
+    let autoPossible = 0;
+
+    (allQuestions || []).forEach(q => {
+        if (q.question_type === "short_answer") return;
+        autoPossible += 1;
+        const studentAnswer = attempt.answers?.[q.id];
+        if (studentAnswer && q.correct_answer && studentAnswer === q.correct_answer) {
+            autoAwarded += 1;
+        }
+    });
+
+    const combinedAwarded = totalAwarded + autoAwarded;
+    const combinedPossible = totalPossible + autoPossible;
+
+    const finalScore = combinedPossible > 0 ? Math.round((combinedAwarded / combinedPossible) * 100) : 0;
+
+    const { error } =
+        await supabaseClient
+            .from("quiz_attempts")
+            .update({ score: finalScore })
+            .eq("id", currentGradingAttemptId);
+
+    if (error) {
+        alert("Unable to save grade: " + error.message);
+        return;
+    }
+
+    closeGradeModal();
+    await loadResults();
+
+}
+
+
+startPage();
+
+</script>
+
+</body>
+</html>
