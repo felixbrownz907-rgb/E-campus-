@@ -3,80 +3,107 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Academic Records | E-Campus</title>
+<title>My Record | E-Campus</title>
 
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 body { font-family: Arial, Helvetica, sans-serif; background: #f4f6f9; color: #172033; }
 
-.header { background: #111827; color: white; padding: 18px 25px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
-.brand { display: flex; align-items: center; gap: 14px; }
-.logo { width: 55px; height: 55px; object-fit: contain; background: white; border-radius: 8px; }
-.brand h1 { font-size: 22px; }
-.brand p { color: #d4af37; margin-top: 3px; font-size: 13px; }
-.back-button { background: #d4af37; color: #111827; text-decoration: none; padding: 10px 16px; border-radius: 8px; font-weight: bold; font-size: 13px; }
-
-.container { max-width: 900px; margin: 25px auto; padding: 0 20px; }
-.page-title { margin-bottom: 20px; }
-.page-title h2 { font-size: 28px; margin-bottom: 6px; }
-.page-title p { color: #6b7280; }
-
-.term-block { margin-bottom: 24px; }
-.term-heading { font-size: 16px; font-weight: bold; margin-bottom: 10px; color: #374151; }
-
-.course-card { background: white; border-radius: 14px; padding: 18px; margin-bottom: 12px; box-shadow: 0 3px 12px rgba(0,0,0,0.06); }
-.course-code { color: #d4af37; font-size: 12px; font-weight: bold; }
-.course-name { font-size: 16px; font-weight: bold; margin: 4px 0; }
-.credits-note { color: #6b7280; font-size: 12px; margin-bottom: 12px; }
-
-.assessment-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 12px; }
-
-.assessment-box { background: #f9fafb; border-radius: 8px; padding: 10px; text-align: center; }
-.assessment-box .label { font-size: 11px; color: #6b7280; font-weight: bold; margin-bottom: 4px; }
-.assessment-box .score { font-size: 16px; font-weight: bold; }
-.assessment-box .score.not-published { font-size: 11px; color: #9ca3af; font-weight: normal; }
-
-.overall-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 12px;
+.header {
     background: #111827;
     color: white;
-    border-radius: 10px;
-    flex-wrap: wrap;
-    gap: 8px;
+    padding: 18px 25px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
 }
 
-.overall-row .score { font-size: 22px; font-weight: bold; color: #d4af37; }
-.overall-row .comment { font-size: 12px; font-weight: bold; padding: 3px 10px; border-radius: 20px; }
-.comment.Clear-Pass { background: #dcfce7; color: #166534; }
-.comment.Repeat { background: #fee2e2; color: #991b1b; }
-.comment.Supplementary { background: #fef3c7; color: #92400e; }
-.comment.Fail { background: #fee2e2; color: #991b1b; }
+.logo { width: 55px; height: 55px; object-fit: contain; background: white; border-radius: 8px; }
+.header h1 { font-size: 22px; }
+.header p { color: #d4af37; font-size: 13px; margin-top: 3px; }
 
-.pending-note { color: #9ca3af; font-size: 13px; text-align: center; padding: 10px 0; }
+.back-button {
+    margin-left: auto;
+    background: #d4af37;
+    color: #111827;
+    text-decoration: none;
+    padding: 10px 16px;
+    border-radius: 8px;
+    font-weight: bold;
+    font-size: 13px;
+}
 
-.summary-card {
-    background: #111827;
-    color: white;
+.container { max-width: 900px; margin: 25px auto; padding: 0 20px; }
+
+.page-title { margin-bottom: 20px; }
+.page-title h2 { font-size: 28px; margin-bottom: 6px; }
+.page-title p { color: #6b7280; font-size: 14px; }
+
+.term-heading {
+    font-size: 13px;
+    font-weight: bold;
+    color: #6b7280;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin: 24px 0 12px;
+}
+
+.course-card {
+    background: white;
     border-radius: 14px;
     padding: 20px;
-    margin-bottom: 24px;
+    margin-bottom: 14px;
+    box-shadow: 0 3px 12px rgba(0,0,0,0.06);
+}
+
+.course-top { margin-bottom: 14px; }
+.course-code { color: #d4af37; font-size: 12px; font-weight: bold; }
+.course-name { font-size: 17px; font-weight: bold; margin-top: 2px; }
+.course-credits { font-size: 12px; color: #6b7280; margin-top: 2px; }
+
+.results-grid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    gap: 14px;
+    gap: 10px;
+    margin-bottom: 12px;
+}
+
+.result-box {
+    background: #f9fafb;
+    border-radius: 10px;
+    padding: 12px;
     text-align: center;
 }
 
-.summary-card .value { font-size: 24px; font-weight: bold; color: #d4af37; }
-.summary-card .label { font-size: 12px; color: #d1d5db; margin-top: 4px; }
+.result-box.has-score { background: #f0fdf4; }
+.result-box.locked { background: #fef2f2; }
+
+.result-box .label { font-size: 11px; color: #6b7280; font-weight: bold; margin-bottom: 6px; }
+.result-box .value { font-size: 18px; font-weight: bold; }
+.result-box .value.has-score { color: #166534; }
+.result-box .value.pending { color: #9ca3af; font-size: 12px; font-weight: normal; }
+.result-box .value.locked { color: #991b1b; font-size: 11px; font-weight: normal; }
+
+.overall-row {
+    border-top: 1px solid #e5e7eb;
+    padding-top: 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 13px;
+}
+
+.overall-row .overall-label { font-weight: bold; }
+.overall-row .overall-value { font-weight: bold; font-size: 16px; }
+.overall-row .overall-value.has-score { color: #166534; }
+.overall-row .overall-value.pending { color: #9ca3af; font-size: 12px; font-weight: normal; }
 
 .empty-note { color: #9ca3af; text-align: center; padding: 30px 0; }
 
 @media (max-width: 600px) {
-    .assessment-grid { grid-template-columns: 1fr 1fr 1fr; gap: 6px; }
+    .results-grid { grid-template-columns: 1fr; }
 }
+
 </style>
 </head>
 
@@ -84,12 +111,10 @@ body { font-family: Arial, Helvetica, sans-serif; background: #f4f6f9; color: #1
 <body>
 
 <header class="header">
-    <div class="brand">
-        <img src="https://pub-b3e2d39712e84119875e84c5ec5f5c09.r2.dev/Logo/IMG-20260816-WA0050(1).jpg" alt="Sunningdale University Logo" class="logo">
-        <div>
-            <h1>E-Campus</h1>
-            <p>Sunningdale University</p>
-        </div>
+    <img src="https://pub-b3e2d39712e84119875e84c5ec5f5c09.r2.dev/Logo/IMG-20260816-WA0050(1).jpg" alt="Sunningdale University Logo" class="logo">
+    <div>
+        <h1>E-Campus</h1>
+        <p>Sunningdale University</p>
     </div>
     <a href="student-dashboard.html" class="back-button">← Dashboard</a>
 </header>
@@ -98,15 +123,11 @@ body { font-family: Arial, Helvetica, sans-serif; background: #f4f6f9; color: #1
 <main class="container">
 
     <section class="page-title">
-        <h2>Academic Records</h2>
-        <p>Your CA1, CA2, Final Exam, and Overall results — each appears here only once your lecturer publishes it.</p>
+        <h2>My Record</h2>
+        <p>Your CA1, CA2, Final Exam and Overall results — shown here the moment your exam is scored, automatically.</p>
     </section>
 
-    <div id="summaryContainer"></div>
-
-    <div id="recordsContainer">
-        <p class="empty-note">Loading your records...</p>
-    </div>
+    <div id="recordContainer"><p class="empty-note">Loading...</p></div>
 
 </main>
 
@@ -116,6 +137,8 @@ body { font-family: Arial, Helvetica, sans-serif; background: #f4f6f9; color: #1
 
 
 <script>
+
+const PASS_THRESHOLD = 70;
 
 function escapeHtml(value) {
     return String(value ?? "")
@@ -127,15 +150,14 @@ function escapeHtml(value) {
 }
 
 
-async function loadRecords() {
+async function loadRecord() {
 
-    const container = document.getElementById("recordsContainer");
-    const summaryContainer = document.getElementById("summaryContainer");
+    const container = document.getElementById("recordContainer");
 
     const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
 
     if (authError || !user) {
-        container.innerHTML = `<p class="empty-note">Please log in to view your records.</p>`;
+        window.location.href = "student-login.html";
         return;
     }
 
@@ -147,114 +169,131 @@ async function loadRecords() {
         return;
     }
 
-    const { data: enrollments, error } =
+    const { data: enrollments } =
         await supabaseClient
             .from("enrollments")
-            .select(`
-                id, final_score, results_comment, results_published,
-                ca1_score, ca1_published, ca2_score, ca2_published,
-                final_exam_score, final_exam_published,
-                courses ( code, name, credits ),
-                academic_terms ( name )
-            `)
+            .select("courses ( id, code, name, credits )")
             .eq("student_id", studentProfile.id)
-            .eq("status", "enrolled")
-            .order("created_at", { ascending: false });
+            .eq("status", "enrolled");
 
-    if (error) {
-        container.innerHTML = `<p class="empty-note">Unable to load records: ${escapeHtml(error.message)}</p>`;
+    const courses = (enrollments || []).map(e => e.courses).filter(Boolean);
+
+    if (courses.length === 0) {
+        container.innerHTML = `<p class="empty-note">You are not enrolled in any courses yet.</p>`;
         return;
     }
 
-    if (!enrollments || enrollments.length === 0) {
-        container.innerHTML = `<p class="empty-note">You have no course records yet.</p>`;
-        return;
+    const courseIds = courses.map(c => c.id);
+
+    const { data: quizzes } =
+        await supabaseClient
+            .from("quizzes")
+            .select("id, course_id, ca_number, is_final_exam")
+            .in("course_id", courseIds);
+
+    const quizIds = (quizzes || []).map(q => q.id);
+
+    let attempts = [];
+    if (quizIds.length > 0) {
+        const { data } =
+            await supabaseClient
+                .from("quiz_attempts")
+                .select("quiz_id, score, violation_flag")
+                .eq("student_id", user.id)
+                .in("quiz_id", quizIds);
+        attempts = data || [];
     }
 
-    const publishedOverall = enrollments.filter(e => e.results_published && e.final_score !== null);
+    // Best genuine (non-violation) score per quiz
+    const bestScoreByQuiz = {};
+    attempts.forEach(a => {
+        if (a.score === null || a.violation_flag) return;
+        if (bestScoreByQuiz[a.quiz_id] === undefined || a.score > bestScoreByQuiz[a.quiz_id]) {
+            bestScoreByQuiz[a.quiz_id] = a.score;
+        }
+    });
 
-    if (publishedOverall.length > 0) {
+    container.innerHTML = `<div class="term-heading">2026 — Year 1 — Term 1</div>`;
 
-        const average = Math.round(publishedOverall.reduce((sum, e) => sum + e.final_score, 0) / publishedOverall.length);
-        const passCount = publishedOverall.filter(e => e.results_comment === "Clear Pass").length;
-        const totalCredits = publishedOverall.reduce((sum, e) => sum + (e.courses?.credits || 0), 0);
+    courses.forEach(course => {
 
-        summaryContainer.innerHTML = `
-            <div class="summary-card">
-                <div><div class="value">${average}%</div><div class="label">Overall Average</div></div>
-                <div><div class="value">${passCount}/${publishedOverall.length}</div><div class="label">Courses Passed</div></div>
-                <div><div class="value">${totalCredits}</div><div class="label">Credits Earned</div></div>
+        const courseQuizzes = (quizzes || []).filter(q => q.course_id === course.id);
+        const ca1Quiz = courseQuizzes.find(q => q.ca_number === 1);
+        const ca2Quiz = courseQuizzes.find(q => q.ca_number === 2);
+        const finalQuiz = courseQuizzes.find(q => q.is_final_exam);
+
+        const ca1Score = ca1Quiz ? bestScoreByQuiz[ca1Quiz.id] : undefined;
+        const ca2Score = ca2Quiz ? bestScoreByQuiz[ca2Quiz.id] : undefined;
+        const finalScore = finalQuiz ? bestScoreByQuiz[finalQuiz.id] : undefined;
+
+        const ca1Passed = ca1Score !== undefined && ca1Score >= PASS_THRESHOLD;
+        const ca2Passed = ca2Score !== undefined && ca2Score >= PASS_THRESHOLD;
+
+        function renderBox(label, score, isLocked, lockReason) {
+
+            if (isLocked) {
+                return `<div class="result-box locked"><div class="label">${label}</div><div class="value locked">${lockReason}</div></div>`;
+            }
+
+            if (score !== undefined) {
+                return `<div class="result-box has-score"><div class="label">${label}</div><div class="value has-score">${score}%</div></div>`;
+            }
+
+            return `<div class="result-box"><div class="label">${label}</div><div class="value pending">Not yet attempted</div></div>`;
+
+        }
+
+        const ca1Box = ca1Quiz ? renderBox("CA1", ca1Score, false, "") : `<div class="result-box"><div class="label">CA1</div><div class="value pending">Not set up</div></div>`;
+
+        const ca2Box = !ca2Quiz
+            ? `<div class="result-box"><div class="label">CA2</div><div class="value pending">Not set up</div></div>`
+            : (!ca1Passed
+                ? renderBox("CA2", ca2Score, true, "Locked until CA1 passed")
+                : renderBox("CA2", ca2Score, false, ""));
+
+        const finalBox = !finalQuiz
+            ? `<div class="result-box"><div class="label">Final Exam</div><div class="value pending">Not set up</div></div>`
+            : (!(ca1Passed && ca2Passed)
+                ? renderBox("Final Exam", finalScore, true, "Locked until CA1 & CA2 passed")
+                : renderBox("Final Exam", finalScore, false, ""));
+
+        // Overall: only shown once all three genuine scores exist
+        let overallHtml;
+        if (ca1Score !== undefined && ca2Score !== undefined && finalScore !== undefined) {
+            const overall = Math.round((ca1Score + ca2Score + finalScore) / 3);
+            overallHtml = `<span class="overall-value has-score">${overall}%</span>`;
+        } else {
+            overallHtml = `<span class="overall-value pending">Awaiting CA1, CA2 & Final Exam</span>`;
+        }
+
+        const card = document.createElement("div");
+        card.className = "course-card";
+
+        card.innerHTML = `
+            <div class="course-top">
+                <div class="course-code">${escapeHtml(course.code)}</div>
+                <div class="course-name">${escapeHtml(course.name)}</div>
+                <div class="course-credits">${course.credits || 0} credits</div>
+            </div>
+            <div class="results-grid">
+                ${ca1Box}
+                ${ca2Box}
+                ${finalBox}
+            </div>
+            <div class="overall-row">
+                <span class="overall-label">Overall Result</span>
+                ${overallHtml}
             </div>
         `;
 
-    }
-
-    const groupedByTerm = {};
-    enrollments.forEach(e => {
-        const termName = e.academic_terms?.name || "Term Not Set";
-        if (!groupedByTerm[termName]) groupedByTerm[termName] = [];
-        groupedByTerm[termName].push(e);
-    });
-
-    let html = "";
-
-    Object.keys(groupedByTerm).forEach(termName => {
-
-        html += `<div class="term-block"><div class="term-heading">${escapeHtml(termName)}</div>`;
-
-        groupedByTerm[termName].forEach(e => {
-
-            const course = e.courses;
-            const commentClass = (e.results_comment || "").replace(/\s+/g, "-");
-            const overallPublished = e.results_published && e.final_score !== null;
-
-            html += `
-                <div class="course-card">
-                    <div class="course-code">${course ? escapeHtml(course.code) : "-"}</div>
-                    <div class="course-name">${course ? escapeHtml(course.name) : "-"}</div>
-                    <div class="credits-note">${course?.credits || 0} credits</div>
-
-                    <div class="assessment-grid">
-                        <div class="assessment-box">
-                            <div class="label">CA1</div>
-                            ${e.ca1_published && e.ca1_score !== null ? `<div class="score">${e.ca1_score}%</div>` : `<div class="score not-published">Not published</div>`}
-                        </div>
-                        <div class="assessment-box">
-                            <div class="label">CA2</div>
-                            ${e.ca2_published && e.ca2_score !== null ? `<div class="score">${e.ca2_score}%</div>` : `<div class="score not-published">Not published</div>`}
-                        </div>
-                        <div class="assessment-box">
-                            <div class="label">Final Exam</div>
-                            ${e.final_exam_published && e.final_exam_score !== null ? `<div class="score">${e.final_exam_score}%</div>` : `<div class="score not-published">Not published</div>`}
-                        </div>
-                    </div>
-
-                    ${
-                        overallPublished
-                        ? `
-                            <div class="overall-row">
-                                <span>Overall Total</span>
-                                <span class="score">${e.final_score}%</span>
-                                ${e.results_comment ? `<span class="comment ${commentClass}">${escapeHtml(e.results_comment)}</span>` : ""}
-                            </div>
-                        `
-                        : `<div class="pending-note">Overall result not yet published</div>`
-                    }
-                </div>
-            `;
-
-        });
-
-        html += `</div>`;
+        container.appendChild(card);
 
     });
-
-    container.innerHTML = html;
 
 }
 
 
-loadRecords();
+loadRecord();
 
 </script>
 
