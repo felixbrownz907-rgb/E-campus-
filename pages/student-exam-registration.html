@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Exam Registration | E-Campus</title>
+
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: Arial, Helvetica, sans-serif; background: #f4f6f9; color: #172033; }
+
+.header {
+    background: #111827;
+    color: white;
+    padding: 18px 25px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+
+.logo { width: 55px; height: 55px; object-fit: contain; background: white; border-radius: 8px; }
+.header h1 { font-size: 22px; }
+.header p { color: #d4af37; font-size: 13px; margin-top: 3px; }
+
+.back-button {
+    margin-left: auto;
+    background: #d4af37;
+    color: #111827;
+    text-decoration: none;
+    padding: 10px 16px;
+    border-radius: 8px;
+    font-weight: bold;
+    font-size: 13px;
+}
+
+.container { max-width: 800px; margin: 25px auto; padding: 0 20px; }
+
+.page-title { margin-bottom: 20px; }
+.page-title h2 { font-size: 28px; margin-bottom: 6px; }
+.page-title p { color: #6b7280; font-size: 14px; }
+
+.card {
+    background: white;
+    border-radius: 14px;
+    padding: 22px;
+    margin-bottom: 18px;
+    box-shadow: 0 3px 12px rgba(0,0,0,0.06);
+}
+
+.card-top { display: flex; justify-content: space-between; align-items: start; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
+.card h3 { font-size: 18px; }
+.card-meta { color: #6b7280; font-size: 13px; margin-top: 4px; }
+
+.status-badge {
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: bold;
+}
+
+.status-badge.not-open { background: #f3f4f6; color: #6b7280; }
+.status-badge.open { background: #dcfce7; color: #166534; }
+.status-badge.closed { background: #f3f4f6; color: #991b1b; }
+.status-badge.pending { background: #fef3c7; color: #92400e; }
+.status-badge.approved { background: #dcfce7; color: #166534; }
+.status-badge.rejected { background: #fee2e2; color: #991b1b; }
+.status-badge.blocked { background: #fee2e2; color: #991b1b; }
+
+.countdown-note {
+    background: #eff6ff;
+    color: #1d4ed8;
+    padding: 12px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: bold;
+    margin-bottom: 10px;
+}
+
+.fee-warning {
+    background: #fee2e2;
+    color: #991b1b;
+    padding: 14px;
+    border-radius: 10px;
+    font-size: 13px;
+    margin-bottom: 14px;
+    line-height: 1.5;
+}
+
+.fee-ok {
+    background: #f0fdf4;
+    color: #166534;
+    padding: 12px;
+    border-radius: 8px;
+    font-size: 13px;
+    margin-bottom: 14px;
+}
+
+.course-checklist { margin-bottom: 16px; }
+
+.course-check-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    margin-bottom: 8px;
+}
+
+.course-check-item input { width: 18px; height: 18px; }
+.course-check-item label { font-size: 14px; cursor: pointer; }
+
+.register-button {
+    background: #111827;
+    color: white;
+    border: none;
+    padding: 13px 20px;
+    border-radius: 8px;
+    font-weight: bold;
+    cursor: pointer;
+    width: 100%;
+}
+
+.register-button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.registered-summary {
+    font-size: 13px;
+    color: #374151;
+}
+
+.registered-summary .course-line { padding: 6px 0; border-bottom: 1px solid #f0f1f3; }
+.registered-summary .course-line:last-child { border-bottom: none; }
+
+.admin-note-box {
+    background: #f9fafb;
+    border-radius: 8px;
+    padding: 12px;
+    font-size: 13px;
+    margin-top: 10px;
+}
+
+.empty-note { color: #9ca3af; text-align: center; padding: 30px 0; }
+
+</style>
+</head>
+
+
+<body>
+
+<header class="header">
+    <img src="https://pub-b3e2d39712e84119875e84c5ec5f5c09.r2.dev/Logo/IMG-20260816-WA0050(1).jpg" alt="Sunningdale University Logo" class="logo">
+    <div>
+        <h1>E-Campus</h1>
+        <p>Sunningdale University</p>
+    </div>
+    <a href="student-dashboard.html" class="back-button">← Dashboard</a>
+</header>
+
+
+<main class="container">
+
+    <section class="page-title">
+        <h2>Exam Registration</h2>
+        <p>Register for your upcoming exams. You must meet the minimum tuition payment to register.</p>
+    </section>
+
+    <div id="content"><p class="empty-note">Loading...</p></div>
+
+</main>
+
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../supabase-config.js"></script>
+
+
+<script>
+
+const TERM_LENGTH_DAYS = 42; // 6 weeks
+const REGISTRATION_WINDOW_DAYS = 4;
+const MID_TERM_FEE_REQUIREMENT = 50;
+const END_OF_TERM_FEE_REQUIREMENT = 100;
+
+let studentProfileId = null;
+let authUserId = null;
+let currentTermNumber = null;
+let enrolledCourses = [];
+let feePercentage = 0;
+let existingRegistrations = {};
+
+function escapeHtml(value) {
+    return String(value ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+}
+
+
+function daysBetween(a, b) {
+    return Math.ceil((b - a) / (1000 * 60 * 60 * 24));
+}
+
+
+async function startPage() {
+
+    const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
+
+    if (authError || !user) {
+        window.location.href = "student-login.html";
+        return;
+    }
+
+    authUserId = user.id;
+
+    const { data: studentProfile } =
+        await supabaseClient.from("student_profiles").select("id").eq("user_id", user.id).single();
+
+    if (!studentProfile) {
+        document.getElementById("content").innerHTML = `<p class="empty-note">Unable to load your student profile.</p>`;
+        return;
+    }
+
+    studentProfileId = studentProfile.id;
+
+    // Find the student's currently active term
+    const { data: terms } =
+        await supabaseClient
+            .from("student_terms")
+            .select("*")
+            .eq("student_id", studentProfileId)
+            .order("term_number", { ascending: true });
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const activeTerm = (terms || []).find(t => {
+        const start = new Date(t.start_date + "T00:00:00");
+        const end = new Date(t.end_date + "T00:00:00");
+        return today >= start && today <= end;
+    });
+
+    if (!activeTerm) {
+        document.getElementById("content").innerHTML = `<p class="empty-note">You don't have an active term right now, so exam registration isn't available yet.</p>`;
+        return;
+    }
+
+    currentTermNumber = activeTerm.term_number;
+
+    const termStart = new Date(activeTerm.start_date + "T00:00:00");
+    const termEnd = new Date(activeTerm.end_date + "T00:00:00");
+    const midTermDate = new Date(termStart);
+    midTermDate.setDate(midTermDate.getDate() + Math.floor(TERM_LENGTH_DAYS / 2));
+
+    // Load enrolled courses
+    const { data: enrollments } =
+        await supabaseClient
+            .from("enrollments")
+            .select("courses ( id, code, name )")
+            .eq("student_id", studentProfileId)
+            .eq("status", "enrolled");
+
+    enrolledCourses = (enrollments || []).map(e => e.courses).filter(Boolean);
+
+    // Load fee percentage paid for this term
+    feePercentage = await calculateFeePercentage(studentProfileId);
+
+    // Load existing registrations for this term
+    const { data: registrations } =
+        await supabaseClient
+            .from("exam_registrations")
+            .select("*")
+            .eq("student_id", studentProfileId)
+            .eq("term_number", currentTermNumber);
+
+    existingRegistrations = {};
+    (registrations || []).forEach(r => { existingRegistrations[r.exam_type] = r; });
+
+    renderExamCards(today, midTermDate, termEnd);
+
+}
+
+
+async function calculateFeePercentage(studentProfileId) {
+
+    const { data: feeRecords } =
+        await supabaseClient
+            .from("student_term_fees")
+            .select("id, total_fee, academic_terms ( created_at )")
+            .eq("student_id", studentProfileId)
+            .order("created_at", { ascending: false });
+
+    if (!feeRecords || feeRecords.length === 0) return 100; // No fee record set up — don't block unnecessarily
+
+    let totalFee = 0;
+    let totalPaid = 0;
+
+    for (const record of feeRecords) {
+
+        const { data: payments } =
+            await supabaseClient.from("fee_payments").select("amount").eq("student_fee_id", record.id);
+
+        const paidForThis = (payments || []).reduce((sum, p) => sum + Number(p.amount), 0);
+
+        totalFee += Number(record.total_fee);
+        totalPaid += paidForThis;
+
+    }
+
+    if (totalFee <= 0) return 100;
+
+    return Math.round((totalPaid / totalFee) * 100);
+
+}
+
+
+function getExamWindowInfo(examDate, today) {
+
+    const windowOpenDate = new Date(examDate);
+    windowOpenDate.setDate(windowOpenDate.getDate() - REGISTRATION_WINDOW_DAYS);
+
+    if (today < windowOpenDate) {
+        return { state: "not-open", daysUntilOpen: daysBetween(today, windowOpenDate) };
+    }
+
+    if (today > examDate) {
+        return { state: "closed" };
+    }
+
+    return { state: "open" };
+
+}
+
+
+function renderExamCards(today, midTermDate, endOfTermDate) {
+
+    const content = document.getElementById("content");
+
+    const midTermWindow = getExamWindowInfo(midTermDate, today);
+    const endTermWindow = getExamWindowInfo(endOfTermDate, today);
+
+    content.innerHTML =
+        renderExamCard("mid_term", "Mid-Term Exam", midTermWindow, midTermDate, MID_TERM_FEE_REQUIREMENT) +
+        renderExamCard("end_of_term", "End-of-Term Exam", endTermWindow, endOfTermDate, END_OF_TERM_FEE_REQUIREMENT);
+
+    attachCheckboxListeners();
+
+}
+
+
+function renderExamCard(examType, label, windowInfo, examDate, feeRequirement) {
+
+    const existing = existingRegistrations[examType];
+
+    let statusBadge = "";
+    let bodyHtml = "";
+
+    if (existing) {
+
+        statusBadge = `<span class="status-badge ${existing.status}">${existing.status.charAt(0).toUpperCase() + existing.status.slice(1)}</span>`;
+
+        const registeredCourses = enrolledCourses.filter(c => existing.course_ids.includes(c.id));
+
+        bodyHtml = `
+            <div class="registered-summary">
+                <strong>You registered for:</strong>
+                ${registeredCourses.map(c => `<div class="course-line">${escapeHtml(c.code)} — ${escapeHtml(c.name)}</div>`).join("")}
+            </div>
+            ${existing.is_admin_override ? `<div class="admin-note-box">✅ This registration was approved directly by admin as an exception.</div>` : ""}
+            ${existing.admin_note ? `<div class="admin-note-box"><strong>Admin note:</strong> ${escapeHtml(existing.admin_note)}</div>` : ""}
+        `;
+
+    } else if (windowInfo.state === "not-open") {
+
+        statusBadge = `<span class="status-badge not-open">Not Open Yet</span>`;
+        bodyHtml = `<div class="countdown-note">📅 Registration opens in ${windowInfo.daysUntilOpen} day${windowInfo.daysUntilOpen === 1 ? "" : "s"} — ${REGISTRATION_WINDOW_DAYS} days before the exam.</div>`;
+
+    } else if (windowInfo.state === "closed") {
+
+        statusBadge = `<span class="status-badge closed">Registration Closed</span>`;
+        bodyHtml = `<p class="empty-note">The registration window for this exam has closed. Contact admin if you missed it.</p>`;
+
+    } else if (feePercentage < feeRequirement) {
+
+        statusBadge = `<span class="status-badge blocked">Blocked — Fees Not Met</span>`;
+        bodyHtml = `
+            <div class="fee-warning">
+                🔒 You cannot register for this exam. You have paid <strong>${feePercentage}%</strong> of your tuition, but ${feeRequirement}% is required for the ${label}.
+                <br><br>
+                If you believe this is incorrect, or have already made arrangements, please contact the admissions/finance office directly. Admin can grant an exception if appropriate.
+            </div>
+        `;
+
+    } else {
+
+        statusBadge = `<span class="status-badge open">Open Now</span>`;
+
+        bodyHtml = `
+            <div class="fee-ok">✓ You have paid ${feePercentage}% of your tuition — requirement met.</div>
+            <p style="font-size:13px; color:#6b7280; margin-bottom:10px;">Confirm the courses you are writing for this exam. Untick anything that doesn't apply, and contact your department if something looks wrong.</p>
+            <div class="course-checklist">
+                ${enrolledCourses.map(c => `
+                    <div class="course-check-item">
+                        <input type="checkbox" id="check-${examType}-${c.id}" checked data-course-id="${c.id}" data-exam-type="${examType}">
+                        <label for="check-${examType}-${c.id}">${escapeHtml(c.code)} — ${escapeHtml(c.name)}</label>
+                    </div>
+                `).join("")}
+            </div>
+            <button class="register-button" onclick="submitRegistration('${examType}')">Submit Registration</button>
+        `;
+
+    }
+
+    return `
+        <div class="card">
+            <div class="card-top">
+                <div>
+                    <h3>${label}</h3>
+                    <div class="card-meta">Exam date: ${examDate.toLocaleDateString()}</div>
+                </div>
+                ${statusBadge}
+            </div>
+            ${bodyHtml}
+        </div>
+    `;
+
+}
+
+
+function attachCheckboxListeners() {
+    // Checkboxes are read directly at submit time — no listener needed here, kept for future extension.
+}
+
+
+async function submitRegistration(examType) {
+
+    const checkboxes = document.querySelectorAll(`input[data-exam-type="${examType}"]:checked`);
+    const courseIds = Array.from(checkboxes).map(cb => cb.dataset.courseId);
+
+    if (courseIds.length === 0) {
+        alert("Please select at least one course.");
+        return;
+    }
+
+    const { error } =
+        await supabaseClient.from("exam_registrations").insert({
+            student_id: studentProfileId,
+            exam_type: examType,
+            term_number: currentTermNumber,
+            course_ids: courseIds,
+            fee_percentage_at_registration: feePercentage,
+            status: "pending"
+        });
+
+    if (error) {
+        alert("Unable to submit registration: " + error.message);
+        return;
+    }
+
+    alert("Your exam registration has been submitted and is awaiting admin approval.");
+    await startPage();
+
+}
+
+
+startPage();
+
+</script>
+
+</body>
+</html>
