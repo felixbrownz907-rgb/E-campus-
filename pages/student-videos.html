@@ -39,14 +39,63 @@ body { font-family: Arial, Helvetica, sans-serif; background: #f4f6f9; color: #1
 .page-title h2 { font-size: 28px; margin-bottom: 6px; }
 .page-title p { color: #6b7280; font-size: 14px; }
 
-.course-selector { margin-bottom: 20px; }
+.breadcrumb {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 20px;
+    font-size: 13px;
+}
 
-.course-selector select {
+.breadcrumb-item {
+    background: white;
+    padding: 8px 14px;
+    border-radius: 20px;
+    font-weight: bold;
+    color: #6b7280;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+}
+
+.breadcrumb-item.clickable { cursor: pointer; color: #111827; }
+.breadcrumb-item.clickable:hover { background: #f4f6f9; }
+.breadcrumb-arrow { color: #d1d5db; }
+
+.step-heading {
+    font-size: 20px;
+    font-weight: bold;
+    margin-bottom: 14px;
+}
+
+.choice-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 12px;
+    margin-bottom: 20px;
+}
+
+.choice-card {
+    background: white;
+    border-radius: 14px;
+    padding: 20px;
+    text-align: center;
+    cursor: pointer;
+    box-shadow: 0 3px 12px rgba(0,0,0,0.06);
+    border: 2px solid transparent;
+}
+
+.choice-card:hover { border-color: #d4af37; }
+.choice-card .choice-icon { font-size: 26px; margin-bottom: 8px; }
+.choice-card .choice-label { font-weight: bold; font-size: 15px; }
+.choice-card .choice-sub { font-size: 12px; color: #6b7280; margin-top: 4px; }
+
+.search-box {
     width: 100%;
     padding: 13px;
     border: 1px solid #d1d5db;
     border-radius: 8px;
     font-size: 15px;
+    margin-bottom: 20px;
 }
 
 .video-card {
@@ -57,13 +106,14 @@ body { font-family: Arial, Helvetica, sans-serif; background: #f4f6f9; color: #1
     box-shadow: 0 3px 12px rgba(0,0,0,0.06);
 }
 
-.video-card h3 { font-size: 16px; margin-bottom: 6px; }
+.video-card h3 { font-size: 16px; margin-bottom: 4px; }
+.video-topic-tag { display: inline-block; color: #1d4ed8; background: #eff6ff; font-size: 11px; font-weight: bold; padding: 3px 9px; border-radius: 20px; margin-bottom: 8px; }
 .video-desc { color: #6b7280; font-size: 13px; margin-bottom: 14px; }
 
 .video-frame-wrap {
     position: relative;
     width: 100%;
-    padding-top: 56.25%; /* 16:9 */
+    padding-top: 56.25%;
     border-radius: 10px;
     overflow: hidden;
     background: #111827;
@@ -112,16 +162,12 @@ body { font-family: Arial, Helvetica, sans-serif; background: #f4f6f9; color: #1
 
     <section class="page-title">
         <h2>Video Library</h2>
-        <p>Helpful videos from your lecturers, organized by course.</p>
+        <p>Find your videos step by step — term, then course, then topic.</p>
     </section>
 
-    <div class="course-selector">
-        <select id="courseSelect" onchange="loadVideos()">
-            <option value="">Select a course</option>
-        </select>
-    </div>
+    <div class="breadcrumb" id="breadcrumb"></div>
 
-    <div id="videosContainer"><p class="empty-note">Select a course above to see its videos.</p></div>
+    <div id="content"><p class="empty-note">Loading...</p></div>
 
 </main>
 
@@ -131,6 +177,11 @@ body { font-family: Arial, Helvetica, sans-serif; background: #f4f6f9; color: #1
 
 
 <script>
+
+let enrolledCourses = [];
+let allVideosByCourse = {}; // courseId -> videos array (fetched lazily)
+let currentTerm = null;
+let currentCourse = null;
 
 function escapeHtml(value) {
     return String(value ?? "")
@@ -159,6 +210,27 @@ function getYouTubeEmbedUrl(url) {
 }
 
 
+function renderBreadcrumb() {
+
+    const breadcrumb = document.getElementById("breadcrumb");
+
+    let html = `<span class="breadcrumb-item clickable" onclick="goToStep1()">🏠 Video Library</span>`;
+
+    if (currentTerm) {
+        html += `<span class="breadcrumb-arrow">›</span>`;
+        html += `<span class="breadcrumb-item ${currentCourse ? "clickable" : ""}" ${currentCourse ? `onclick="goToStep2()"` : ""}>${escapeHtml(currentTerm)}</span>`;
+    }
+
+    if (currentCourse) {
+        html += `<span class="breadcrumb-arrow">›</span>`;
+        html += `<span class="breadcrumb-item">${escapeHtml(currentCourse.code)}</span>`;
+    }
+
+    breadcrumb.innerHTML = html;
+
+}
+
+
 async function startPage() {
 
     const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
@@ -180,81 +252,183 @@ async function startPage() {
             .eq("student_id", studentProfile.id)
             .eq("status", "enrolled");
 
-    const courses = (enrollments || []).map(e => e.courses).filter(Boolean);
-    const select = document.getElementById("courseSelect");
+    enrolledCourses = (enrollments || []).map(e => e.courses).filter(Boolean);
 
-    if (courses.length === 0) {
-        document.getElementById("videosContainer").innerHTML = `<p class="empty-note">You are not enrolled in any courses yet.</p>`;
+    if (enrolledCourses.length === 0) {
+        document.getElementById("content").innerHTML = `<p class="empty-note">You are not enrolled in any courses yet.</p>`;
         return;
     }
 
-    courses.forEach(c => {
-        const option = document.createElement("option");
-        option.value = c.id;
-        option.textContent = `${c.code} — ${c.name}`;
-        select.appendChild(option);
+    // Fetch ALL videos for all enrolled courses up front, so we can build the term list
+    const courseIds = enrolledCourses.map(c => c.id);
+
+    const { data: videos } =
+        await supabaseClient
+            .from("course_videos")
+            .select("*")
+            .in("course_id", courseIds);
+
+    (videos || []).forEach(v => {
+        if (!allVideosByCourse[v.course_id]) allVideosByCourse[v.course_id] = [];
+        allVideosByCourse[v.course_id].push(v);
     });
+
+    goToStep1();
 
 }
 
 
-async function loadVideos() {
+// ===== STEP 1: Choose Term/Year =====
+function goToStep1() {
 
-    const courseId = document.getElementById("courseSelect").value;
-    const container = document.getElementById("videosContainer");
+    currentTerm = null;
+    currentCourse = null;
+    renderBreadcrumb();
 
-    if (!courseId) {
-        container.innerHTML = `<p class="empty-note">Select a course above to see its videos.</p>`;
+    const content = document.getElementById("content");
+
+    const NO_TERM_LABEL = "General (No Term Set)";
+    const termSet = new Set();
+
+    Object.values(allVideosByCourse).forEach(videos => {
+        videos.forEach(v => {
+            termSet.add(v.term_label && v.term_label.trim() ? v.term_label.trim() : NO_TERM_LABEL);
+        });
+    });
+
+    if (termSet.size === 0) {
+        content.innerHTML = `<p class="empty-note">No videos have been added to your courses yet.</p>`;
         return;
     }
 
-    container.innerHTML = `<p class="empty-note">Loading...</p>`;
+    const terms = Array.from(termSet).sort((a, b) => {
+        if (a === NO_TERM_LABEL) return 1;
+        if (b === NO_TERM_LABEL) return -1;
+        return a.localeCompare(b);
+    });
 
-    const { data: videos, error } =
-        await supabaseClient
-            .from("course_videos")
-            .select("*")
-            .eq("course_id", courseId)
-            .order("created_at", { ascending: false });
+    content.innerHTML = `
+        <div class="step-heading">Which Term or Year are you looking for?</div>
+        <div class="choice-grid">
+            ${terms.map(t => `
+                <div class="choice-card" onclick="goToStep2('${escapeHtml(t).replace(/'/g, "\\'")}')">
+                    <div class="choice-icon">📅</div>
+                    <div class="choice-label">${escapeHtml(t)}</div>
+                </div>
+            `).join("")}
+        </div>
+    `;
 
-    if (error) {
-        container.innerHTML = `<p class="empty-note">Unable to load videos: ${escapeHtml(error.message)}</p>`;
+}
+
+
+// ===== STEP 2: Choose Course (only courses that have videos under this term) =====
+function goToStep2(termLabel) {
+
+    currentTerm = termLabel;
+    currentCourse = null;
+    renderBreadcrumb();
+
+    const content = document.getElementById("content");
+
+    const NO_TERM_LABEL = "General (No Term Set)";
+
+    const coursesWithVideosHere = enrolledCourses.filter(c => {
+        const videos = allVideosByCourse[c.id] || [];
+        return videos.some(v => {
+            const key = v.term_label && v.term_label.trim() ? v.term_label.trim() : NO_TERM_LABEL;
+            return key === termLabel;
+        });
+    });
+
+    if (coursesWithVideosHere.length === 0) {
+        content.innerHTML = `<p class="empty-note">No courses have videos under "${escapeHtml(termLabel)}".</p>`;
         return;
     }
 
-    if (!videos || videos.length === 0) {
-        container.innerHTML = `<p class="empty-note">No videos have been added for this course yet.</p>`;
-        return;
+    content.innerHTML = `
+        <div class="step-heading">${escapeHtml(termLabel)} — Which Course?</div>
+        <div class="choice-grid">
+            ${coursesWithVideosHere.map(c => `
+                <div class="choice-card" onclick='goToStep3(${JSON.stringify(c.id)})'>
+                    <div class="choice-icon">📚</div>
+                    <div class="choice-label">${escapeHtml(c.code)}</div>
+                    <div class="choice-sub">${escapeHtml(c.name)}</div>
+                </div>
+            `).join("")}
+        </div>
+    `;
+
+}
+
+
+// ===== STEP 3: Show videos for this term + course, with topic search =====
+function goToStep3(courseId) {
+
+    currentCourse = enrolledCourses.find(c => c.id === courseId);
+    renderBreadcrumb();
+
+    renderStep3Videos("");
+
+}
+
+
+function renderStep3Videos(searchTerm) {
+
+    const content = document.getElementById("content");
+    const NO_TERM_LABEL = "General (No Term Set)";
+
+    const videos = (allVideosByCourse[currentCourse.id] || []).filter(v => {
+        const key = v.term_label && v.term_label.trim() ? v.term_label.trim() : NO_TERM_LABEL;
+        return key === currentTerm;
+    });
+
+    const filtered = searchTerm
+        ? videos.filter(v =>
+            (v.topic && v.topic.toLowerCase().includes(searchTerm)) ||
+            (v.title && v.title.toLowerCase().includes(searchTerm))
+          )
+        : videos;
+
+    const videosHtml = filtered.length === 0
+        ? `<p class="empty-note">${searchTerm ? `No videos match "${escapeHtml(searchTerm)}".` : "No videos here yet."}</p>`
+        : filtered.map(v => {
+
+            let playerHtml = "";
+
+            if (v.video_type === "youtube") {
+                const embedUrl = getYouTubeEmbedUrl(v.video_url);
+                playerHtml = embedUrl
+                    ? `<div class="video-frame-wrap"><iframe src="${escapeHtml(embedUrl)}" allowfullscreen></iframe></div>`
+                    : `<p class="empty-note">Unable to play this link directly. <a href="${escapeHtml(v.video_url)}" target="_blank">Open on YouTube</a></p>`;
+            } else {
+                playerHtml = `<div class="video-frame-wrap"><video src="${escapeHtml(v.video_url)}" controls></video></div>`;
+            }
+
+            return `
+                <div class="video-card">
+                    <span class="video-source-tag ${v.video_type}">${v.video_type === "youtube" ? "▶️ YouTube" : "📁 Uploaded"}</span>
+                    <h3>${escapeHtml(v.title)}</h3>
+                    ${v.topic ? `<div class="video-topic-tag">📌 ${escapeHtml(v.topic)}</div>` : ""}
+                    ${v.description ? `<div class="video-desc">${escapeHtml(v.description)}</div>` : ""}
+                    ${playerHtml}
+                </div>
+            `;
+
+        }).join("");
+
+    content.innerHTML = `
+        <div class="step-heading">${escapeHtml(currentCourse.code)} — ${escapeHtml(currentTerm)}</div>
+        <input type="text" class="search-box" id="topicSearchInput" placeholder="🔍 Search by topic (e.g. Supply and Demand)" value="${escapeHtml(searchTerm)}" oninput="renderStep3Videos(this.value.trim().toLowerCase())">
+        ${videosHtml}
+    `;
+
+    // Restore focus/cursor position after re-render, since typing triggers a full re-render
+    const input = document.getElementById("topicSearchInput");
+    if (input) {
+        input.focus();
+        input.setSelectionRange(input.value.length, input.value.length);
     }
-
-    container.innerHTML = videos.map(v => {
-
-        let playerHtml = "";
-
-        if (v.video_type === "youtube") {
-
-            const embedUrl = getYouTubeEmbedUrl(v.video_url);
-
-            playerHtml = embedUrl
-                ? `<div class="video-frame-wrap"><iframe src="${escapeHtml(embedUrl)}" allowfullscreen></iframe></div>`
-                : `<p class="empty-note">Unable to play this link directly. <a href="${escapeHtml(v.video_url)}" target="_blank">Open on YouTube</a></p>`;
-
-        } else {
-
-            playerHtml = `<div class="video-frame-wrap"><video src="${escapeHtml(v.video_url)}" controls></video></div>`;
-
-        }
-
-        return `
-            <div class="video-card">
-                <span class="video-source-tag ${v.video_type}">${v.video_type === "youtube" ? "▶️ YouTube" : "📁 Uploaded"}</span>
-                <h3>${escapeHtml(v.title)}</h3>
-                ${v.description ? `<div class="video-desc">${escapeHtml(v.description)}</div>` : ""}
-                ${playerHtml}
-            </div>
-        `;
-
-    }).join("");
 
 }
 
