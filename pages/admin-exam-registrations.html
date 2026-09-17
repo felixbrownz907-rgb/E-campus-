@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Exam Registrations | E-Campus Admin</title>
+
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: Arial, Helvetica, sans-serif; background: #f4f6f9; color: #172033; }
+
+.header { background: #111827; color: white; padding: 18px 25px; display: flex; align-items: center; justify-content: space-between; }
+.brand { display: flex; align-items: center; gap: 14px; }
+.logo { width: 55px; height: 55px; object-fit: contain; background: white; border-radius: 8px; }
+.brand h1 { font-size: 22px; }
+.brand p { color: #d4af37; margin-top: 3px; }
+.back-button { background: #d4af37; color: #111827; text-decoration: none; padding: 11px 18px; border-radius: 8px; font-weight: bold; }
+
+.container { max-width: 1100px; margin: 30px auto; padding: 0 20px; }
+.page-title { margin-bottom: 20px; }
+.page-title h2 { font-size: 28px; margin-bottom: 6px; }
+.page-title p { color: #6b7280; }
+
+.message { padding: 14px; border-radius: 8px; margin-bottom: 20px; display: none; }
+.message.success { display: block; background: #dcfce7; color: #166534; }
+.message.error { display: block; background: #fee2e2; color: #991b1b; }
+
+.tabs { display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; }
+
+.tab-button {
+    background: white;
+    border: 1px solid #e5e7eb;
+    padding: 10px 16px;
+    border-radius: 20px;
+    font-weight: bold;
+    font-size: 13px;
+    cursor: pointer;
+    color: #6b7280;
+}
+
+.tab-button.active { background: #111827; color: white; border-color: #111827; }
+
+.filter-bar { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
+.filter-bar select { padding: 12px; border-radius: 8px; border: 1px solid #d1d5db; font-size: 14px; }
+
+.registration-card {
+    background: white;
+    border-radius: 14px;
+    padding: 20px;
+    margin-bottom: 16px;
+    box-shadow: 0 3px 12px rgba(0,0,0,0.06);
+}
+
+.reg-top { display: flex; justify-content: space-between; align-items: start; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
+.student-name { font-weight: bold; font-size: 16px; }
+.student-meta { font-size: 12px; color: #6b7280; margin-top: 3px; }
+
+.tag-row { display: flex; gap: 8px; flex-wrap: wrap; }
+
+.tag { padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: bold; }
+.tag.exam-type { background: #ede9fe; color: #6d28d9; }
+.tag.fee-ok { background: #dcfce7; color: #166534; }
+.tag.fee-low { background: #fee2e2; color: #991b1b; }
+.tag.pending { background: #fef3c7; color: #92400e; }
+.tag.approved { background: #dcfce7; color: #166534; }
+.tag.rejected { background: #fee2e2; color: #991b1b; }
+.tag.override { background: #dbeafe; color: #1d4ed8; }
+
+.reg-courses { font-size: 13px; color: #374151; margin: 10px 0; padding: 10px; background: #f9fafb; border-radius: 8px; }
+.reg-courses div { padding: 3px 0; }
+
+.note-input { width: 100%; padding: 10px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 13px; margin-bottom: 10px; }
+
+.action-row { display: flex; gap: 10px; }
+
+.approve-button { background: #166534; color: white; }
+.reject-button { background: #991b1b; color: white; }
+.action-button { border: none; padding: 10px 16px; border-radius: 8px; font-weight: bold; font-size: 13px; cursor: pointer; flex: 1; }
+
+.empty-note { color: #9ca3af; text-align: center; padding: 30px 0; }
+
+/* Override modal */
+.modal-overlay {
+    display: none;
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 300;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+
+.modal-overlay.show { display: flex; }
+
+.modal-box {
+    background: white;
+    border-radius: 14px;
+    padding: 24px;
+    max-width: 500px;
+    width: 100%;
+    max-height: 85vh;
+    overflow-y: auto;
+}
+
+.modal-box h3 { margin-bottom: 16px; }
+.modal-box label { font-size: 13px; font-weight: bold; display: block; margin-bottom: 6px; }
+.modal-box select, .modal-box input { width: 100%; padding: 12px; border: 1px solid #d1d5db; border-radius: 8px; margin-bottom: 14px; font-size: 14px; }
+
+.override-course-item { display: flex; align-items: center; gap: 8px; padding: 8px; }
+
+.modal-buttons { display: flex; gap: 10px; margin-top: 10px; }
+.modal-buttons button { flex: 1; padding: 12px; border-radius: 8px; font-weight: bold; border: none; cursor: pointer; }
+.create-override-button { background: #1d4ed8; color: white; }
+.close-modal-button { background: #f3f4f6; color: #374151; }
+
+.floating-add-button {
+    position: fixed;
+    bottom: 25px;
+    right: 25px;
+    background: #1d4ed8;
+    color: white;
+    border: none;
+    padding: 14px 20px;
+    border-radius: 30px;
+    font-weight: bold;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.2);
+    cursor: pointer;
+}
+
+</style>
+</head>
+
+
+<body>
+
+<header class="header">
+    <div class="brand">
+        <img src="https://pub-b3e2d39712e84119875e84c5ec5f5c09.r2.dev/Logo/IMG-20260816-WA0050(1).jpg" alt="Sunningdale University Logo" class="logo">
+        <div><h1>E-Campus Administration</h1><p>Sunningdale University</p></div>
+    </div>
+    <a href="admin-dashboard.html" class="back-button">← Admin Dashboard</a>
+</header>
+
+
+<main class="container">
+
+    <section class="page-title">
+        <h2>Exam Registrations</h2>
+        <p>Review student exam registrations, approve or reject, or create a manual override for a student who has explained their situation.</p>
+    </section>
+
+    <div id="message" class="message"></div>
+
+    <div class="tabs">
+        <button class="tab-button active" id="tab-pending" onclick="switchTab('pending')">Pending Review</button>
+        <button class="tab-button" id="tab-approved" onclick="switchTab('approved')">Approved</button>
+        <button class="tab-button" id="tab-rejected" onclick="switchTab('rejected')">Rejected</button>
+        <button class="tab-button" id="tab-all" onclick="switchTab('all')">All</button>
+    </div>
+
+    <div class="filter-bar">
+        <select id="examTypeFilter" onchange="loadRegistrations()">
+            <option value="all">All Exam Types</option>
+            <option value="mid_term">Mid-Term</option>
+            <option value="end_of_term">End-of-Term</option>
+        </select>
+    </div>
+
+    <div id="registrationsContainer"><p class="empty-note">Loading...</p></div>
+
+</main>
+
+
+<button class="floating-add-button" onclick="openOverrideModal()">➕ Create Override</button>
+
+
+<div class="modal-overlay" id="overrideModal">
+    <div class="modal-box">
+        <h3>Create Admin Override Registration</h3>
+        <p style="font-size:12px; color:#6b7280; margin-bottom:14px;">Use this for a student who explained their situation and has been manually cleared to write despite not meeting the fee requirement.</p>
+
+        <label for="overrideStudentSelect">Student</label>
+        <select id="overrideStudentSelect" onchange="loadOverrideStudentCourses()">
+            <option value="">Select student</option>
+        </select>
+
+        <label for="overrideExamType">Exam Type</label>
+        <select id="overrideExamType">
+            <option value="mid_term">Mid-Term</option>
+            <option value="end_of_term">End-of-Term</option>
+        </select>
+
+        <label for="overrideTermNumber">Term Number</label>
+        <input type="number" id="overrideTermNumber" min="1" value="1">
+
+        <label>Courses</label>
+        <div id="overrideCoursesContainer" style="margin-bottom:14px;"><p class="empty-note">Select a student first.</p></div>
+
+        <label for="overrideNote">Note (optional)</label>
+        <input type="text" id="overrideNote" placeholder="e.g. Approved after finance office confirmed payment plan">
+
+        <div class="modal-buttons">
+            <button class="create-override-button" onclick="createOverride()">Create Override</button>
+            <button class="close-modal-button" onclick="closeOverrideModal()">Cancel</button>
+        </div>
+    </div>
+</div>
+
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../supabase-config.js"></script>
+
+
+<script>
+
+let currentTab = "pending";
+let allStudentsForOverride = [];
+
+const message = document.getElementById("message");
+
+function showMessage(text, type) {
+    message.textContent = text;
+    message.className = "message " + type;
+    setTimeout(() => { message.className = "message"; }, 4000);
+}
+
+function escapeHtml(value) {
+    return String(value ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+}
+
+
+function switchTab(tab) {
+    currentTab = tab;
+    ["pending", "approved", "rejected", "all"].forEach(t => {
+        document.getElementById(`tab-${t}`).classList.toggle("active", t === tab);
+    });
+    loadRegistrations();
+}
+
+
+async function loadRegistrations() {
+
+    const container = document.getElementById("registrationsContainer");
+    container.innerHTML = `<p class="empty-note">Loading...</p>`;
+
+    const examTypeFilter = document.getElementById("examTypeFilter").value;
+
+    let query = supabaseClient
+        .from("exam_registrations")
+        .select(`
+            id, exam_type, term_number, course_ids, fee_percentage_at_registration,
+            status, admin_note, is_admin_override, created_at,
+            student_profiles ( student_number, user_profiles ( first_name, last_name ) )
+        `)
+        .order("created_at", { ascending: false });
+
+    if (currentTab !== "all") query = query.eq("status", currentTab);
+    if (examTypeFilter !== "all") query = query.eq("exam_type", examTypeFilter);
+
+    const { data: registrations, error } = await query;
+
+    if (error) {
+        container.innerHTML = `<p class="empty-note">Unable to load: ${escapeHtml(error.message)}</p>`;
+        return;
+    }
+
+    if (!registrations || registrations.length === 0) {
+        container.innerHTML = `<p class="empty-note">No registrations found.</p>`;
+        return;
+    }
+
+    // Fetch course names for display
+    const allCourseIds = [...new Set(registrations.flatMap(r => r.course_ids))];
+    const { data: courses } = await supabaseClient.from("courses").select("id, code, name").in("id", allCourseIds);
+    const courseMap = {};
+    (courses || []).forEach(c => courseMap[c.id] = c);
+
+    const feeRequirement = { mid_term: 50, end_of_term: 100 };
+
+    container.innerHTML = registrations.map(r => {
+
+        const name = r.student_profiles?.user_profiles
+            ? `${r.student_profiles.user_profiles.first_name} ${r.student_profiles.user_profiles.last_name}`
+            : "Unknown";
+
+        const examLabel = r.exam_type === "mid_term" ? "Mid-Term" : "End-of-Term";
+        const requirement = feeRequirement[r.exam_type];
+        const feeOk = r.fee_percentage_at_registration >= requirement;
+
+        return `
+            <div class="registration-card">
+                <div class="reg-top">
+                    <div>
+                        <div class="student-name">${escapeHtml(name)}</div>
+                        <div class="student-meta">${escapeHtml(r.student_profiles?.student_number || "")} • Term ${r.term_number} • Submitted ${new Date(r.created_at).toLocaleDateString()}</div>
+                    </div>
+                    <div class="tag-row">
+                        <span class="tag exam-type">${examLabel}</span>
+                        <span class="tag ${feeOk ? "fee-ok" : "fee-low"}">${r.fee_percentage_at_registration}% Paid (needs ${requirement}%)</span>
+                        <span class="tag ${r.status}">${r.status.charAt(0).toUpperCase() + r.status.slice(1)}</span>
+                        ${r.is_admin_override ? `<span class="tag override">Admin Override</span>` : ""}
+                    </div>
+                </div>
+
+                <div class="reg-courses">
+                    <strong>Courses:</strong>
+                    ${r.course_ids.map(cid => courseMap[cid] ? `<div>${escapeHtml(courseMap[cid].code)} — ${escapeHtml(courseMap[cid].name)}</div>` : "").join("")}
+                </div>
+
+                ${r.admin_note ? `<div style="font-size:13px; color:#6b7280; margin-bottom:10px;"><strong>Note:</strong> ${escapeHtml(r.admin_note)}</div>` : ""}
+
+                ${r.status === "pending" ? `
+                    <input type="text" class="note-input" id="note-${r.id}" placeholder="Optional note (e.g. reason for rejection)">
+                    <div class="action-row">
+                        <button class="action-button approve-button" onclick="reviewRegistration('${r.id}', 'approved')">✓ Approve</button>
+                        <button class="action-button reject-button" onclick="reviewRegistration('${r.id}', 'rejected')">✗ Reject</button>
+                    </div>
+                ` : ""}
+            </div>
+        `;
+
+    }).join("");
+
+}
+
+
+async function reviewRegistration(registrationId, status) {
+
+    const noteInput = document.getElementById(`note-${registrationId}`);
+    const note = noteInput ? noteInput.value.trim() : "";
+
+    const { data: { user } } = await supabaseClient.auth.getUser();
+
+    const { error } =
+        await supabaseClient
+            .from("exam_registrations")
+            .update({
+                status: status,
+                admin_note: note || null,
+                reviewed_by: user.id,
+                reviewed_at: new Date().toISOString()
+            })
+            .eq("id", registrationId);
+
+    if (error) {
+        showMessage("Unable to update: " + error.message, "error");
+        return;
+    }
+
+    showMessage(`Registration ${status}.`, "success");
+    await loadRegistrations();
+
+}
+
+
+async function openOverrideModal() {
+
+    document.getElementById("overrideModal").classList.add("show");
+
+    if (allStudentsForOverride.length === 0) {
+
+        const { data: students } =
+            await supabaseClient
+                .from("student_profiles")
+                .select("id, student_number, user_profiles ( first_name, last_name )")
+                .order("student_number");
+
+        allStudentsForOverride = students || [];
+
+        const select = document.getElementById("overrideStudentSelect");
+        allStudentsForOverride.forEach(s => {
+            const name = s.user_profiles ? `${s.user_profiles.first_name} ${s.user_profiles.last_name}` : "Unknown";
+            const option = document.createElement("option");
+            option.value = s.id;
+            option.textContent = `${s.student_number} — ${name}`;
+            select.appendChild(option);
+        });
+
+    }
+
+}
+
+
+function closeOverrideModal() {
+    document.getElementById("overrideModal").classList.remove("show");
+}
+
+
+async function loadOverrideStudentCourses() {
+
+    const studentId = document.getElementById("overrideStudentSelect").value;
+    const container = document.getElementById("overrideCoursesContainer");
+
+    if (!studentId) {
+        container.innerHTML = `<p class="empty-note">Select a student first.</p>`;
+        return;
+    }
+
+    container.innerHTML = `<p class="empty-note">Loading...</p>`;
+
+    const { data: enrollments } =
+        await supabaseClient
+            .from("enrollments")
+            .select("courses ( id, code, name )")
+            .eq("student_id", studentId)
+            .eq("status", "enrolled");
+
+    const courses = (enrollments || []).map(e => e.courses).filter(Boolean);
+
+    if (courses.length === 0) {
+        container.innerHTML = `<p class="empty-note">This student has no enrolled courses.</p>`;
+        return;
+    }
+
+    container.innerHTML = courses.map(c => `
+        <div class="override-course-item">
+            <input type="checkbox" id="ovcourse-${c.id}" value="${c.id}" checked>
+            <label for="ovcourse-${c.id}">${escapeHtml(c.code)} — ${escapeHtml(c.name)}</label>
+        </div>
+    `).join("");
+
+}
+
+
+async function createOverride() {
+
+    const studentId = document.getElementById("overrideStudentSelect").value;
+    const examType = document.getElementById("overrideExamType").value;
+    const termNumber = Number(document.getElementById("overrideTermNumber").value);
+    const note = document.getElementById("overrideNote").value.trim();
+
+    if (!studentId) {
+        showMessage("Please select a student.", "error");
+        return;
+    }
+
+    const checkedBoxes = document.querySelectorAll("#overrideCoursesContainer input[type=checkbox]:checked");
+    const courseIds = Array.from(checkedBoxes).map(cb => cb.value);
+
+    if (courseIds.length === 0) {
+        showMessage("Please select at least one course.", "error");
+        return;
+    }
+
+    const { data: { user } } = await supabaseClient.auth.getUser();
+
+    const { error } =
+        await supabaseClient.from("exam_registrations").upsert({
+            student_id: studentId,
+            exam_type: examType,
+            term_number: termNumber,
+            course_ids: courseIds,
+            fee_percentage_at_registration: null,
+            status: "approved",
+            is_admin_override: true,
+            admin_note: note || "Manually approved by admin as an exception.",
+            reviewed_by: user.id,
+            reviewed_at: new Date().toISOString()
+        }, { onConflict: "student_id,exam_type,term_number" });
+
+    if (error) {
+        showMessage("Unable to create override: " + error.message, "error");
+        return;
+    }
+
+    showMessage("Override registration created and approved.", "success");
+    closeOverrideModal();
+    await loadRegistrations();
+
+}
+
+
+loadRegistrations();
+
+</script>
+
+</body>
+</html>
