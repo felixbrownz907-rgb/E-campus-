@@ -184,7 +184,7 @@ let studentProfileId = null;
 let authUserId = null;
 let currentTermNumber = null;
 let enrolledCourses = [];
-let feePercentage = 0;
+let feePercentage = null;
 let existingRegistrations = {};
 
 function escapeHtml(value) {
@@ -286,16 +286,25 @@ async function calculateFeePercentage(studentProfileId) {
     const { data: feeRecords } =
         await supabaseClient
             .from("student_term_fees")
-            .select("id, total_fee, academic_terms ( created_at )")
+            .select("id, total_fee, academic_terms ( id, created_at )")
             .eq("student_id", studentProfileId)
             .order("created_at", { ascending: false });
 
-    if (!feeRecords || feeRecords.length === 0) return 100; // No fee record set up — don't block unnecessarily
+    // No fee record at all means tuition has never been set up for this student in the system.
+    // This must NOT be treated as "fully paid" — return null so the caller can block clearly
+    // and tell the student to contact finance/admin, instead of silently letting them through.
+    if (!feeRecords || feeRecords.length === 0) return null;
+
+    // Only the CURRENT term's fee records count toward this calculation.
+    // Older, already-settled terms must never be blended in — otherwise a fully-paid
+    // previous term can mask an unpaid current term and push the percentage up wrongly.
+    const mostRecentTermId = feeRecords[0].academic_terms?.id;
+    const currentTermRecords = feeRecords.filter(r => r.academic_terms?.id === mostRecentTermId);
 
     let totalFee = 0;
     let totalPaid = 0;
 
-    for (const record of feeRecords) {
+    for (const record of currentTermRecords) {
 
         const { data: payments } =
             await supabaseClient.from("fee_payments").select("amount").eq("student_fee_id", record.id);
@@ -307,7 +316,8 @@ async function calculateFeePercentage(studentProfileId) {
 
     }
 
-    if (totalFee <= 0) return 100;
+    // Fee record exists but the amount is not actually set — same "unknown" situation.
+    if (totalFee <= 0) return null;
 
     return Math.round((totalPaid / totalFee) * 100);
 
@@ -343,8 +353,6 @@ function renderExamCards(today, midTermDate, endOfTermDate) {
         renderExamCard("mid_term", "Mid-Term Exam", midTermWindow, midTermDate, MID_TERM_FEE_REQUIREMENT) +
         renderExamCard("end_of_term", "End-of-Term Exam", endTermWindow, endOfTermDate, END_OF_TERM_FEE_REQUIREMENT);
 
-    attachCheckboxListeners();
-
 }
 
 
@@ -379,6 +387,17 @@ function renderExamCard(examType, label, windowInfo, examDate, feeRequirement) {
 
         statusBadge = `<span class="status-badge closed">Registration Closed</span>`;
         bodyHtml = `<p class="empty-note">The registration window for this exam has closed. Contact admin if you missed it.</p>`;
+
+    } else if (feePercentage === null) {
+
+        statusBadge = `<span class="status-badge blocked">Blocked — No Fee Record</span>`;
+        bodyHtml = `
+            <div class="fee-warning">
+                🔒 You cannot register yet. Your tuition fee record has not been set up in the system, so we cannot confirm your payment status.
+                <br><br>
+                Please contact the finance/admissions office so your fee record can be set up and your payments recorded. Once that's done, come back here to register.
+            </div>
+        `;
 
     } else if (feePercentage < feeRequirement) {
 
@@ -424,11 +443,6 @@ function renderExamCard(examType, label, windowInfo, examDate, feeRequirement) {
         </div>
     `;
 
-}
-
-
-function attachCheckboxListeners() {
-    // Checkboxes are read directly at submit time — no listener needed here, kept for future extension.
 }
 
 
