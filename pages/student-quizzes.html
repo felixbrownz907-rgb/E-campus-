@@ -100,6 +100,7 @@ body { font-family: Arial, Helvetica, sans-serif; background: #f4f6f9; color: #1
 .status-badge.violation { background: #fee2e2; color: #991b1b; }
 .status-badge.scheduled { background: #fef3c7; color: #92400e; }
 .status-badge.closed { background: #f3f4f6; color: #991b1b; }
+.status-badge.not-registered { background: #fee2e2; color: #991b1b; }
 
 .countdown-box {
     background: #111827;
@@ -123,6 +124,19 @@ body { font-family: Arial, Helvetica, sans-serif; background: #f4f6f9; color: #1
     font-weight: bold;
     margin-top: 10px;
 }
+
+.registration-note {
+    background: #fee2e2;
+    color: #991b1b;
+    padding: 12px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: bold;
+    margin-top: 10px;
+    line-height: 1.5;
+}
+
+.registration-note a { color: #991b1b; text-decoration: underline; }
 
 .start-button {
     margin-top: 14px;
@@ -294,12 +308,13 @@ body { font-family: Arial, Helvetica, sans-serif; background: #f4f6f9; color: #1
 
     <section class="page-title">
         <h2>Quizzes & Exams</h2>
-        <p>Pass CA1 (70%+) to unlock CA2. Pass both CA1 and CA2 to unlock the Final Exam.</p>
+        <p>You must have an approved exam registration (Normal, Supplementary or Deferred) before you can write the related exam.</p>
     </section>
 
     <section class="rules-card">
         <h3>📋 Locked Exam Rules</h3>
         <ul>
+            <li>You must have an <strong>approved</strong> exam registration for this exact course before an exam becomes available.</li>
             <li>Do not leave this page or switch to another app once the exam begins.</li>
             <li>Copying and pasting is disabled during the exam.</li>
             <li>Keep your device in normal full-screen mode — do not use split-screen or floating window features.</li>
@@ -355,8 +370,21 @@ body { font-family: Arial, Helvetica, sans-serif; background: #f4f6f9; color: #1
 
 const PASS_THRESHOLD = 70;
 
+// ============================================================
+// EXAM TYPE MAPPING — matches the exam_registrations schema exactly:
+// exam_type values are 'ca1', 'ca2', 'end_of_term'.
+// ============================================================
+function getRequiredRegistrationType(quiz) {
+    if (quiz.is_final_exam) return "end_of_term";
+    if (quiz.ca_number === 1) return "ca1";
+    if (quiz.ca_number === 2) return "ca2";
+    return null; // ordinary quizzes need no registration at all
+}
+
+
 let authUserId = null;
 let studentProfileId = null;
+let approvedRegistrationKeys = new Set(); // keys like "<course_id>_ca1", built from ANY approved mode (normal/supplementary/deferred)
 
 let activeQuiz = null;
 let activeQuestions = [];
@@ -399,8 +427,6 @@ function isWindowClosed(quiz) {
 }
 
 
-// ===== Reusable scoring logic: computes a score from whatever answers exist, giving genuine partial credit. =====
-// Unanswered questions simply score 0 for themselves — they do NOT wipe out marks the student did earn.
 function computeScoreFromAnswers(questions, answers) {
 
     let autoScoredPoints = 0;
@@ -408,7 +434,7 @@ function computeScoreFromAnswers(questions, answers) {
 
     questions.forEach(q => {
 
-        if (q.question_type === "short_answer") return; // not auto-gradable
+        if (q.question_type === "short_answer") return;
 
         autoScorableTotal += 1;
 
@@ -424,9 +450,6 @@ function computeScoreFromAnswers(questions, answers) {
 }
 
 
-// ===== Automatically finalize any attempt whose window has closed but was never properly submitted. =====
-// This is what protects a student whose device backgrounded, lost connection, or simply never got
-// to click "Submit" before time ran out — their genuinely saved answers still get graded fairly.
 async function finalizeExpiredAttemptsIfNeeded(allQuizzes, attempts) {
 
     const now = Date.now();
@@ -439,7 +462,7 @@ async function finalizeExpiredAttemptsIfNeeded(allQuizzes, attempts) {
         if (!quiz) return false;
 
         const absoluteEnd = getAbsoluteEndTime(quiz);
-        if (!absoluteEnd || now <= absoluteEnd) return false; // window still open, leave it alone
+        if (!absoluteEnd || now <= absoluteEnd) return false;
 
         const hasRealAnswers = a.answers && Object.values(a.answers).some(v => v !== null && v !== "");
         return hasRealAnswers;
@@ -464,6 +487,37 @@ async function finalizeExpiredAttemptsIfNeeded(allQuizzes, attempts) {
     }
 
     return needsFinalizing.length > 0;
+
+}
+
+
+// ===== Load every APPROVED registration this student has, in any mode (normal/supplementary/deferred). =====
+// Any of the three modes being approved is enough to unlock that course + exam type combination.
+async function loadRegistrationStatus() {
+
+    approvedRegistrationKeys = new Set();
+
+    const { data: registrations } =
+        await supabaseClient
+            .from("exam_registrations")
+            .select("course_id, exam_type, status")
+            .eq("student_id", studentProfileId)
+            .eq("status", "approved");
+
+    (registrations || []).forEach(r => {
+        approvedRegistrationKeys.add(`${r.course_id}_${r.exam_type}`);
+    });
+
+}
+
+
+function isRegisteredFor(quiz) {
+
+    const requiredType = getRequiredRegistrationType(quiz);
+
+    if (!requiredType) return true; // ordinary quizzes don't need registration
+
+    return approvedRegistrationKeys.has(`${quiz.course_id}_${requiredType}`);
 
 }
 
@@ -507,19 +561,19 @@ async function loadQuizzes() {
         return;
     }
 
-    const { data: allQuizzes, error } =
-        await supabaseClient
-            .from("quizzes")
-            .select("*")
-            .in("course_id", courseIds);
+    // Registration status and quizzes load in parallel — independent queries, no need to wait on each other.
+    const [_, quizzesResult] = await Promise.all([
+        loadRegistrationStatus(),
+        supabaseClient.from("quizzes").select("*").in("course_id", courseIds)
+    ]);
+
+    const { data: allQuizzes, error } = quizzesResult;
 
     if (error) {
         container.innerHTML = `<div class="card"><p class="empty-note">Unable to load: ${escapeHtml(error.message)}</p></div>`;
         return;
     }
 
-    // Exams (is_exam / is_final_exam / ca_number) only show once a lecturer has actually scheduled a date.
-    // Ordinary practice quizzes (none of the above) still show without needing a schedule.
     const quizzes = (allQuizzes || []).filter(q => !(q.is_exam || q.is_final_exam || q.ca_number) || q.scheduled_start);
 
     if (!quizzes || quizzes.length === 0) {
@@ -538,7 +592,6 @@ async function loadQuizzes() {
 
     attempts = attempts || [];
 
-    // Finalize anything that expired without a proper submission, then re-fetch so the display is fresh.
     const anyFinalized = await finalizeExpiredAttemptsIfNeeded(allQuizzes, attempts);
 
     if (anyFinalized) {
@@ -565,7 +618,6 @@ async function loadQuizzes() {
         }
     });
 
-    // Use ALL quizzes (including unscheduled ones) to correctly determine CA1/CA2 lock relationships
     const quizzesByCourse = {};
     (allQuizzes || []).forEach(q => {
         if (!quizzesByCourse[q.course_id]) quizzesByCourse[q.course_id] = [];
@@ -580,59 +632,10 @@ async function loadQuizzes() {
 function getCALockInfo(quiz, quizzesByCourse, bestScoreByQuiz) {
 
     // ============================================================
-    // TEMPORARY EMERGENCY BYPASS — 15 September 2026
-    // The CA1 → CA2 → Final prerequisite check is disabled below.
-    // Every CA and Final Exam currently shows as unlocked for everyone,
-    // regardless of previous scores, so students can write CA2 right now.
-    //
-    // TO RESTORE THE RULE LATER: delete this "return" line only.
-    // Everything below it is the original, untouched logic.
+    // The CA1/CA2 pass-percentage prerequisite chain stays disabled,
+    // per the standing decision made earlier. The real gate now is
+    // exam registration, checked separately in renderQuizzes below.
     // ============================================================
-    return { locked: false };
-
-    if (!quiz.is_final_exam && !quiz.ca_number) {
-        return { locked: false };
-    }
-
-    const courseQuizzes = quizzesByCourse[quiz.course_id] || [];
-    const ca1 = courseQuizzes.find(q => q.ca_number === 1);
-    const ca2 = courseQuizzes.find(q => q.ca_number === 2);
-
-    const ca1Passed = ca1 && bestScoreByQuiz[ca1.id] !== undefined && bestScoreByQuiz[ca1.id] >= PASS_THRESHOLD;
-    const ca2Passed = ca2 && bestScoreByQuiz[ca2.id] !== undefined && bestScoreByQuiz[ca2.id] >= PASS_THRESHOLD;
-
-    if (quiz.is_final_exam) {
-
-        if (!ca1 || !ca2) {
-            return { locked: true, reason: "CA1 and CA2 must be set up for this course before the Final Exam can unlock." };
-        }
-
-        if (ca1Passed && ca2Passed) {
-            return { locked: false };
-        }
-
-        return { locked: true, reason: "Pass both CA1 and CA2 (70%+ each) before attempting the Final Exam." };
-
-    }
-
-    if (quiz.ca_number === 1) {
-        return { locked: false };
-    }
-
-    if (quiz.ca_number === 2) {
-
-        if (!ca1) {
-            return { locked: true, reason: "CA1 must be set up for this course first." };
-        }
-
-        if (ca1Passed) {
-            return { locked: false };
-        }
-
-        return { locked: true, reason: "Pass CA1 (70%+) first before CA2 unlocks." };
-
-    }
-
     return { locked: false };
 
 }
@@ -653,6 +656,8 @@ function renderQuizzes(quizzes, courseMap, attemptsByQuiz, bestScoreByQuiz, quiz
         const validCompletion = attempts.find(a => a.score !== null && !a.violation_flag);
 
         const lockInfo = getCALockInfo(quiz, quizzesByCourse, bestScoreByQuiz);
+        const requiredRegType = getRequiredRegistrationType(quiz);
+        const registered = isRegisteredFor(quiz);
 
         let statusLabel = "Locked";
         let statusClass = "locked";
@@ -660,12 +665,12 @@ function renderQuizzes(quizzes, courseMap, attemptsByQuiz, bestScoreByQuiz, quiz
         let buttonText = "Locked";
         let showCountdown = false;
         let windowClosedNote = "";
+        let registrationNote = "";
 
         const effectivelyOpen = quiz.is_open || isTimeToOpen(quiz);
         const windowClosed = isWindowClosed(quiz);
         const absoluteEnd = getAbsoluteEndTime(quiz);
 
-        // A genuine completed score is checked BEFORE any pending violation flag or lock reasoning.
         if (lockInfo.locked) {
 
             statusLabel = quiz.is_final_exam ? "Final Exam Locked" : "Locked";
@@ -677,6 +682,15 @@ function renderQuizzes(quizzes, courseMap, attemptsByQuiz, bestScoreByQuiz, quiz
             statusLabel = "Completed";
             statusClass = "done";
             buttonText = "Already Submitted";
+
+        } else if (requiredRegType && !registered) {
+
+            // ===== THE GATE: no approved registration (any mode) for this course/exam type = no access =====
+            statusLabel = "Not Registered";
+            statusClass = "not-registered";
+            buttonText = "Registration Required";
+            const examLabel = requiredRegType === "ca1" ? "CA1" : requiredRegType === "ca2" ? "CA2" : "End-of-Term";
+            registrationNote = `🔒 You have not registered for the ${examLabel} exam for this course. <a href="student-exam-registration.html">Go to Exam Registration</a> before this exam will unlock.`;
 
         } else if (pendingViolation) {
 
@@ -758,7 +772,8 @@ function renderQuizzes(quizzes, courseMap, attemptsByQuiz, bestScoreByQuiz, quiz
             ` : ""}
             <button class="start-button" ${buttonDisabled ? "disabled" : ""} onclick="beginQuiz('${quiz.id}')">${buttonText}</button>
             ${lockInfo.locked ? `<div class="locked-reason">🔒 ${escapeHtml(lockInfo.reason)}</div>` : ""}
-            ${(pendingViolation && !validCompletion) ? `<div class="locked-reason">⚠️ Your previous attempt was flagged for leaving the exam page. Your lecturer must review and reopen it before you can try again.</div>` : ""}
+            ${registrationNote ? `<div class="registration-note">${registrationNote}</div>` : ""}
+            ${(pendingViolation && !validCompletion && registered) ? `<div class="locked-reason">⚠️ Your previous attempt was flagged for leaving the exam page. Your lecturer must review and reopen it before you can try again.</div>` : ""}
             ${windowClosedNote ? `<div class="window-note">${escapeHtml(windowClosedNote)}</div>` : ""}
         `;
 
@@ -828,13 +843,17 @@ async function beginQuiz(quizId) {
         return;
     }
 
+    if (!isRegisteredFor(quiz)) {
+        alert("You have not registered for this exam. Please go to Exam Registration first.");
+        return;
+    }
+
     if (quiz.is_exam && isWindowClosed(quiz)) {
         alert("This exam's window has just closed. You can no longer start it.");
         await loadQuizzes();
         return;
     }
 
-    // ===== SELF-HEALING FIX: check for a genuine completed attempt vs a leftover "phantom" attempt =====
     const { data: existingAttempts } =
         await supabaseClient
             .from("quiz_attempts")
@@ -862,15 +881,11 @@ async function beginQuiz(quizId) {
         return;
     }
 
-    // Any remaining attempts here are genuinely empty/unfinalized "phantom" rows for a still-open window
-    // (a closed-window attempt with real answers would already have been finalized in loadQuizzes()).
-    // Clear those out automatically so a fresh attempt can be created without error.
     const phantomAttemptIds = (existingAttempts || []).map(a => a.id);
 
     if (phantomAttemptIds.length > 0) {
         await supabaseClient.from("quiz_attempts").delete().in("id", phantomAttemptIds);
     }
-    // ===== END SELF-HEALING FIX =====
 
     const { data: questions, error: qError } =
         await supabaseClient.from("quiz_questions").select("*").eq("quiz_id", quizId);
@@ -982,8 +997,6 @@ function renderExamRoom() {
 }
 
 
-// ===== AUTO-SAVE: fires every time an answer changes, so nothing depends on the final Submit click. =====
-// Debounced slightly so rapid changes don't spam the database with a request per keystroke.
 function autoSaveAnswers() {
 
     if (autoSaveTimeout) clearTimeout(autoSaveTimeout);
@@ -1112,9 +1125,6 @@ async function submitExam(isViolation, violationReason) {
 
     });
 
-    // Genuine partial credit: every question is counted in the total, but only questions the
-    // student actually got right earn points. An unanswered question simply earns zero for
-    // itself — it does not erase marks already earned on the questions that WERE answered.
     const finalScore = isViolation ? null : computeScoreFromAnswers(activeQuestions, answers);
 
     const updatePayload = {
