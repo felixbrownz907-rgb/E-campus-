@@ -395,7 +395,7 @@ body { font-family: Arial, Helvetica, sans-serif; background: #f4f6f9; color: #1
 <script>
 
 const PASS_THRESHOLD = 70;
-const MAX_VIOLATIONS_BEFORE_LOCK = 4; // locked exactly on the 4th violation
+const MAX_VIOLATIONS_BEFORE_LOCK = 4;
 
 function getRequiredRegistrationType(quiz) {
     if (quiz.is_final_exam) return "end_of_term";
@@ -418,7 +418,7 @@ let examEndTime = null;
 let examLocked = false;
 let autoSaveTimeout = null;
 let violationCount = 0;
-let ignoringViolationEvents = false; // short debounce so blur+visibilitychange don't double-count the same switch
+let ignoringViolationEvents = false;
 
 let countdownInterval = null;
 let quizzesNeedingCountdown = [];
@@ -1133,8 +1133,6 @@ function handleWindowBlur() {
 }
 
 
-// ===== Central violation handler: counts, warns, and only locks on the 4th time. =====
-// A short debounce prevents blur + visibilitychange firing twice for the same single switch.
 async function registerViolation(reason) {
 
     if (ignoringViolationEvents || examLocked) return;
