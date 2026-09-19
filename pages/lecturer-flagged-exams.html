@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Flagged Exams | Lecturer Portal</title>
+
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: Arial, Helvetica, sans-serif; background: #f4f6f9; color: #172033; }
+
+.header { background: #0e7490; color: white; padding: 18px 25px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+.brand { display: flex; align-items: center; gap: 14px; }
+.logo { width: 55px; height: 55px; object-fit: contain; background: white; border-radius: 8px; }
+.brand h1 { font-size: 22px; }
+.brand p { color: #cffafe; margin-top: 3px; font-size: 13px; }
+.back-button { background: white; color: #0e7490; text-decoration: none; padding: 10px 16px; border-radius: 8px; font-weight: bold; font-size: 13px; }
+
+.container { max-width: 900px; margin: 25px auto; padding: 0 20px; }
+.page-title { margin-bottom: 20px; }
+.page-title h2 { font-size: 26px; margin-bottom: 6px; }
+.page-title p { color: #6b7280; font-size: 14px; }
+
+.message { padding: 14px; border-radius: 8px; margin-bottom: 20px; display: none; }
+.message.success { display: block; background: #dcfce7; color: #166534; }
+.message.error { display: block; background: #fee2e2; color: #991b1b; }
+
+.flag-card {
+    background: white;
+    border-radius: 14px;
+    padding: 20px;
+    margin-bottom: 16px;
+    box-shadow: 0 3px 12px rgba(0,0,0,0.06);
+    border-left: 4px solid #991b1b;
+}
+
+.flag-top { display: flex; justify-content: space-between; align-items: start; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; }
+.student-name { font-weight: bold; font-size: 16px; }
+.flag-meta { font-size: 12px; color: #6b7280; margin-top: 3px; }
+
+.reason-box {
+    background: #fef2f2;
+    color: #991b1b;
+    padding: 10px 14px;
+    border-radius: 8px;
+    font-size: 13px;
+    margin-bottom: 14px;
+}
+
+.answered-note {
+    font-size: 12px;
+    color: #6b7280;
+    margin-bottom: 14px;
+}
+
+.action-row { display: flex; gap: 10px; }
+
+.clear-button {
+    background: #166534;
+    color: white;
+    border: none;
+    padding: 11px 16px;
+    border-radius: 8px;
+    font-weight: bold;
+    font-size: 13px;
+    cursor: pointer;
+    flex: 1;
+}
+
+.grant-window-checkbox {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: #374151;
+    margin-bottom: 12px;
+}
+
+.duration-input {
+    width: 70px;
+    padding: 6px;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    font-size: 12px;
+}
+
+.empty-note { color: #9ca3af; text-align: center; padding: 40px 0; }
+.empty-note.all-clear { font-size: 15px; color: #166534; font-weight: bold; }
+
+</style>
+</head>
+
+
+<body>
+
+<header class="header">
+    <div class="brand">
+        <img src="https://pub-b3e2d39712e84119875e84c5ec5f5c09.r2.dev/Logo/IMG-20260816-WA0050(1).jpg" alt="Sunningdale University Logo" class="logo">
+        <div>
+            <h1>E-Campus</h1>
+            <p>Lecturer Portal</p>
+        </div>
+    </div>
+    <a href="lecturer-dashboard.html" class="back-button">← Dashboard</a>
+</header>
+
+
+<main class="container">
+
+    <section class="page-title">
+        <h2>Flagged Exams</h2>
+        <p>Students who left an exam page mid-attempt appear here, locked until you clear them. Clearing gives a completely fresh attempt with full time.</p>
+    </section>
+
+    <div id="message" class="message"></div>
+
+    <div id="flagsContainer"><p class="empty-note">Loading...</p></div>
+
+</main>
+
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../supabase-config.js"></script>
+
+
+<script>
+
+let lecturerProfileId = null;
+
+const message = document.getElementById("message");
+
+function showMessage(text, type) {
+    message.textContent = text;
+    message.className = "message " + type;
+    setTimeout(() => { message.className = "message"; }, 4000);
+}
+
+function escapeHtml(value) {
+    return String(value ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+}
+
+
+async function loadFlags() {
+
+    const container = document.getElementById("flagsContainer");
+    container.innerHTML = `<p class="empty-note">Loading...</p>`;
+
+    const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
+
+    if (authError || !user) {
+        window.location.href = "lecturer-login.html";
+        return;
+    }
+
+    const { data: lecturerProfile } =
+        await supabaseClient.from("lecturer_profiles").select("id").eq("user_id", user.id).single();
+
+    if (!lecturerProfile) return;
+
+    lecturerProfileId = lecturerProfile.id;
+
+    const { data: assignments } =
+        await supabaseClient
+            .from("course_lecturers")
+            .select("course_id")
+            .eq("lecturer_id", lecturerProfileId);
+
+    const courseIds = (assignments || []).map(a => a.course_id);
+
+    if (courseIds.length === 0) {
+        container.innerHTML = `<p class="empty-note">You have no assigned courses yet.</p>`;
+        return;
+    }
+
+    const { data: quizzes } =
+        await supabaseClient
+            .from("quizzes")
+            .select("id, title, course_id, ca_number, is_final_exam, duration_minutes, courses ( code, name )")
+            .in("course_id", courseIds);
+
+    const quizMap = {};
+    (quizzes || []).forEach(q => { quizMap[q.id] = q; });
+
+    const quizIds = (quizzes || []).map(q => q.id);
+
+    if (quizIds.length === 0) {
+        container.innerHTML = `<p class="empty-note all-clear">✓ No exams set up for your courses yet.</p>`;
+        return;
+    }
+
+    const { data: flaggedAttempts, error } =
+        await supabaseClient
+            .from("quiz_attempts")
+            .select("id, quiz_id, student_id, violation_reason, submitted_at, answers")
+            .in("quiz_id", quizIds)
+            .eq("violation_flag", true)
+            .eq("cleared_by_lecturer", false)
+            .order("submitted_at", { ascending: false });
+
+    if (error) {
+        container.innerHTML = `<p class="empty-note">Unable to load: ${escapeHtml(error.message)}</p>`;
+        return;
+    }
+
+    if (!flaggedAttempts || flaggedAttempts.length === 0) {
+        container.innerHTML = `<p class="empty-note all-clear">✓ No flagged exams right now — all clear.</p>`;
+        return;
+    }
+
+    const studentUserIds = [...new Set(flaggedAttempts.map(a => a.student_id))];
+
+    const { data: studentProfiles } =
+        await supabaseClient
+            .from("student_profiles")
+            .select("user_id, student_number, user_profiles ( first_name, last_name )")
+            .in("user_id", studentUserIds);
+
+    const studentMap = {};
+    (studentProfiles || []).forEach(sp => { studentMap[sp.user_id] = sp; });
+
+    container.innerHTML = flaggedAttempts.map(attempt => {
+
+        const quiz = quizMap[attempt.quiz_id];
+        const student = studentMap[attempt.student_id];
+        const name = student?.user_profiles ? `${student.user_profiles.first_name} ${student.user_profiles.last_name}` : "Unknown student";
+        const studentNumber = student?.student_number || "";
+
+        const answeredCount = attempt.answers ? Object.values(attempt.answers).filter(v => v !== null && v !== "").length : 0;
+
+        const examLabel = quiz?.is_final_exam ? "Final Exam" : quiz?.ca_number ? `CA${quiz.ca_number}` : "Quiz";
+
+        return `
+            <div class="flag-card">
+                <div class="flag-top">
+                    <div>
+                        <div class="student-name">${escapeHtml(name)}</div>
+                        <div class="flag-meta">${escapeHtml(studentNumber)} • ${escapeHtml(quiz?.courses?.code || "")} — ${examLabel}: ${escapeHtml(quiz?.title || "")}</div>
+                        <div class="flag-meta">Flagged: ${new Date(attempt.submitted_at).toLocaleString()}</div>
+                    </div>
+                </div>
+
+                <div class="reason-box">⚠️ ${escapeHtml(attempt.violation_reason || "Left the exam page")}</div>
+                <div class="answered-note">${answeredCount} question(s) had been answered before this attempt was flagged (these will not carry over to the new attempt).</div>
+
+                <label class="grant-window-checkbox">
+                    <input type="checkbox" id="grant-${attempt.id}" checked>
+                    Also give a fresh personal exam window starting now, for
+                    <input type="number" class="duration-input" id="duration-${attempt.id}" value="${quiz?.duration_minutes || 60}" min="5"> minutes
+                </label>
+
+                <div class="action-row">
+                    <button class="clear-button" onclick="clearFlag('${attempt.id}', '${attempt.quiz_id}', '${attempt.student_id}')">✓ Clear Flag & Allow Retry</button>
+                </div>
+            </div>
+        `;
+
+    }).join("");
+
+}
+
+
+async function clearFlag(attemptId, quizId, studentUserId) {
+
+    const grantCheckbox = document.getElementById(`grant-${attemptId}`);
+    const durationInput = document.getElementById(`duration-${attemptId}`);
+
+    const { error: clearError } =
+        await supabaseClient
+            .from("quiz_attempts")
+            .update({ cleared_by_lecturer: true })
+            .eq("id", attemptId);
+
+    if (clearError) {
+        showMessage("Unable to clear: " + clearError.message, "error");
+        return;
+    }
+
+    if (grantCheckbox.checked) {
+
+        const { data: studentProfile } =
+            await supabaseClient.from("student_profiles").select("id").eq("user_id", studentUserId).single();
+
+        if (studentProfile) {
+
+            const durationMinutes = Number(durationInput.value) || 60;
+
+            const { error: overrideError } =
+                await supabaseClient.from("quiz_student_overrides").upsert({
+                    quiz_id: quizId,
+                    student_id: studentProfile.id,
+                    scheduled_start: new Date().toISOString(),
+                    duration_minutes: durationMinutes
+                }, { onConflict: "quiz_id,student_id" });
+
+            if (overrideError) {
+                showMessage("Flag cleared, but unable to grant a fresh window: " + overrideError.message, "error");
+                await loadFlags();
+                return;
+            }
+
+        }
+
+    }
+
+    showMessage(grantCheckbox.checked ? "Flag cleared and a fresh exam window has been granted." : "Flag cleared. Student can register a new attempt when the normal window allows.", "success");
+    await loadFlags();
+
+}
+
+
+loadFlags();
+
+</script>
+
+</body>
+</html>
