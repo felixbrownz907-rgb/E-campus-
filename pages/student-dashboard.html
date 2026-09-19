@@ -884,15 +884,23 @@ async function loadFeesSummary(studentProfileId) {
     let totalPaid = 0;
     let earliestDueDate = null;
 
+    // ===== PERFORMANCE FIX: one batched query for all payments instead of one query per fee record. =====
+    const feeRecordIds = currentTermRecords.map(r => r.id);
+
+    const { data: allPayments } =
+        feeRecordIds.length > 0
+            ? await supabaseClient.from("fee_payments").select("student_fee_id, amount").in("student_fee_id", feeRecordIds)
+            : { data: [] };
+
+    const paidByRecordId = {};
+    (allPayments || []).forEach(p => {
+        paidByRecordId[p.student_fee_id] = (paidByRecordId[p.student_fee_id] || 0) + Number(p.amount);
+    });
+
     for (const record of currentTermRecords) {
 
-        const { data: payments } =
-            await supabaseClient.from("fee_payments").select("amount").eq("student_fee_id", record.id);
-
-        const paidForThis = (payments || []).reduce((sum, p) => sum + Number(p.amount), 0);
-
         totalFee += Number(record.total_fee);
-        totalPaid += paidForThis;
+        totalPaid += paidByRecordId[record.id] || 0;
 
         if (record.due_date && (!earliestDueDate || new Date(record.due_date) < new Date(earliestDueDate))) {
             earliestDueDate = record.due_date;
