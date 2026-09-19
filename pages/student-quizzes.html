@@ -191,6 +191,7 @@ body { font-family: Arial, Helvetica, sans-serif; background: #f4f6f9; color: #1
 }
 
 .exam-timer { font-size: 18px; font-weight: bold; color: #d4af37; }
+.violation-counter { font-size: 12px; color: #fca5a5; margin-top: 3px; }
 
 .exam-warning {
     background: #fef3c7;
@@ -283,9 +284,30 @@ body { font-family: Arial, Helvetica, sans-serif; background: #f4f6f9; color: #1
     font-weight: bold;
     z-index: 1001;
     box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    text-align: center;
+    max-width: 90%;
 }
 
 .copy-warning-toast.show { display: block; }
+
+.violation-warning-toast {
+    display: none;
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #b45309;
+    color: white;
+    padding: 16px 24px;
+    border-radius: 10px;
+    font-weight: bold;
+    z-index: 1002;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    text-align: center;
+    max-width: 90%;
+}
+
+.violation-warning-toast.show { display: block; }
 
 </style>
 </head>
@@ -316,10 +338,9 @@ body { font-family: Arial, Helvetica, sans-serif; background: #f4f6f9; color: #1
         <h3>📋 Locked Exam Rules</h3>
         <ul>
             <li>You must have an <strong>approved</strong> exam registration for this exact course before an exam becomes available.</li>
-            <li>Do not leave this page or switch to another app once the exam begins.</li>
+            <li>Avoid leaving this page or switching to another app once the exam begins. You will get a warning the first 3 times you do this.</li>
+            <li>On the <strong>4th time</strong> you leave the page, your exam will be locked immediately and flagged for your lecturer's review.</li>
             <li>Copying and pasting is disabled during the exam.</li>
-            <li>Keep your device in normal full-screen mode — do not use split-screen or floating window features.</li>
-            <li>If you leave the page, your exam will be locked immediately and flagged for your lecturer's review.</li>
             <li>All students share the same exam end time — joining late means less time, not extra time.</li>
             <li>Your answers are saved automatically as you go — if time runs out, you are marked on whatever you completed so far.</li>
             <li>A locked exam can only be reopened by your lecturer. You will get a completely fresh attempt with full time — your previous answers will not be saved.</li>
@@ -338,12 +359,15 @@ body { font-family: Arial, Helvetica, sans-serif; background: #f4f6f9; color: #1
 <div class="exam-room" id="examRoom">
 
     <div class="exam-header">
-        <div id="examTitle">Exam</div>
+        <div>
+            <div id="examTitle">Exam</div>
+            <div class="violation-counter" id="violationCounter">0 of 4 warnings used</div>
+        </div>
         <div class="exam-timer" id="examTimer">--:--</div>
     </div>
 
     <div class="exam-warning">
-        ⚠️ Do not leave this page or switch apps. Copying and pasting is disabled. Leaving will lock your exam and require your lecturer to reopen it before you can try again.
+        ⚠️ Avoid leaving this page or switching apps. Copying and pasting is disabled. Leaving 4 times will lock your exam and require your lecturer to reopen it.
     </div>
 
     <div id="examQuestions"></div>
@@ -356,11 +380,12 @@ body { font-family: Arial, Helvetica, sans-serif; background: #f4f6f9; color: #1
 
 <div class="lockout-screen" id="lockoutScreen">
     <h2>⚠️ Exam Locked</h2>
-    <p id="lockoutMessage">You left the exam page. Your exam has been locked and flagged for your lecturer. You will need your lecturer to reopen it before you can attempt it again — with a fresh full attempt and full time.</p>
+    <p id="lockoutMessage">You left the exam page 4 times. Your exam has been locked and flagged for your lecturer. You will need your lecturer to reopen it before you can attempt it again — with a fresh full attempt and full time.</p>
 </div>
 
 
 <div class="copy-warning-toast" id="copyWarningToast">⚠️ Copying and pasting is not allowed during this exam.</div>
+<div class="violation-warning-toast" id="violationWarningToast"></div>
 
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -370,6 +395,7 @@ body { font-family: Arial, Helvetica, sans-serif; background: #f4f6f9; color: #1
 <script>
 
 const PASS_THRESHOLD = 70;
+const MAX_VIOLATIONS_BEFORE_LOCK = 4; // locked exactly on the 4th violation
 
 function getRequiredRegistrationType(quiz) {
     if (quiz.is_final_exam) return "end_of_term";
@@ -382,7 +408,7 @@ function getRequiredRegistrationType(quiz) {
 let authUserId = null;
 let studentProfileId = null;
 let approvedRegistrationKeys = new Set();
-let overridesByQuiz = {}; // quiz_id -> { scheduled_start, duration_minutes } — this student's personal window, if any
+let overridesByQuiz = {};
 
 let activeQuiz = null;
 let activeQuestions = [];
@@ -391,6 +417,8 @@ let examTimerInterval = null;
 let examEndTime = null;
 let examLocked = false;
 let autoSaveTimeout = null;
+let violationCount = 0;
+let ignoringViolationEvents = false; // short debounce so blur+visibilitychange don't double-count the same switch
 
 let countdownInterval = null;
 let quizzesNeedingCountdown = [];
@@ -406,8 +434,6 @@ function escapeHtml(value) {
 }
 
 
-// ===== Build the "effective" schedule for a quiz: a per-student override always wins over =====
-// the whole-class schedule, since it represents a deliberate individual exception.
 function getEffectiveSchedule(quiz) {
 
     const override = overridesByQuiz[quiz.id];
@@ -593,8 +619,6 @@ async function loadQuizzes() {
         return;
     }
 
-    // Load this student's individual overrides for these quizzes — a personal exam window
-    // set by the lecturer, which always takes priority over the whole-class schedule.
     const allQuizIds = (allQuizzes || []).map(q => q.id);
     overridesByQuiz = {};
 
@@ -807,7 +831,7 @@ function renderQuizzes(quizzes, courseMap, attemptsByQuiz, bestScoreByQuiz, quiz
             <button class="start-button" ${buttonDisabled ? "disabled" : ""} onclick="beginQuiz('${quiz.id}')">${buttonText}</button>
             ${lockInfo.locked ? `<div class="locked-reason">🔒 ${escapeHtml(lockInfo.reason)}</div>` : ""}
             ${registrationNote ? `<div class="registration-note">${registrationNote}</div>` : ""}
-            ${(pendingViolation && !validCompletion && registered) ? `<div class="locked-reason">⚠️ Your previous attempt was flagged for leaving the exam page. Your lecturer must review and reopen it before you can try again.</div>` : ""}
+            ${(pendingViolation && !validCompletion && registered) ? `<div class="locked-reason">⚠️ Your previous attempt was flagged for repeated exam-window violations. Your lecturer must review and reopen it before you can try again.</div>` : ""}
             ${windowClosedNote ? `<div class="window-note">${escapeHtml(windowClosedNote)}</div>` : ""}
         `;
 
@@ -933,7 +957,7 @@ async function beginQuiz(quizId) {
 
     if (quiz.is_exam) {
         const confirmed = confirm(
-            "This is a locked exam. Once you start:\n\n• Do not leave this page or switch apps\n• Copying and pasting is disabled\n• Stay in normal full-screen mode\n• Everyone shares the same end time — joining late means less time\n• Your answers save automatically — if time runs out, you're marked on what you completed\n\nLeaving will lock your exam and require your lecturer to reopen it. Are you ready to begin?"
+            "This is a locked exam. Once you start:\n\n• Avoid leaving this page or switching apps — you get a warning for the first 3 times\n• On the 4th time, your exam locks automatically and is flagged for your lecturer\n• Copying and pasting is disabled\n• Everyone shares the same end time — joining late means less time\n• Your answers save automatically — if time runs out, you're marked on what you completed\n\nAre you ready to begin?"
         );
         if (!confirmed) return;
     }
@@ -941,6 +965,8 @@ async function beginQuiz(quizId) {
     activeQuiz = quiz;
     activeQuestions = questions;
     examLocked = false;
+    violationCount = 0;
+    updateViolationCounter();
 
     const { data: attemptRow, error: insertError } =
         await supabaseClient
@@ -949,7 +975,8 @@ async function beginQuiz(quizId) {
                 quiz_id: quizId,
                 student_id: authUserId,
                 started_at: new Date().toISOString(),
-                answers: {}
+                answers: {},
+                violation_count: 0
             })
             .select("id")
             .single();
@@ -986,6 +1013,12 @@ async function beginQuiz(quizId) {
         document.getElementById("examTimer").textContent = "";
     }
 
+}
+
+
+function updateViolationCounter() {
+    const el = document.getElementById("violationCounter");
+    if (el) el.textContent = `${violationCount} of ${MAX_VIOLATIONS_BEFORE_LOCK} warnings used`;
 }
 
 
@@ -1088,15 +1121,59 @@ function startTimer() {
 
 function handleVisibilityChange() {
     if (document.hidden && !examLocked) {
-        lockExam("You switched away from this tab.");
+        registerViolation("You switched away from this tab.");
     }
 }
 
 
 function handleWindowBlur() {
     if (!examLocked) {
-        lockExam("You left this window.");
+        registerViolation("You left this window.");
     }
+}
+
+
+// ===== Central violation handler: counts, warns, and only locks on the 4th time. =====
+// A short debounce prevents blur + visibilitychange firing twice for the same single switch.
+async function registerViolation(reason) {
+
+    if (ignoringViolationEvents || examLocked) return;
+
+    ignoringViolationEvents = true;
+    setTimeout(() => { ignoringViolationEvents = false; }, 800);
+
+    violationCount += 1;
+    updateViolationCounter();
+
+    if (activeAttemptId) {
+        await supabaseClient
+            .from("quiz_attempts")
+            .update({ violation_count: violationCount })
+            .eq("id", activeAttemptId);
+    }
+
+    if (violationCount >= MAX_VIOLATIONS_BEFORE_LOCK) {
+        lockExam(reason);
+        return;
+    }
+
+    showViolationWarning(reason);
+
+}
+
+
+function showViolationWarning(reason) {
+
+    const toast = document.getElementById("violationWarningToast");
+    const remaining = MAX_VIOLATIONS_BEFORE_LOCK - violationCount;
+
+    toast.textContent = `⚠️ Warning ${violationCount} of ${MAX_VIOLATIONS_BEFORE_LOCK}: ${reason} ${remaining} more time(s) and your exam will lock automatically.`;
+    toast.classList.add("show");
+
+    setTimeout(() => {
+        toast.classList.remove("show");
+    }, 4000);
+
 }
 
 
@@ -1130,7 +1207,7 @@ function lockExam(reason) {
     document.getElementById("examRoom").classList.remove("active");
     document.getElementById("lockoutScreen").classList.add("active");
     document.getElementById("lockoutMessage").textContent =
-        reason + " Your exam has been locked and flagged for your lecturer. You will need your lecturer to reopen it before you can attempt it again — with a fresh full attempt and full time.";
+        `You left the exam page ${MAX_VIOLATIONS_BEFORE_LOCK} times (most recently: ${reason}). Your exam has been locked and flagged for your lecturer. You will need your lecturer to reopen it before you can attempt it again — with a fresh full attempt and full time.`;
 
     submitExam(true, reason);
 
@@ -1171,7 +1248,8 @@ async function submitExam(isViolation, violationReason) {
 
     if (isViolation) {
         updatePayload.violation_flag = true;
-        updatePayload.violation_reason = violationReason;
+        updatePayload.violation_reason = `Left the exam page ${violationCount} times (most recently: ${violationReason})`;
+        updatePayload.violation_count = violationCount;
     }
 
     const { error } =
