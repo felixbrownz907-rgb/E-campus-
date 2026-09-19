@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Progress / Rewrite Results | Lecturer Portal</title>
+
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: Arial, Helvetica, sans-serif; background: #f4f6f9; color: #172033; }
+
+.header { background: #0e7490; color: white; padding: 18px 25px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+.brand { display: flex; align-items: center; gap: 14px; }
+.logo { width: 55px; height: 55px; object-fit: contain; background: white; border-radius: 8px; }
+.brand h1 { font-size: 22px; }
+.brand p { color: #cffafe; margin-top: 3px; font-size: 13px; }
+.back-button { background: white; color: #0e7490; text-decoration: none; padding: 10px 16px; border-radius: 8px; font-weight: bold; font-size: 13px; }
+
+.container { max-width: 1000px; margin: 25px auto; padding: 0 20px; }
+.page-title { margin-bottom: 20px; }
+.page-title h2 { font-size: 26px; margin-bottom: 6px; }
+.page-title p { color: #6b7280; font-size: 14px; }
+
+.weighting-note {
+    background: #eff6ff;
+    color: #1d4ed8;
+    padding: 12px 16px;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: bold;
+    margin-bottom: 20px;
+}
+
+.selectors { margin-bottom: 20px; }
+.selectors select { width: 100%; padding: 13px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 15px; }
+
+.summary-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 20px; }
+
+.summary-box {
+    background: white;
+    border-radius: 12px;
+    padding: 16px;
+    text-align: center;
+    box-shadow: 0 3px 12px rgba(0,0,0,0.06);
+}
+
+.summary-box .value { font-size: 22px; font-weight: bold; }
+.summary-box .label { font-size: 12px; color: #6b7280; margin-top: 4px; }
+.summary-box.progress .value { color: #166534; }
+.summary-box.rewrite .value { color: #991b1b; }
+
+.results-table {
+    background: white;
+    border-radius: 14px;
+    overflow: hidden;
+    box-shadow: 0 3px 12px rgba(0,0,0,0.06);
+}
+
+.results-row {
+    display: grid;
+    grid-template-columns: 1.6fr 0.7fr 0.7fr 0.7fr 0.8fr 1fr;
+    gap: 8px;
+    padding: 14px 16px;
+    border-bottom: 1px solid #f0f1f3;
+    align-items: center;
+    font-size: 13px;
+}
+
+.results-row.header-row {
+    background: #f4f6f9;
+    font-weight: bold;
+    font-size: 11px;
+    color: #6b7280;
+    text-transform: uppercase;
+}
+
+.results-row:last-child { border-bottom: none; }
+
+.student-name { font-weight: bold; font-size: 13px; }
+.student-number { font-size: 11px; color: #6b7280; }
+
+.score-cell { text-align: center; font-weight: bold; }
+.score-cell.pending { color: #9ca3af; font-weight: normal; font-size: 11px; }
+
+.overall-cell { text-align: center; font-weight: bold; font-size: 15px; }
+
+.outcome-tag {
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: bold;
+    display: inline-block;
+}
+
+.outcome-tag.progress { background: #dcfce7; color: #166534; }
+.outcome-tag.rewrite { background: #fee2e2; color: #991b1b; }
+.outcome-tag.pending { background: #f3f4f6; color: #9ca3af; }
+
+.empty-note { color: #9ca3af; text-align: center; padding: 30px 0; }
+
+@media (max-width: 800px) {
+    .results-row { grid-template-columns: 1.4fr 1fr 1fr; }
+    .results-row .col-ca1, .results-row .col-ca2 { display: none; }
+    .summary-grid { grid-template-columns: 1fr 1fr; }
+}
+
+</style>
+</head>
+
+
+<body>
+
+<header class="header">
+    <div class="brand">
+        <img src="https://pub-b3e2d39712e84119875e84c5ec5f5c09.r2.dev/Logo/IMG-20260816-WA0050(1).jpg" alt="Sunningdale University Logo" class="logo">
+        <div>
+            <h1>E-Campus</h1>
+            <p>Lecturer Portal</p>
+        </div>
+    </div>
+    <a href="lecturer-dashboard.html" class="back-button">← Dashboard</a>
+</header>
+
+
+<main class="container">
+
+    <section class="page-title">
+        <h2>Progress / Rewrite Results</h2>
+        <p>See every student's overall course result and whether they progress or must rewrite.</p>
+    </section>
+
+    <div class="weighting-note">
+        📊 Overall = CA1 (20%) + CA2 (20%) + Final Exam (60%). 50% overall is required to progress to the next term.
+    </div>
+
+    <div class="selectors">
+        <select id="courseSelect" onchange="loadResults()">
+            <option value="">Select course</option>
+        </select>
+    </div>
+
+    <div id="summaryContainer"></div>
+
+    <div id="resultsContainer">
+        <p class="empty-note">Select a course above to see results.</p>
+    </div>
+
+</main>
+
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../supabase-config.js"></script>
+
+
+<script>
+
+const CA1_WEIGHT = 0.20;
+const CA2_WEIGHT = 0.20;
+const FINAL_WEIGHT = 0.60;
+const OVERALL_PASS_MARK = 50;
+
+let lecturerProfileId = null;
+
+function escapeHtml(value) {
+    return String(value ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+}
+
+
+async function startPage() {
+
+    const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
+
+    if (authError || !user) {
+        window.location.href = "lecturer-login.html";
+        return;
+    }
+
+    const { data: lecturerProfile } =
+        await supabaseClient.from("lecturer_profiles").select("id").eq("user_id", user.id).single();
+
+    if (!lecturerProfile) return;
+
+    lecturerProfileId = lecturerProfile.id;
+
+    const { data: assignments } =
+        await supabaseClient
+            .from("course_lecturers")
+            .select("courses ( id, code, name )")
+            .eq("lecturer_id", lecturerProfileId);
+
+    const courses = (assignments || []).map(a => a.courses).filter(Boolean);
+    const select = document.getElementById("courseSelect");
+
+    courses.forEach(c => {
+        const option = document.createElement("option");
+        option.value = c.id;
+        option.textContent = `${c.code} — ${c.name}`;
+        select.appendChild(option);
+    });
+
+}
+
+
+function computeWeightedOverall(ca1, ca2, finalScore) {
+    return Math.round((ca1 * CA1_WEIGHT) + (ca2 * CA2_WEIGHT) + (finalScore * FINAL_WEIGHT));
+}
+
+
+async function loadResults() {
+
+    const courseId = document.getElementById("courseSelect").value;
+    const summaryContainer = document.getElementById("summaryContainer");
+    const resultsContainer = document.getElementById("resultsContainer");
+
+    if (!courseId) {
+        summaryContainer.innerHTML = "";
+        resultsContainer.innerHTML = `<p class="empty-note">Select a course above to see results.</p>`;
+        return;
+    }
+
+    resultsContainer.innerHTML = `<p class="empty-note">Loading...</p>`;
+
+    const { data: enrollments } =
+        await supabaseClient
+            .from("enrollments")
+            .select(`
+                student_id,
+                final_score, final_grade, results_published,
+                ca1_score, ca1_published, ca2_score, ca2_published,
+                final_exam_score, final_exam_published,
+                student_profiles ( id, user_id, student_number, user_profiles ( first_name, last_name ) )
+            `)
+            .eq("course_id", courseId)
+            .eq("status", "enrolled");
+
+    const students = (enrollments || []).filter(e => e.student_profiles);
+
+    const { data: quizzes } =
+        await supabaseClient
+            .from("quizzes")
+            .select("id, ca_number, is_final_exam")
+            .eq("course_id", courseId);
+
+    const ca1Quiz = (quizzes || []).find(q => q.ca_number === 1);
+    const ca2Quiz = (quizzes || []).find(q => q.ca_number === 2);
+    const finalQuiz = (quizzes || []).find(q => q.is_final_exam);
+
+    const relevantQuizIds = [ca1Quiz?.id, ca2Quiz?.id, finalQuiz?.id].filter(Boolean);
+
+    let attempts = [];
+    if (relevantQuizIds.length > 0) {
+        const { data } =
+            await supabaseClient
+                .from("quiz_attempts")
+                .select("student_id, quiz_id, score, violation_flag")
+                .in("quiz_id", relevantQuizIds);
+        attempts = data || [];
+    }
+
+    const bestScoreByStudentQuiz = {};
+    attempts.forEach(a => {
+        if (a.score === null || a.violation_flag) return;
+        const key = `${a.student_id}_${a.quiz_id}`;
+        if (bestScoreByStudentQuiz[key] === undefined || a.score > bestScoreByStudentQuiz[key]) {
+            bestScoreByStudentQuiz[key] = a.score;
+        }
+    });
+
+    let progressCount = 0, rewriteCount = 0, pendingCount = 0;
+
+    const rows = students.map(e => {
+
+        const sp = e.student_profiles;
+        const name = sp.user_profiles ? `${sp.user_profiles.first_name} ${sp.user_profiles.last_name}` : "Unknown";
+        const userId = sp.user_id;
+
+        const ca1FromLegacy = (e.ca1_published && e.ca1_score !== null) ? e.ca1_score : undefined;
+        const ca1FromQuiz = ca1Quiz ? bestScoreByStudentQuiz[`${userId}_${ca1Quiz.id}`] : undefined;
+        const ca1Score = ca1FromLegacy !== undefined ? ca1FromLegacy : ca1FromQuiz;
+
+        const ca2FromLegacy = (e.ca2_published && e.ca2_score !== null) ? e.ca2_score : undefined;
+        const ca2FromQuiz = ca2Quiz ? bestScoreByStudentQuiz[`${userId}_${ca2Quiz.id}`] : undefined;
+        const ca2Score = ca2FromLegacy !== undefined ? ca2FromLegacy : ca2FromQuiz;
+
+        const finalFromLegacy = (e.final_exam_published && e.final_exam_score !== null) ? e.final_exam_score : undefined;
+        const finalFromQuiz = finalQuiz ? bestScoreByStudentQuiz[`${userId}_${finalQuiz.id}`] : undefined;
+        const finalScore = finalFromLegacy !== undefined ? finalFromLegacy : finalFromQuiz;
+
+        let overall = null;
+        let outcome = "pending";
+        let outcomeText = "Pending";
+
+        if (e.results_published && e.final_score !== null && e.final_score !== undefined) {
+
+            overall = e.final_score;
+            outcome = overall >= OVERALL_PASS_MARK ? "progress" : "rewrite";
+            outcomeText = outcome === "progress" ? "✓ Progress" : "✗ Rewrite";
+
+        } else if (ca1Score !== undefined && ca2Score !== undefined && finalScore !== undefined) {
+
+            overall = computeWeightedOverall(ca1Score, ca2Score, finalScore);
+            outcome = overall >= OVERALL_PASS_MARK ? "progress" : "rewrite";
+            outcomeText = outcome === "progress" ? "✓ Progress" : "✗ Rewrite";
+
+        }
+
+        if (outcome === "progress") progressCount++;
+        else if (outcome === "rewrite") rewriteCount++;
+        else pendingCount++;
+
+        return {
+            name,
+            studentNumber: sp.student_number,
+            ca1Score, ca2Score, finalScore,
+            overall, outcome, outcomeText
+        };
+
+    });
+
+    rows.sort((a, b) => a.name.localeCompare(b.name));
+
+    summaryContainer.innerHTML = `
+        <div class="summary-grid">
+            <div class="summary-box progress"><div class="value">${progressCount}</div><div class="label">Progressing</div></div>
+            <div class="summary-box rewrite"><div class="value">${rewriteCount}</div><div class="label">Must Rewrite</div></div>
+            <div class="summary-box"><div class="value">${pendingCount}</div><div class="label">Pending (not all 3 scores yet)</div></div>
+        </div>
+    `;
+
+    if (rows.length === 0) {
+        resultsContainer.innerHTML = `<p class="empty-note">No students enrolled in this course yet.</p>`;
+        return;
+    }
+
+    resultsContainer.innerHTML = `
+        <div class="results-table">
+            <div class="results-row header-row">
+                <div>Student</div>
+                <div class="col-ca1" style="text-align:center;">CA1</div>
+                <div class="col-ca2" style="text-align:center;">CA2</div>
+                <div style="text-align:center;">Final</div>
+                <div style="text-align:center;">Overall</div>
+                <div style="text-align:center;">Outcome</div>
+            </div>
+            ${rows.map(r => `
+                <div class="results-row">
+                    <div>
+                        <div class="student-name">${escapeHtml(r.name)}</div>
+                        <div class="student-number">${escapeHtml(r.studentNumber)}</div>
+                    </div>
+                    <div class="score-cell col-ca1 ${r.ca1Score === undefined ? "pending" : ""}">${r.ca1Score !== undefined ? r.ca1Score + "%" : "—"}</div>
+                    <div class="score-cell col-ca2 ${r.ca2Score === undefined ? "pending" : ""}">${r.ca2Score !== undefined ? r.ca2Score + "%" : "—"}</div>
+                    <div class="score-cell ${r.finalScore === undefined ? "pending" : ""}">${r.finalScore !== undefined ? r.finalScore + "%" : "—"}</div>
+                    <div class="overall-cell">${r.overall !== null ? r.overall + "%" : "—"}</div>
+                    <div style="text-align:center;"><span class="outcome-tag ${r.outcome}">${r.outcomeText}</span></div>
+                </div>
+            `).join("")}
+        </div>
+    `;
+
+}
+
+
+startPage();
+
+</script>
+
+</body>
+</html>
