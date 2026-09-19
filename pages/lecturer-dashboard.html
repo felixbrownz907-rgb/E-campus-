@@ -84,6 +84,12 @@ body { font-family: Arial, Helvetica, sans-serif; background: #f4f6f9; color: #1
     border-color: #0e7490;
 }
 
+.quick-link.alert {
+    background: #fef2f2;
+    color: #991b1b;
+    border-color: #fecaca;
+}
+
 .course-item {
     padding: 16px;
     border: 1px solid #e5e7eb;
@@ -148,6 +154,7 @@ body { font-family: Arial, Helvetica, sans-serif; background: #f4f6f9; color: #1
         <h3>Quick Actions</h3>
         <div class="quick-links">
             <a href="lecturer-schedule-exam.html" class="quick-link featured">🗓️ Schedule Exam</a>
+            <a href="lecturer-flagged-exams.html" class="quick-link alert">🚩 Flagged Exams</a>
             <a href="lecturer-content.html" class="quick-link">📖 Manage Content</a>
             <a href="lecturer-assignments.html" class="quick-link">📝 Create Assignments</a>
             <a href="lecturer-exams.html" class="quick-link">📋 Manage Exams</a>
@@ -157,6 +164,7 @@ body { font-family: Arial, Helvetica, sans-serif; background: #f4f6f9; color: #1
             <a href="lecturer-announcements.html" class="quick-link">📢 Announcements</a>
             <a href="lecturer-results.html" class="quick-link">📊 Publish Results</a>
             <a href="lecturer-quiz-scores.html" class="quick-link">🎯 View Exam Scores</a>
+            <a href="lecturer-course-results.html" class="quick-link">📊 Progress / Rewrite Results</a>
             <a href="lecturer-videos.html" class="quick-link">🎬 Manage Videos</a>
         </div>
     </section>
@@ -291,6 +299,7 @@ async function startDashboard() {
             <div class="course-meta">${studentCountByCourse[course.id] || 0} students enrolled • ${course.credits || 0} credits</div>
             <div class="action-row">
                 <a href="lecturer-schedule-exam.html" class="small-button">🗓️ Schedule Exam</a>
+                <a href="lecturer-flagged-exams.html" class="small-button">🚩 Flagged Exams</a>
                 <a href="lecturer-content.html" class="small-button">📖 Manage Content</a>
                 <a href="lecturer-assignments.html" class="small-button">📝 Create Assignments</a>
                 <a href="lecturer-exams.html" class="small-button">📋 Manage Exams</a>
@@ -299,6 +308,7 @@ async function startDashboard() {
                 <a href="lecturer-topic-tracker.html" class="small-button">📖 Topic Tracker</a>
                 <a href="lecturer-results.html" class="small-button">📊 Publish Results</a>
                 <a href="lecturer-quiz-scores.html" class="small-button">🎯 View Exam Scores</a>
+                <a href="lecturer-course-results.html" class="small-button">📊 Progress/Rewrite</a>
                 <a href="lecturer-videos.html" class="small-button">🎬 Manage Videos</a>
             </div>
         </div>
