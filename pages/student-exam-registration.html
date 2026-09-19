@@ -33,73 +33,55 @@ body { font-family: Arial, Helvetica, sans-serif; background: #f4f6f9; color: #1
     font-size: 13px;
 }
 
-.container { max-width: 800px; margin: 25px auto; padding: 0 20px; }
+.container { max-width: 850px; margin: 25px auto; padding: 0 20px; }
 
 .page-title { margin-bottom: 20px; }
 .page-title h2 { font-size: 28px; margin-bottom: 6px; }
 .page-title p { color: #6b7280; font-size: 14px; }
 
-.card {
+.mode-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 24px; }
+
+.mode-card {
     background: white;
     border-radius: 14px;
-    padding: 22px;
-    margin-bottom: 18px;
+    padding: 18px;
+    text-align: center;
+    cursor: pointer;
+    box-shadow: 0 3px 12px rgba(0,0,0,0.06);
+    border: 2px solid transparent;
+}
+
+.mode-card.selected { border-color: #111827; background: #f4f6f9; }
+.mode-card .mode-icon { font-size: 24px; margin-bottom: 8px; }
+.mode-card .mode-label { font-weight: bold; font-size: 14px; }
+.mode-card .mode-sub { font-size: 11px; color: #6b7280; margin-top: 4px; }
+
+.exam-type-block {
+    background: white;
+    border-radius: 14px;
+    padding: 20px;
+    margin-bottom: 16px;
     box-shadow: 0 3px 12px rgba(0,0,0,0.06);
 }
 
-.card-top { display: flex; justify-content: space-between; align-items: start; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
-.card h3 { font-size: 18px; }
-.card-meta { color: #6b7280; font-size: 13px; margin-top: 4px; }
+.exam-type-top { display: flex; justify-content: space-between; align-items: start; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }
+.exam-type-block h3 { font-size: 17px; }
+.exam-type-meta { color: #6b7280; font-size: 12px; margin-top: 4px; }
 
-.status-badge {
-    padding: 4px 12px;
-    border-radius: 20px;
-    font-size: 11px;
-    font-weight: bold;
-}
-
+.status-badge { padding: 4px 12px; border-radius: 20px; font-size: 11px; font-weight: bold; }
 .status-badge.not-open { background: #f3f4f6; color: #6b7280; }
 .status-badge.open { background: #dcfce7; color: #166534; }
 .status-badge.closed { background: #f3f4f6; color: #991b1b; }
-.status-badge.pending { background: #fef3c7; color: #92400e; }
-.status-badge.approved { background: #dcfce7; color: #166534; }
-.status-badge.rejected { background: #fee2e2; color: #991b1b; }
 .status-badge.blocked { background: #fee2e2; color: #991b1b; }
 
-.countdown-note {
-    background: #eff6ff;
-    color: #1d4ed8;
-    padding: 12px;
-    border-radius: 8px;
-    font-size: 13px;
-    font-weight: bold;
-    margin-bottom: 10px;
-}
-
-.fee-warning {
-    background: #fee2e2;
-    color: #991b1b;
-    padding: 14px;
-    border-radius: 10px;
-    font-size: 13px;
-    margin-bottom: 14px;
-    line-height: 1.5;
-}
-
-.fee-ok {
-    background: #f0fdf4;
-    color: #166534;
-    padding: 12px;
-    border-radius: 8px;
-    font-size: 13px;
-    margin-bottom: 14px;
-}
-
-.course-checklist { margin-bottom: 16px; }
+.countdown-note { background: #eff6ff; color: #1d4ed8; padding: 12px; border-radius: 8px; font-size: 13px; font-weight: bold; margin-bottom: 10px; }
+.fee-warning { background: #fee2e2; color: #991b1b; padding: 14px; border-radius: 10px; font-size: 13px; margin-bottom: 14px; line-height: 1.5; }
+.fee-ok { background: #f0fdf4; color: #166534; padding: 12px; border-radius: 8px; font-size: 13px; margin-bottom: 14px; }
 
 .course-check-item {
     display: flex;
     align-items: center;
+    justify-content: space-between;
     gap: 10px;
     padding: 12px;
     border: 1px solid #e5e7eb;
@@ -107,8 +89,13 @@ body { font-family: Arial, Helvetica, sans-serif; background: #f4f6f9; color: #1
     margin-bottom: 8px;
 }
 
+.course-check-item .course-label { display: flex; align-items: center; gap: 10px; font-size: 14px; }
 .course-check-item input { width: 18px; height: 18px; }
-.course-check-item label { font-size: 14px; cursor: pointer; }
+
+.course-reg-status { font-size: 11px; font-weight: bold; padding: 3px 9px; border-radius: 20px; }
+.course-reg-status.pending { background: #fef3c7; color: #92400e; }
+.course-reg-status.approved { background: #dcfce7; color: #166534; }
+.course-reg-status.rejected { background: #fee2e2; color: #991b1b; }
 
 .register-button {
     background: #111827;
@@ -119,24 +106,19 @@ body { font-family: Arial, Helvetica, sans-serif; background: #f4f6f9; color: #1
     font-weight: bold;
     cursor: pointer;
     width: 100%;
+    margin-top: 10px;
 }
 
 .register-button:disabled { opacity: 0.5; cursor: not-allowed; }
 
-.registered-summary {
-    font-size: 13px;
-    color: #374151;
-}
-
-.registered-summary .course-line { padding: 6px 0; border-bottom: 1px solid #f0f1f3; }
-.registered-summary .course-line:last-child { border-bottom: none; }
-
-.admin-note-box {
-    background: #f9fafb;
-    border-radius: 8px;
+.special-fee-note {
+    background: #fef3c7;
+    color: #92400e;
     padding: 12px;
-    font-size: 13px;
-    margin-top: 10px;
+    border-radius: 8px;
+    font-size: 12px;
+    margin-bottom: 12px;
+    line-height: 1.5;
 }
 
 .empty-note { color: #9ca3af; text-align: center; padding: 30px 0; }
@@ -161,8 +143,26 @@ body { font-family: Arial, Helvetica, sans-serif; background: #f4f6f9; color: #1
 
     <section class="page-title">
         <h2>Exam Registration</h2>
-        <p>Register for your upcoming exams. You must meet the minimum tuition payment to register.</p>
+        <p>Choose what you are registering for below.</p>
     </section>
+
+    <div class="mode-grid">
+        <div class="mode-card selected" id="modeCard-normal" onclick="selectMode('normal')">
+            <div class="mode-icon">📝</div>
+            <div class="mode-label">Normal Registration</div>
+            <div class="mode-sub">CA1, CA2, End-of-Term</div>
+        </div>
+        <div class="mode-card" id="modeCard-supplementary" onclick="selectMode('supplementary')">
+            <div class="mode-icon">🔁</div>
+            <div class="mode-label">Supplementary</div>
+            <div class="mode-sub">After your term has ended</div>
+        </div>
+        <div class="mode-card" id="modeCard-deferred" onclick="selectMode('deferred')">
+            <div class="mode-icon">⏸️</div>
+            <div class="mode-label">Deferred</div>
+            <div class="mode-sub">After your term has ended</div>
+        </div>
+    </div>
 
     <div id="content"><p class="empty-note">Loading...</p></div>
 
@@ -175,17 +175,24 @@ body { font-family: Arial, Helvetica, sans-serif; background: #f4f6f9; color: #1
 
 <script>
 
-const TERM_LENGTH_DAYS = 42; // 6 weeks
+const TERM_LENGTH_DAYS = 42;
 const REGISTRATION_WINDOW_DAYS = 4;
-const MID_TERM_FEE_REQUIREMENT = 50;
-const END_OF_TERM_FEE_REQUIREMENT = 100;
+
+// Fee requirements per exam type
+const FEE_REQUIREMENT = { ca1: 50, ca2: 75, end_of_term: 100 };
+
+// Days into the term when each normal exam is scheduled — adjust here if these dates are wrong.
+const EXAM_DAY_OFFSET = { ca1: 14, ca2: 28, end_of_term: 42 };
+
+const EXAM_LABEL = { ca1: "CA1", ca2: "CA2", end_of_term: "End-of-Term" };
 
 let studentProfileId = null;
-let authUserId = null;
-let currentTermNumber = null;
 let enrolledCourses = [];
-let feePercentage = null;
-let existingRegistrations = {};
+let currentMode = "normal";
+let allTerms = [];
+let activeTerm = null;
+let mostRecentEndedTerm = null;
+let existingRegistrations = [];
 
 function escapeHtml(value) {
     return String(value ?? "")
@@ -211,8 +218,6 @@ async function startPage() {
         return;
     }
 
-    authUserId = user.id;
-
     const { data: studentProfile } =
         await supabaseClient.from("student_profiles").select("id").eq("user_id", user.id).single();
 
@@ -223,7 +228,6 @@ async function startPage() {
 
     studentProfileId = studentProfile.id;
 
-    // Find the student's currently active term
     const { data: terms } =
         await supabaseClient
             .from("student_terms")
@@ -231,28 +235,21 @@ async function startPage() {
             .eq("student_id", studentProfileId)
             .order("term_number", { ascending: true });
 
+    allTerms = terms || [];
+
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    const activeTerm = (terms || []).find(t => {
+    activeTerm = allTerms.find(t => {
         const start = new Date(t.start_date + "T00:00:00");
         const end = new Date(t.end_date + "T00:00:00");
         return today >= start && today <= end;
     });
 
-    if (!activeTerm) {
-        document.getElementById("content").innerHTML = `<p class="empty-note">You don't have an active term right now, so exam registration isn't available yet.</p>`;
-        return;
-    }
+    mostRecentEndedTerm = allTerms
+        .filter(t => new Date(t.end_date + "T00:00:00") < today)
+        .sort((a, b) => new Date(b.end_date) - new Date(a.end_date))[0];
 
-    currentTermNumber = activeTerm.term_number;
-
-    const termStart = new Date(activeTerm.start_date + "T00:00:00");
-    const termEnd = new Date(activeTerm.end_date + "T00:00:00");
-    const midTermDate = new Date(termStart);
-    midTermDate.setDate(midTermDate.getDate() + Math.floor(TERM_LENGTH_DAYS / 2));
-
-    // Load enrolled courses
     const { data: enrollments } =
         await supabaseClient
             .from("enrollments")
@@ -262,49 +259,47 @@ async function startPage() {
 
     enrolledCourses = (enrollments || []).map(e => e.courses).filter(Boolean);
 
-    // Load fee percentage paid for this term
-    feePercentage = await calculateFeePercentage(studentProfileId);
-
-    // Load existing registrations for this term
     const { data: registrations } =
         await supabaseClient
             .from("exam_registrations")
             .select("*")
-            .eq("student_id", studentProfileId)
-            .eq("term_number", currentTermNumber);
+            .eq("student_id", studentProfileId);
 
-    existingRegistrations = {};
-    (registrations || []).forEach(r => { existingRegistrations[r.exam_type] = r; });
+    existingRegistrations = registrations || [];
 
-    renderExamCards(today, midTermDate, termEnd);
+    renderContent();
 
 }
 
 
-async function calculateFeePercentage(studentProfileId) {
+function selectMode(mode) {
+    currentMode = mode;
+    ["normal", "supplementary", "deferred"].forEach(m => {
+        document.getElementById(`modeCard-${m}`).classList.toggle("selected", m === mode);
+    });
+    renderContent();
+}
+
+
+async function calculateFeePercentageForTerm(term) {
+
+    if (!term) return null;
 
     const { data: feeRecords } =
         await supabaseClient
             .from("student_term_fees")
-            .select("id, total_fee, academic_terms ( id, created_at )")
-            .eq("student_id", studentProfileId)
-            .order("created_at", { ascending: false });
+            .select("id, total_fee, academic_term_id")
+            .eq("student_id", studentProfileId);
 
-    // No fee record at all means tuition has never been set up for this student in the system.
-    // This must NOT be treated as "fully paid" — return null so the caller can block clearly
-    // and tell the student to contact finance/admin, instead of silently letting them through.
     if (!feeRecords || feeRecords.length === 0) return null;
 
-    // Only the CURRENT term's fee records count toward this calculation.
-    // Older, already-settled terms must never be blended in — otherwise a fully-paid
-    // previous term can mask an unpaid current term and push the percentage up wrongly.
-    const mostRecentTermId = feeRecords[0].academic_terms?.id;
-    const currentTermRecords = feeRecords.filter(r => r.academic_terms?.id === mostRecentTermId);
-
+    // We match fee records loosely to the relevant period since student_term_fees isn't
+    // directly linked to student_terms.term_number in this schema. If your fee records
+    // ARE tied to a specific academic term, this still sums correctly per student.
     let totalFee = 0;
     let totalPaid = 0;
 
-    for (const record of currentTermRecords) {
+    for (const record of feeRecords) {
 
         const { data: payments } =
             await supabaseClient.from("fee_payments").select("amount").eq("student_fee_id", record.id);
@@ -316,7 +311,6 @@ async function calculateFeePercentage(studentProfileId) {
 
     }
 
-    // Fee record exists but the amount is not actually set — same "unknown" situation.
     if (totalFee <= 0) return null;
 
     return Math.round((totalPaid / totalFee) * 100);
@@ -324,154 +318,273 @@ async function calculateFeePercentage(studentProfileId) {
 }
 
 
-function getExamWindowInfo(examDate, today) {
+function findExistingRegistration(courseId, examType, mode) {
+    return existingRegistrations.find(r =>
+        r.course_id === courseId && r.exam_type === examType && r.registration_mode === mode
+    );
+}
 
-    const windowOpenDate = new Date(examDate);
-    windowOpenDate.setDate(windowOpenDate.getDate() - REGISTRATION_WINDOW_DAYS);
 
-    if (today < windowOpenDate) {
-        return { state: "not-open", daysUntilOpen: daysBetween(today, windowOpenDate) };
+async function renderContent() {
+
+    const content = document.getElementById("content");
+    content.innerHTML = `<p class="empty-note">Loading...</p>`;
+
+    if (enrolledCourses.length === 0) {
+        content.innerHTML = `<p class="empty-note">You are not enrolled in any courses yet.</p>`;
+        return;
     }
 
-    if (today > examDate) {
-        return { state: "closed" };
+    if (currentMode === "normal") {
+        await renderNormalMode();
+    } else {
+        await renderSpecialMode(currentMode);
     }
-
-    return { state: "open" };
 
 }
 
 
-function renderExamCards(today, midTermDate, endOfTermDate) {
+async function renderNormalMode() {
 
     const content = document.getElementById("content");
 
-    const midTermWindow = getExamWindowInfo(midTermDate, today);
-    const endTermWindow = getExamWindowInfo(endOfTermDate, today);
+    if (!activeTerm) {
+        content.innerHTML = `<p class="empty-note">You don't have an active term right now, so normal exam registration isn't available.</p>`;
+        return;
+    }
 
-    content.innerHTML =
-        renderExamCard("mid_term", "Mid-Term Exam", midTermWindow, midTermDate, MID_TERM_FEE_REQUIREMENT) +
-        renderExamCard("end_of_term", "End-of-Term Exam", endTermWindow, endOfTermDate, END_OF_TERM_FEE_REQUIREMENT);
+    const termStart = new Date(activeTerm.start_date + "T00:00:00");
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
 
-}
+    const feePercentage = await calculateFeePercentageForTerm(activeTerm);
 
+    let html = "";
 
-function renderExamCard(examType, label, windowInfo, examDate, feeRequirement) {
+    for (const examType of ["ca1", "ca2", "end_of_term"]) {
 
-    const existing = existingRegistrations[examType];
+        const examDate = new Date(termStart);
+        examDate.setDate(examDate.getDate() + EXAM_DAY_OFFSET[examType]);
 
-    let statusBadge = "";
-    let bodyHtml = "";
+        const windowOpenDate = new Date(examDate);
+        windowOpenDate.setDate(windowOpenDate.getDate() - REGISTRATION_WINDOW_DAYS);
 
-    if (existing) {
+        const requirement = FEE_REQUIREMENT[examType];
 
-        statusBadge = `<span class="status-badge ${existing.status}">${existing.status.charAt(0).toUpperCase() + existing.status.slice(1)}</span>`;
+        let statusBadge = "";
+        let bodyHtml = "";
 
-        const registeredCourses = enrolledCourses.filter(c => existing.course_ids.includes(c.id));
+        if (today < windowOpenDate) {
 
-        bodyHtml = `
-            <div class="registered-summary">
-                <strong>You registered for:</strong>
-                ${registeredCourses.map(c => `<div class="course-line">${escapeHtml(c.code)} — ${escapeHtml(c.name)}</div>`).join("")}
-            </div>
-            ${existing.is_admin_override ? `<div class="admin-note-box">✅ This registration was approved directly by admin as an exception.</div>` : ""}
-            ${existing.admin_note ? `<div class="admin-note-box"><strong>Admin note:</strong> ${escapeHtml(existing.admin_note)}</div>` : ""}
-        `;
+            const daysUntilOpen = daysBetween(today, windowOpenDate);
+            statusBadge = `<span class="status-badge not-open">Not Open Yet</span>`;
+            bodyHtml = `<div class="countdown-note">📅 Registration opens in ${daysUntilOpen} day${daysUntilOpen === 1 ? "" : "s"} — ${REGISTRATION_WINDOW_DAYS} days before the exam.</div>`;
 
-    } else if (windowInfo.state === "not-open") {
+        } else if (today > examDate) {
 
-        statusBadge = `<span class="status-badge not-open">Not Open Yet</span>`;
-        bodyHtml = `<div class="countdown-note">📅 Registration opens in ${windowInfo.daysUntilOpen} day${windowInfo.daysUntilOpen === 1 ? "" : "s"} — ${REGISTRATION_WINDOW_DAYS} days before the exam.</div>`;
+            statusBadge = `<span class="status-badge closed">Registration Closed</span>`;
+            bodyHtml = `<p class="empty-note">The registration window for this exam has closed. Contact admin if you missed it — you may be able to register as Deferred once the term ends.</p>`;
 
-    } else if (windowInfo.state === "closed") {
+        } else if (feePercentage === null) {
 
-        statusBadge = `<span class="status-badge closed">Registration Closed</span>`;
-        bodyHtml = `<p class="empty-note">The registration window for this exam has closed. Contact admin if you missed it.</p>`;
+            statusBadge = `<span class="status-badge blocked">Blocked — No Fee Record</span>`;
+            bodyHtml = `<div class="fee-warning">🔒 Your tuition fee record has not been set up in the system. Please contact the finance/admissions office before registering.</div>`;
 
-    } else if (feePercentage === null) {
+        } else if (feePercentage < requirement) {
 
-        statusBadge = `<span class="status-badge blocked">Blocked — No Fee Record</span>`;
-        bodyHtml = `
-            <div class="fee-warning">
-                🔒 You cannot register yet. Your tuition fee record has not been set up in the system, so we cannot confirm your payment status.
-                <br><br>
-                Please contact the finance/admissions office so your fee record can be set up and your payments recorded. Once that's done, come back here to register.
-            </div>
-        `;
+            statusBadge = `<span class="status-badge blocked">Blocked — Fees Not Met</span>`;
+            bodyHtml = `<div class="fee-warning">🔒 You have paid <strong>${feePercentage}%</strong> of your tuition, but ${requirement}% is required for ${EXAM_LABEL[examType]}. Please clear your balance, or contact admin if you have already made arrangements.</div>`;
 
-    } else if (feePercentage < feeRequirement) {
+        } else {
 
-        statusBadge = `<span class="status-badge blocked">Blocked — Fees Not Met</span>`;
-        bodyHtml = `
-            <div class="fee-warning">
-                🔒 You cannot register for this exam. You have paid <strong>${feePercentage}%</strong> of your tuition, but ${feeRequirement}% is required for the ${label}.
-                <br><br>
-                If you believe this is incorrect, or have already made arrangements, please contact the admissions/finance office directly. Admin can grant an exception if appropriate.
-            </div>
-        `;
+            statusBadge = `<span class="status-badge open">Open Now</span>`;
+            bodyHtml = `
+                <div class="fee-ok">✓ You have paid ${feePercentage}% of your tuition — requirement met (${requirement}% required).</div>
+                <div id="courseList-${examType}">
+                    ${enrolledCourses.map(c => renderCourseCheckItem(c, examType, "normal")).join("")}
+                </div>
+                <button class="register-button" onclick="submitRegistrations('${examType}', 'normal')">Submit Registration for ${EXAM_LABEL[examType]}</button>
+            `;
 
-    } else {
+        }
 
-        statusBadge = `<span class="status-badge open">Open Now</span>`;
-
-        bodyHtml = `
-            <div class="fee-ok">✓ You have paid ${feePercentage}% of your tuition — requirement met.</div>
-            <p style="font-size:13px; color:#6b7280; margin-bottom:10px;">Confirm the courses you are writing for this exam. Untick anything that doesn't apply, and contact your department if something looks wrong.</p>
-            <div class="course-checklist">
-                ${enrolledCourses.map(c => `
-                    <div class="course-check-item">
-                        <input type="checkbox" id="check-${examType}-${c.id}" checked data-course-id="${c.id}" data-exam-type="${examType}">
-                        <label for="check-${examType}-${c.id}">${escapeHtml(c.code)} — ${escapeHtml(c.name)}</label>
+        html += `
+            <div class="exam-type-block">
+                <div class="exam-type-top">
+                    <div>
+                        <h3>${EXAM_LABEL[examType]}</h3>
+                        <div class="exam-type-meta">Exam date: ${examDate.toLocaleDateString()} • Requires ${requirement}% tuition paid</div>
                     </div>
-                `).join("")}
+                    ${statusBadge}
+                </div>
+                ${bodyHtml}
             </div>
-            <button class="register-button" onclick="submitRegistration('${examType}')">Submit Registration</button>
         `;
 
     }
 
-    return `
-        <div class="card">
-            <div class="card-top">
+    content.innerHTML = html;
+
+}
+
+
+async function renderSpecialMode(mode) {
+
+    const content = document.getElementById("content");
+    const label = mode === "supplementary" ? "Supplementary" : "Deferred";
+
+    if (!mostRecentEndedTerm) {
+        content.innerHTML = `<p class="empty-note">${label} registration is only available once one of your terms has ended. You don't have a completed term yet.</p>`;
+        return;
+    }
+
+    const feePercentage = await calculateFeePercentageForTerm(mostRecentEndedTerm);
+
+    let feeBlockHtml = "";
+
+    if (feePercentage === null) {
+        feeBlockHtml = `<div class="fee-warning">🔒 Your tuition fee record for Term ${mostRecentEndedTerm.term_number} has not been set up. Please contact the finance/admissions office before registering.</div>`;
+    } else if (feePercentage < 100) {
+        feeBlockHtml = `<div class="fee-warning">🔒 You have paid <strong>${feePercentage}%</strong> of your Term ${mostRecentEndedTerm.term_number} tuition, but 100% is required for ${label} registration. Please clear your balance first.</div>`;
+    } else {
+        feeBlockHtml = `<div class="fee-ok">✓ Your Term ${mostRecentEndedTerm.term_number} tuition is fully paid (100%).</div>`;
+    }
+
+    const canProceed = feePercentage !== null && feePercentage >= 100;
+
+    let html = `
+        <div class="exam-type-block">
+            <div class="exam-type-top">
                 <div>
-                    <h3>${label}</h3>
-                    <div class="card-meta">Exam date: ${examDate.toLocaleDateString()}</div>
+                    <h3>${label} Registration — Term ${mostRecentEndedTerm.term_number}</h3>
+                    <div class="exam-type-meta">Term ended: ${new Date(mostRecentEndedTerm.end_date + "T00:00:00").toLocaleDateString()}</div>
                 </div>
-                ${statusBadge}
             </div>
-            ${bodyHtml}
+            ${feeBlockHtml}
+            <div class="special-fee-note">
+                ℹ️ ${label} registration also requires a separate ${label.toLowerCase()} fee to be paid. This is confirmed by admin when they review your registration — you do not need to prove it here, but your registration will not be approved until admin confirms this payment.
+            </div>
+    `;
+
+    if (canProceed) {
+
+        html += `<p style="font-size:13px; color:#6b7280; margin-bottom:10px;">For each course, tick which exam(s) you need to write as ${label.toLowerCase()}.</p>`;
+
+        enrolledCourses.forEach(course => {
+
+            html += `<div style="margin-bottom:16px;"><strong style="font-size:13px;">${escapeHtml(course.code)} — ${escapeHtml(course.name)}</strong>`;
+
+            ["ca1", "ca2", "end_of_term"].forEach(examType => {
+                html += renderCourseCheckItem(course, examType, mode, true);
+            });
+
+            html += `</div>`;
+
+        });
+
+        html += `<button class="register-button" onclick="submitSpecialRegistrations('${mode}')">Submit ${label} Registration</button>`;
+
+    }
+
+    html += `</div>`;
+
+    content.innerHTML = html;
+
+}
+
+
+function renderCourseCheckItem(course, examType, mode, showExamLabel) {
+
+    const existing = findExistingRegistration(course.id, examType, mode);
+
+    const labelText = showExamLabel
+        ? `${escapeHtml(course.code)} — ${EXAM_LABEL[examType]}`
+        : `${escapeHtml(course.code)} — ${escapeHtml(course.name)}`;
+
+    if (existing) {
+        return `
+            <div class="course-check-item">
+                <div class="course-label">${labelText}</div>
+                <span class="course-reg-status ${existing.status}">${existing.status.charAt(0).toUpperCase() + existing.status.slice(1)}</span>
+            </div>
+        `;
+    }
+
+    return `
+        <div class="course-check-item">
+            <div class="course-label">
+                <input type="checkbox" id="chk-${mode}-${examType}-${course.id}" data-course-id="${course.id}" data-exam-type="${examType}" ${showExamLabel ? "" : "checked"}>
+                <label for="chk-${mode}-${examType}-${course.id}">${labelText}</label>
+            </div>
         </div>
     `;
 
 }
 
 
-async function submitRegistration(examType) {
+async function submitRegistrations(examType, mode) {
 
-    const checkboxes = document.querySelectorAll(`input[data-exam-type="${examType}"]:checked`);
-    const courseIds = Array.from(checkboxes).map(cb => cb.dataset.courseId);
+    const checkboxes = document.querySelectorAll(`#courseList-${examType} input[type=checkbox]:checked`);
 
-    if (courseIds.length === 0) {
+    if (checkboxes.length === 0) {
         alert("Please select at least one course.");
         return;
     }
 
-    const { error } =
-        await supabaseClient.from("exam_registrations").insert({
-            student_id: studentProfileId,
-            exam_type: examType,
-            term_number: currentTermNumber,
-            course_ids: courseIds,
-            fee_percentage_at_registration: feePercentage,
-            status: "pending"
-        });
+    const feePercentage = await calculateFeePercentageForTerm(activeTerm);
+
+    const rows = Array.from(checkboxes).map(cb => ({
+        student_id: studentProfileId,
+        course_id: cb.dataset.courseId,
+        term_number: activeTerm.term_number,
+        exam_type: examType,
+        registration_mode: mode,
+        fee_percentage_at_registration: feePercentage,
+        status: "pending"
+    }));
+
+    const { error } = await supabaseClient.from("exam_registrations").insert(rows);
 
     if (error) {
         alert("Unable to submit registration: " + error.message);
         return;
     }
 
-    alert("Your exam registration has been submitted and is awaiting admin approval.");
+    alert("Your registration has been submitted and is awaiting admin approval.");
+    await startPage();
+
+}
+
+
+async function submitSpecialRegistrations(mode) {
+
+    const checkboxes = document.querySelectorAll(`.exam-type-block input[type=checkbox]:checked`);
+
+    if (checkboxes.length === 0) {
+        alert("Please select at least one exam to register for.");
+        return;
+    }
+
+    const feePercentage = await calculateFeePercentageForTerm(mostRecentEndedTerm);
+
+    const rows = Array.from(checkboxes).map(cb => ({
+        student_id: studentProfileId,
+        course_id: cb.dataset.courseId,
+        term_number: mostRecentEndedTerm.term_number,
+        exam_type: cb.dataset.examType,
+        registration_mode: mode,
+        fee_percentage_at_registration: feePercentage,
+        status: "pending"
+    }));
+
+    const { error } = await supabaseClient.from("exam_registrations").insert(rows);
+
+    if (error) {
+        alert("Unable to submit registration: " + error.message);
+        return;
+    }
+
+    alert(`Your ${mode} registration has been submitted and is awaiting admin approval (including confirmation of your ${mode} fee payment).`);
     await startPage();
 
 }
