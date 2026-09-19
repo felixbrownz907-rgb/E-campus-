@@ -80,14 +80,28 @@ body { font-family: Arial, Helvetica, sans-serif; background: #f4f6f9; color: #1
     cursor: pointer;
 }
 
-.filter-bar { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
+.view-letter-link {
+    text-align: center;
+    background: #d4af37;
+    color: #111827;
+    text-decoration: none;
+    padding: 10px 18px;
+    border-radius: 8px;
+    font-weight: bold;
+    font-size: 13px;
+}
+
+.action-row { display: flex; gap: 8px; margin-top: 10px; }
+.action-row .save-button { flex: 1; }
+.action-row .view-letter-link { flex: 1; }
+
+.filter-bar { margin-bottom: 20px; }
 .filter-bar select { padding: 12px; border-radius: 8px; border: 1px solid #d1d5db; font-size: 14px; }
 
 .empty-note { color: #9ca3af; text-align: center; padding: 30px 0; }
 
 @media (max-width: 800px) {
     .form-grid { grid-template-columns: 1fr 1fr; }
-    .form-grid.fee-row { grid-template-columns: 1fr; }
 }
 
 </style>
@@ -109,7 +123,7 @@ body { font-family: Arial, Helvetica, sans-serif; background: #f4f6f9; color: #1
 
     <section class="page-title">
         <h2>Acceptance Letters</h2>
-        <p>Confirm application fee payment and set bursary details so students can download their acceptance letter. The student is automatically notified in-app the moment you confirm their fee.</p>
+        <p>Confirm application fee payment, set bursary details, and view or print any applicant's acceptance letter.</p>
     </section>
 
     <div id="message" class="message"></div>
@@ -119,12 +133,6 @@ body { font-family: Arial, Helvetica, sans-serif; background: #f4f6f9; color: #1
             <option value="all">All Applicants</option>
             <option value="pending">Fee Not Yet Confirmed</option>
             <option value="paid">Fee Confirmed</option>
-        </select>
-
-        <select id="modeFilter" onchange="loadApplicants()">
-            <option value="all">All Modes</option>
-            <option value="full-time">Full-Time Only</option>
-            <option value="online">Online Only</option>
         </select>
     </div>
 
@@ -162,22 +170,20 @@ async function loadApplicants() {
     const container = document.getElementById("applicantsContainer");
     container.innerHTML = `<p class="empty-note">Loading...</p>`;
 
-    const statusFilter = document.getElementById("statusFilter").value;
-    const modeFilter = document.getElementById("modeFilter").value;
+    const filter = document.getElementById("statusFilter").value;
 
     let query = supabaseClient
         .from("student_profiles")
         .select(`
-            id, user_id, student_number, sponsorship_type, application_fee_paid, mode_of_study,
-            bursary_percentage, reporting_date, remaining_fee_amount, fee_period_note,
+            id, student_number, sponsorship_type, application_fee_paid,
+            bursary_percentage, reporting_date, remaining_fee_amount, fee_period_note, mode_of_study,
             user_profiles ( first_name, last_name, phone ),
             programmes ( name, code )
         `)
         .order("created_at", { ascending: false });
 
-    if (statusFilter === "pending") query = query.eq("application_fee_paid", false);
-    if (statusFilter === "paid") query = query.eq("application_fee_paid", true);
-    if (modeFilter !== "all") query = query.eq("mode_of_study", modeFilter);
+    if (filter === "pending") query = query.eq("application_fee_paid", false);
+    if (filter === "paid") query = query.eq("application_fee_paid", true);
 
     const { data: applicants, error } = await query;
 
@@ -241,7 +247,10 @@ async function loadApplicants() {
                     <label for="paid-${a.id}">Application fee (K100) has been received and confirmed</label>
                 </div>
 
-                <button class="save-button" onclick="saveApplicant('${a.id}', '${a.user_id}')">Save</button>
+                <div class="action-row">
+                    <button class="save-button" onclick="saveApplicant('${a.id}', '${a.user_id}')">Save</button>
+                    <a href="acceptance-letter.html?student_id=${a.id}" target="_blank" class="view-letter-link">📄 View / Print Letter</a>
+                </div>
             </div>
         `;
 
