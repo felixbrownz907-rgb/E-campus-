@@ -86,6 +86,7 @@ body { font-family: Arial, Helvetica, sans-serif; background: #f4f6f9; color: #1
 }
 
 .ca-tag { background: #fef3c7; color: #92400e; padding: 3px 9px; border-radius: 20px; font-size: 11px; font-weight: bold; }
+.override-tag { background: #ede9fe; color: #6d28d9; padding: 3px 9px; border-radius: 20px; font-size: 11px; font-weight: bold; }
 
 .status-badge {
     padding: 4px 10px;
@@ -370,21 +371,18 @@ body { font-family: Arial, Helvetica, sans-serif; background: #f4f6f9; color: #1
 
 const PASS_THRESHOLD = 70;
 
-// ============================================================
-// EXAM TYPE MAPPING — matches the exam_registrations schema exactly:
-// exam_type values are 'ca1', 'ca2', 'end_of_term'.
-// ============================================================
 function getRequiredRegistrationType(quiz) {
     if (quiz.is_final_exam) return "end_of_term";
     if (quiz.ca_number === 1) return "ca1";
     if (quiz.ca_number === 2) return "ca2";
-    return null; // ordinary quizzes need no registration at all
+    return null;
 }
 
 
 let authUserId = null;
 let studentProfileId = null;
-let approvedRegistrationKeys = new Set(); // keys like "<course_id>_ca1", built from ANY approved mode (normal/supplementary/deferred)
+let approvedRegistrationKeys = new Set();
+let overridesByQuiz = {}; // quiz_id -> { scheduled_start, duration_minutes } — this student's personal window, if any
 
 let activeQuiz = null;
 let activeQuestions = [];
@@ -408,20 +406,43 @@ function escapeHtml(value) {
 }
 
 
-function isTimeToOpen(quiz) {
-    if (!quiz.scheduled_start) return false;
-    return new Date(quiz.scheduled_start).getTime() <= Date.now();
+// ===== Build the "effective" schedule for a quiz: a per-student override always wins over =====
+// the whole-class schedule, since it represents a deliberate individual exception.
+function getEffectiveSchedule(quiz) {
+
+    const override = overridesByQuiz[quiz.id];
+
+    if (override) {
+        return {
+            scheduled_start: override.scheduled_start,
+            duration_minutes: override.duration_minutes || quiz.duration_minutes,
+            isOverride: true
+        };
+    }
+
+    return {
+        scheduled_start: quiz.scheduled_start,
+        duration_minutes: quiz.duration_minutes,
+        isOverride: false
+    };
+
 }
 
 
-function getAbsoluteEndTime(quiz) {
-    if (!quiz.scheduled_start || !quiz.duration_minutes) return null;
-    return new Date(quiz.scheduled_start).getTime() + (quiz.duration_minutes * 60000);
+function isTimeToOpen(schedule) {
+    if (!schedule.scheduled_start) return false;
+    return new Date(schedule.scheduled_start).getTime() <= Date.now();
 }
 
 
-function isWindowClosed(quiz) {
-    const absoluteEnd = getAbsoluteEndTime(quiz);
+function getAbsoluteEndTime(schedule) {
+    if (!schedule.scheduled_start || !schedule.duration_minutes) return null;
+    return new Date(schedule.scheduled_start).getTime() + (schedule.duration_minutes * 60000);
+}
+
+
+function isWindowClosed(schedule) {
+    const absoluteEnd = getAbsoluteEndTime(schedule);
     if (!absoluteEnd) return false;
     return Date.now() > absoluteEnd;
 }
@@ -461,7 +482,8 @@ async function finalizeExpiredAttemptsIfNeeded(allQuizzes, attempts) {
         const quiz = allQuizzes.find(q => q.id === a.quiz_id);
         if (!quiz) return false;
 
-        const absoluteEnd = getAbsoluteEndTime(quiz);
+        const schedule = getEffectiveSchedule(quiz);
+        const absoluteEnd = getAbsoluteEndTime(schedule);
         if (!absoluteEnd || now <= absoluteEnd) return false;
 
         const hasRealAnswers = a.answers && Object.values(a.answers).some(v => v !== null && v !== "");
@@ -491,8 +513,6 @@ async function finalizeExpiredAttemptsIfNeeded(allQuizzes, attempts) {
 }
 
 
-// ===== Load every APPROVED registration this student has, in any mode (normal/supplementary/deferred). =====
-// Any of the three modes being approved is enough to unlock that course + exam type combination.
 async function loadRegistrationStatus() {
 
     approvedRegistrationKeys = new Set();
@@ -515,7 +535,7 @@ function isRegisteredFor(quiz) {
 
     const requiredType = getRequiredRegistrationType(quiz);
 
-    if (!requiredType) return true; // ordinary quizzes don't need registration
+    if (!requiredType) return true;
 
     return approvedRegistrationKeys.has(`${quiz.course_id}_${requiredType}`);
 
@@ -561,7 +581,6 @@ async function loadQuizzes() {
         return;
     }
 
-    // Registration status and quizzes load in parallel — independent queries, no need to wait on each other.
     const [_, quizzesResult] = await Promise.all([
         loadRegistrationStatus(),
         supabaseClient.from("quizzes").select("*").in("course_id", courseIds)
@@ -574,7 +593,25 @@ async function loadQuizzes() {
         return;
     }
 
-    const quizzes = (allQuizzes || []).filter(q => !(q.is_exam || q.is_final_exam || q.ca_number) || q.scheduled_start);
+    // Load this student's individual overrides for these quizzes — a personal exam window
+    // set by the lecturer, which always takes priority over the whole-class schedule.
+    const allQuizIds = (allQuizzes || []).map(q => q.id);
+    overridesByQuiz = {};
+
+    if (allQuizIds.length > 0) {
+        const { data: overrides } =
+            await supabaseClient
+                .from("quiz_student_overrides")
+                .select("quiz_id, scheduled_start, duration_minutes")
+                .eq("student_id", studentProfileId)
+                .in("quiz_id", allQuizIds);
+
+        (overrides || []).forEach(o => { overridesByQuiz[o.quiz_id] = o; });
+    }
+
+    const quizzes = (allQuizzes || []).filter(q =>
+        !(q.is_exam || q.is_final_exam || q.ca_number) || q.scheduled_start || overridesByQuiz[q.id]
+    );
 
     if (!quizzes || quizzes.length === 0) {
         container.innerHTML = `<div class="card"><p class="empty-note">No quizzes or exams available yet.</p></div>`;
@@ -630,14 +667,7 @@ async function loadQuizzes() {
 
 
 function getCALockInfo(quiz, quizzesByCourse, bestScoreByQuiz) {
-
-    // ============================================================
-    // The CA1/CA2 pass-percentage prerequisite chain stays disabled,
-    // per the standing decision made earlier. The real gate now is
-    // exam registration, checked separately in renderQuizzes below.
-    // ============================================================
     return { locked: false };
-
 }
 
 
@@ -659,6 +689,8 @@ function renderQuizzes(quizzes, courseMap, attemptsByQuiz, bestScoreByQuiz, quiz
         const requiredRegType = getRequiredRegistrationType(quiz);
         const registered = isRegisteredFor(quiz);
 
+        const schedule = getEffectiveSchedule(quiz);
+
         let statusLabel = "Locked";
         let statusClass = "locked";
         let buttonDisabled = true;
@@ -667,9 +699,9 @@ function renderQuizzes(quizzes, courseMap, attemptsByQuiz, bestScoreByQuiz, quiz
         let windowClosedNote = "";
         let registrationNote = "";
 
-        const effectivelyOpen = quiz.is_open || isTimeToOpen(quiz);
-        const windowClosed = isWindowClosed(quiz);
-        const absoluteEnd = getAbsoluteEndTime(quiz);
+        const effectivelyOpen = quiz.is_open || isTimeToOpen(schedule);
+        const windowClosed = isWindowClosed(schedule);
+        const absoluteEnd = getAbsoluteEndTime(schedule);
 
         if (lockInfo.locked) {
 
@@ -685,7 +717,6 @@ function renderQuizzes(quizzes, courseMap, attemptsByQuiz, bestScoreByQuiz, quiz
 
         } else if (requiredRegType && !registered) {
 
-            // ===== THE GATE: no approved registration (any mode) for this course/exam type = no access =====
             statusLabel = "Not Registered";
             statusClass = "not-registered";
             buttonText = "Registration Required";
@@ -717,11 +748,13 @@ function renderQuizzes(quizzes, courseMap, attemptsByQuiz, bestScoreByQuiz, quiz
                 if (absoluteEnd) {
                     const remainingMins = Math.round((absoluteEnd - Date.now()) / 60000);
                     windowClosedNote = remainingMins > 0
-                        ? `⏰ Everyone shares the same end time — ${remainingMins} minute(s) remain in this exam window.`
+                        ? (schedule.isOverride
+                            ? `⏰ This is your personal exam window — ${remainingMins} minute(s) remain.`
+                            : `⏰ Everyone shares the same end time — ${remainingMins} minute(s) remain in this exam window.`)
                         : "";
                 }
 
-            } else if (quiz.scheduled_start) {
+            } else if (schedule.scheduled_start) {
 
                 statusLabel = "Scheduled";
                 statusClass = "scheduled";
@@ -748,6 +781,7 @@ function renderQuizzes(quizzes, courseMap, attemptsByQuiz, bestScoreByQuiz, quiz
         if (quiz.is_final_exam) typeTag = `<span class="final-tag">FINAL EXAM</span>`;
         else if (quiz.ca_number) typeTag = `<span class="ca-tag">CA${quiz.ca_number}</span>`;
         if (quiz.is_exam) typeTag += ` <span class="exam-tag">EXAM</span>`;
+        if (schedule.isOverride) typeTag += ` <span class="override-tag">PERSONAL WINDOW</span>`;
 
         const card = document.createElement("div");
         card.className = "card";
@@ -759,7 +793,7 @@ function renderQuizzes(quizzes, courseMap, attemptsByQuiz, bestScoreByQuiz, quiz
                 <div>
                     <div class="course-tag">${course ? escapeHtml(course.code) : ""} ${typeTag}</div>
                     <h3>${escapeHtml(quiz.title)}</h3>
-                    <div class="meta">${quiz.duration_minutes ? "Duration: " + quiz.duration_minutes + " min" : ""}${bestScore !== null ? ` • Best score: ${bestScore}%` : ""}</div>
+                    <div class="meta">${schedule.duration_minutes ? "Duration: " + schedule.duration_minutes + " min" : ""}${bestScore !== null ? ` • Best score: ${bestScore}%` : ""}</div>
                 </div>
                 <span class="status-badge ${statusClass}">${statusLabel}</span>
             </div>
@@ -767,7 +801,7 @@ function renderQuizzes(quizzes, courseMap, attemptsByQuiz, bestScoreByQuiz, quiz
                 <div class="countdown-box">
                     <div class="countdown-label">OPENS AUTOMATICALLY IN</div>
                     <div class="countdown-timer" id="countdown-${quiz.id}">--:--:--</div>
-                    <div class="countdown-date">${new Date(quiz.scheduled_start).toLocaleString()}</div>
+                    <div class="countdown-date">${new Date(schedule.scheduled_start).toLocaleString()}</div>
                 </div>
             ` : ""}
             <button class="start-button" ${buttonDisabled ? "disabled" : ""} onclick="beginQuiz('${quiz.id}')">${buttonText}</button>
@@ -780,7 +814,7 @@ function renderQuizzes(quizzes, courseMap, attemptsByQuiz, bestScoreByQuiz, quiz
         container.appendChild(card);
 
         if (showCountdown) {
-            quizzesNeedingCountdown.push(quiz);
+            quizzesNeedingCountdown.push({ quiz, schedule });
         }
 
     });
@@ -800,12 +834,12 @@ function startCountdownTicker() {
 
         let anyJustOpened = false;
 
-        quizzesNeedingCountdown.forEach(quiz => {
+        quizzesNeedingCountdown.forEach(({ quiz, schedule }) => {
 
             const el = document.getElementById(`countdown-${quiz.id}`);
             if (!el) return;
 
-            const remaining = new Date(quiz.scheduled_start).getTime() - Date.now();
+            const remaining = new Date(schedule.scheduled_start).getTime() - Date.now();
 
             if (remaining <= 0) {
                 anyJustOpened = true;
@@ -848,7 +882,9 @@ async function beginQuiz(quizId) {
         return;
     }
 
-    if (quiz.is_exam && isWindowClosed(quiz)) {
+    const schedule = getEffectiveSchedule(quiz);
+
+    if (quiz.is_exam && isWindowClosed(schedule)) {
         alert("This exam's window has just closed. You can no longer start it.");
         await loadQuizzes();
         return;
@@ -938,13 +974,13 @@ async function beginQuiz(quizId) {
         document.addEventListener("contextmenu", handleCopyPasteAttempt);
     }
 
-    const absoluteEnd = getAbsoluteEndTime(quiz);
+    const absoluteEnd = getAbsoluteEndTime(schedule);
 
     if (absoluteEnd) {
         examEndTime = absoluteEnd;
         startTimer();
-    } else if (quiz.duration_minutes) {
-        examEndTime = Date.now() + (quiz.duration_minutes * 60000);
+    } else if (schedule.duration_minutes) {
+        examEndTime = Date.now() + (schedule.duration_minutes * 60000);
         startTimer();
     } else {
         document.getElementById("examTimer").textContent = "";
