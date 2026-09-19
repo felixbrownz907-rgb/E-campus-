@@ -46,6 +46,17 @@ body { font-family: Arial, Helvetica, sans-serif; background: #f4f6f9; color: #1
     font-weight: bold;
 }
 
+.admin-preview-banner {
+    background: #eff6ff;
+    color: #1d4ed8;
+    padding: 14px 18px;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: bold;
+    margin-bottom: 16px;
+    text-align: center;
+}
+
 .letter-actions {
     display: flex;
     justify-content: flex-end;
@@ -136,7 +147,7 @@ th { background: #f4f6f9; }
 }
 
 @media print {
-    .header, .letter-actions, .back-link { display: none; }
+    .header, .letter-actions, .back-link, .admin-preview-banner { display: none; }
     body { background: white; }
     .container { max-width: 100%; margin: 0; padding: 0; }
 }
@@ -204,8 +215,50 @@ async function loadLetter() {
         return;
     }
 
-    const { data: studentProfile, error: profileError } =
-        await supabaseClient
+    // ===== ADMIN VIEW: if a student_id is passed in the URL, and the viewer is an admin, =====
+    // load that specific student's letter instead of the logged-in user's own letter.
+    const urlParams = new URLSearchParams(window.location.search);
+    const targetStudentProfileId = urlParams.get("student_id");
+
+    let isAdminPreview = false;
+    let studentProfileQuery;
+
+    if (targetStudentProfileId) {
+
+        const { data: roleRows } =
+            await supabaseClient
+                .from("user_roles")
+                .select("roles ( name )")
+                .eq("user_id", user.id);
+
+        const isAdmin = (roleRows || []).some(r => ["ADMIN", "SUPER_ADMIN"].includes(r.roles?.name));
+
+        if (!isAdmin) {
+            content.innerHTML = `
+                <div class="blocked-card">
+                    <div class="icon">⚠️</div>
+                    <h2>Not Authorized</h2>
+                    <p>You do not have permission to view another student's acceptance letter.</p>
+                </div>
+            `;
+            return;
+        }
+
+        isAdminPreview = true;
+        studentProfileQuery = supabaseClient
+            .from("student_profiles")
+            .select(`
+                student_number, admission_date, application_fee_paid, mode_of_study,
+                bursary_percentage, reporting_date, remaining_fee_amount, fee_period_note, sponsorship_type,
+                user_profiles ( first_name, last_name ),
+                programmes ( name, code )
+            `)
+            .eq("id", targetStudentProfileId)
+            .single();
+
+    } else {
+
+        studentProfileQuery = supabaseClient
             .from("student_profiles")
             .select(`
                 student_number, admission_date, application_fee_paid, mode_of_study,
@@ -216,18 +269,24 @@ async function loadLetter() {
             .eq("user_id", user.id)
             .single();
 
+    }
+
+    const { data: studentProfile, error: profileError } = await studentProfileQuery;
+
     if (profileError || !studentProfile) {
         content.innerHTML = `
             <div class="blocked-card">
                 <div class="icon">⚠️</div>
-                <h2>Unable to Load Your Application</h2>
-                <p>We could not find your application details. Please contact the admissions office.</p>
+                <h2>Unable to Load Application</h2>
+                <p>We could not find this student's application details.</p>
             </div>
         `;
         return;
     }
 
-    if (!studentProfile.application_fee_paid) {
+    // Admin previewing can always see the letter, even if the application fee isn't confirmed yet —
+    // useful for checking the letter looks right before telling the student it's ready.
+    if (!isAdminPreview && !studentProfile.application_fee_paid) {
 
         content.innerHTML = `
             <div class="blocked-card">
@@ -256,6 +315,13 @@ async function loadLetter() {
     const feeWithPeriod = `K${formatMoney(remainingFee)}${feePeriodNote ? " (" + escapeHtml(feePeriodNote) + ")" : ""}`;
 
     content.innerHTML = `
+
+        ${isAdminPreview ? `
+            <div class="admin-preview-banner">
+                👁️ Admin Preview — viewing ${escapeHtml(firstName)} ${escapeHtml(lastName)}'s acceptance letter
+                ${!studentProfile.application_fee_paid ? " (application fee not yet confirmed — student cannot see this letter until it is)" : ""}
+            </div>
+        ` : ""}
 
         <div class="letter-actions">
             <button class="print-button" onclick="window.print()">🖨️ Print / Save as PDF</button>
