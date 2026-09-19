@@ -79,6 +79,7 @@ body { font-family: Arial, Helvetica, sans-serif; background: #f4f6f9; color: #1
 .result-box.locked { background: #fef2f2; }
 
 .result-box .label { font-size: 11px; color: #6b7280; font-weight: bold; margin-bottom: 6px; }
+.result-box .weight { font-size: 10px; color: #9ca3af; margin-bottom: 4px; }
 .result-box .value { font-size: 18px; font-weight: bold; }
 .result-box .value.has-score { color: #166534; }
 .result-box .value.pending { color: #9ca3af; font-size: 12px; font-weight: normal; }
@@ -91,12 +92,25 @@ body { font-family: Arial, Helvetica, sans-serif; background: #f4f6f9; color: #1
     justify-content: space-between;
     align-items: center;
     font-size: 13px;
+    flex-wrap: wrap;
+    gap: 8px;
 }
 
 .overall-row .overall-label { font-weight: bold; }
+.overall-right { display: flex; align-items: center; gap: 10px; }
 .overall-row .overall-value { font-weight: bold; font-size: 16px; }
 .overall-row .overall-value.has-score { color: #166534; }
 .overall-row .overall-value.pending { color: #9ca3af; font-size: 12px; font-weight: normal; }
+
+.outcome-tag {
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: bold;
+}
+
+.outcome-tag.progress { background: #dcfce7; color: #166534; }
+.outcome-tag.rewrite { background: #fee2e2; color: #991b1b; }
 
 .empty-note { color: #9ca3af; text-align: center; padding: 30px 0; }
 
@@ -124,7 +138,7 @@ body { font-family: Arial, Helvetica, sans-serif; background: #f4f6f9; color: #1
 
     <section class="page-title">
         <h2>My Record</h2>
-        <p>Your CA1, CA2, Final Exam and Overall results — shown here the moment your exam is scored, automatically.</p>
+        <p>Your CA1, CA2, Final Exam and Overall results — CA1 and CA2 each count for 20%, the Final Exam counts for 60%. 50% overall is required to progress.</p>
     </section>
 
     <div id="recordContainer"><p class="empty-note">Loading...</p></div>
@@ -138,7 +152,12 @@ body { font-family: Arial, Helvetica, sans-serif; background: #f4f6f9; color: #1
 
 <script>
 
-const PASS_THRESHOLD = 70;
+const PASS_THRESHOLD = 70; // individual CA/exam pass mark, used elsewhere in the system
+const OVERALL_PASS_MARK = 50; // overall course result needed to progress instead of rewrite
+
+const CA1_WEIGHT = 0.20;
+const CA2_WEIGHT = 0.20;
+const FINAL_WEIGHT = 0.60;
 
 function escapeHtml(value) {
     return String(value ?? "")
@@ -147,6 +166,11 @@ function escapeHtml(value) {
         .replace(/>/g, "&gt;")
         .replace(/"/g, "&quot;")
         .replace(/'/g, "&#039;");
+}
+
+
+function computeWeightedOverall(ca1, ca2, finalScore) {
+    return Math.round((ca1 * CA1_WEIGHT) + (ca2 * CA2_WEIGHT) + (finalScore * FINAL_WEIGHT));
 }
 
 
@@ -169,7 +193,6 @@ async function loadRecord() {
         return;
     }
 
-    // ===== SOURCE 1: The manual/legacy system — scores lecturers typed in directly on enrollments =====
     const { data: enrollments } =
         await supabaseClient
             .from("enrollments")
@@ -193,7 +216,6 @@ async function loadRecord() {
 
     const courseIds = courses.map(c => c.id);
 
-    // ===== SOURCE 2: The automatic online-exam system — scores from quiz_attempts =====
     const { data: quizzes } =
         await supabaseClient
             .from("quizzes")
@@ -232,7 +254,6 @@ async function loadRecord() {
         const ca2Quiz = courseQuizzes.find(q => q.ca_number === 2);
         const finalQuiz = courseQuizzes.find(q => q.is_final_exam);
 
-        // ===== MERGE: whichever source has a real, published/valid score wins. Never hide either one. =====
         const ca1FromLegacy = (enrollment.ca1_published && enrollment.ca1_score !== null) ? enrollment.ca1_score : undefined;
         const ca1FromQuiz = ca1Quiz ? bestScoreByQuiz[ca1Quiz.id] : undefined;
         const ca1Score = ca1FromLegacy !== undefined ? ca1FromLegacy : ca1FromQuiz;
@@ -248,39 +269,51 @@ async function loadRecord() {
         const ca1Passed = ca1Score !== undefined && ca1Score >= PASS_THRESHOLD;
         const ca2Passed = ca2Score !== undefined && ca2Score >= PASS_THRESHOLD;
 
-        const hasCA1Slot = !!(ca1Quiz || enrollment.ca1_score !== null && enrollment.ca1_score !== undefined);
-        const hasCA2Slot = !!(ca2Quiz || enrollment.ca2_score !== null && enrollment.ca2_score !== undefined);
-        const hasFinalSlot = !!(finalQuiz || enrollment.final_exam_score !== null && enrollment.final_exam_score !== undefined);
+        const hasCA1Slot = !!(ca1Quiz || (enrollment.ca1_score !== null && enrollment.ca1_score !== undefined));
+        const hasCA2Slot = !!(ca2Quiz || (enrollment.ca2_score !== null && enrollment.ca2_score !== undefined));
+        const hasFinalSlot = !!(finalQuiz || (enrollment.final_exam_score !== null && enrollment.final_exam_score !== undefined));
 
-        function renderResultBox(label, hasSlot, score, prerequisiteMet, lockMessage) {
+        function renderResultBox(label, weightLabel, hasSlot, score, prerequisiteMet, lockMessage) {
 
             if (score !== undefined) {
-                return `<div class="result-box has-score"><div class="label">${label}</div><div class="value has-score">${score}%</div></div>`;
+                return `<div class="result-box has-score"><div class="label">${label}</div><div class="weight">${weightLabel}</div><div class="value has-score">${score}%</div></div>`;
             }
 
             if (!hasSlot) {
-                return `<div class="result-box"><div class="label">${label}</div><div class="value pending">Not set up</div></div>`;
+                return `<div class="result-box"><div class="label">${label}</div><div class="weight">${weightLabel}</div><div class="value pending">Not set up</div></div>`;
             }
 
             if (!prerequisiteMet) {
-                return `<div class="result-box locked"><div class="label">${label}</div><div class="value locked">${lockMessage}</div></div>`;
+                return `<div class="result-box locked"><div class="label">${label}</div><div class="weight">${weightLabel}</div><div class="value locked">${lockMessage}</div></div>`;
             }
 
-            return `<div class="result-box"><div class="label">${label}</div><div class="value pending">Not yet attempted</div></div>`;
+            return `<div class="result-box"><div class="label">${label}</div><div class="weight">${weightLabel}</div><div class="value pending">Not yet attempted</div></div>`;
 
         }
 
-        const ca1Box = renderResultBox("CA1", hasCA1Slot, ca1Score, true, "");
-        const ca2Box = renderResultBox("CA2", hasCA2Slot, ca2Score, ca1Passed, "Locked until CA1 passed");
-        const finalBox = renderResultBox("Final Exam", hasFinalSlot, finalScore, ca1Passed && ca2Passed, "Locked until CA1 & CA2 passed");
+        const ca1Box = renderResultBox("CA1", "20% of overall", hasCA1Slot, ca1Score, true, "");
+        const ca2Box = renderResultBox("CA2", "20% of overall", hasCA2Slot, ca2Score, ca1Passed, "Locked until CA1 passed");
+        const finalBox = renderResultBox("Final Exam", "60% of overall", hasFinalSlot, finalScore, ca1Passed && ca2Passed, "Locked until CA1 & CA2 passed");
 
-        // Overall: prefer an explicitly published overall result; otherwise compute from the merged CA scores.
+        // Overall: prefer an explicitly published overall result; otherwise compute the weighted result
+        // once CA1, CA2 and Final Exam all have real scores.
         let overallHtml;
+        let outcomeHtml = "";
+
         if (enrollment.results_published && enrollment.final_score !== null && enrollment.final_score !== undefined) {
-            overallHtml = `<span class="overall-value has-score">${enrollment.final_score}%${enrollment.final_grade ? " (" + escapeHtml(enrollment.final_grade) + ")" : ""}</span>`;
+
+            const overall = enrollment.final_score;
+            const outcome = overall >= OVERALL_PASS_MARK ? "progress" : "rewrite";
+            overallHtml = `<span class="overall-value has-score">${overall}%${enrollment.final_grade ? " (" + escapeHtml(enrollment.final_grade) + ")" : ""}</span>`;
+            outcomeHtml = `<span class="outcome-tag ${outcome}">${outcome === "progress" ? "✓ Progress" : "✗ Rewrite"}</span>`;
+
         } else if (ca1Score !== undefined && ca2Score !== undefined && finalScore !== undefined) {
-            const overall = Math.round((ca1Score + ca2Score + finalScore) / 3);
+
+            const overall = computeWeightedOverall(ca1Score, ca2Score, finalScore);
+            const outcome = overall >= OVERALL_PASS_MARK ? "progress" : "rewrite";
             overallHtml = `<span class="overall-value has-score">${overall}%</span>`;
+            outcomeHtml = `<span class="outcome-tag ${outcome}">${outcome === "progress" ? "✓ Progress" : "✗ Rewrite"}</span>`;
+
         } else {
             overallHtml = `<span class="overall-value pending">Awaiting CA1, CA2 & Final Exam</span>`;
         }
@@ -301,7 +334,10 @@ async function loadRecord() {
             </div>
             <div class="overall-row">
                 <span class="overall-label">Overall Result</span>
-                ${overallHtml}
+                <div class="overall-right">
+                    ${overallHtml}
+                    ${outcomeHtml}
+                </div>
             </div>
         `;
 
