@@ -25,7 +25,7 @@ body { font-family: Arial, Helvetica, sans-serif; background: #f4f6f9; color: #1
 .message.success { display: block; background: #dcfce7; color: #166534; }
 .message.error { display: block; background: #fee2e2; color: #991b1b; }
 
-.tabs { display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; }
+.tabs { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
 
 .tab-button {
     background: white;
@@ -59,6 +59,9 @@ body { font-family: Arial, Helvetica, sans-serif; background: #f4f6f9; color: #1
 
 .tag { padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: bold; }
 .tag.exam-type { background: #ede9fe; color: #6d28d9; }
+.tag.mode-normal { background: #e0f2fe; color: #0369a1; }
+.tag.mode-supplementary { background: #fef3c7; color: #92400e; }
+.tag.mode-deferred { background: #fce7f3; color: #9d174d; }
 .tag.fee-ok { background: #dcfce7; color: #166534; }
 .tag.fee-low { background: #fee2e2; color: #991b1b; }
 .tag.pending { background: #fef3c7; color: #92400e; }
@@ -66,8 +69,17 @@ body { font-family: Arial, Helvetica, sans-serif; background: #f4f6f9; color: #1
 .tag.rejected { background: #fee2e2; color: #991b1b; }
 .tag.override { background: #dbeafe; color: #1d4ed8; }
 
-.reg-courses { font-size: 13px; color: #374151; margin: 10px 0; padding: 10px; background: #f9fafb; border-radius: 8px; }
-.reg-courses div { padding: 3px 0; }
+.special-fee-check {
+    background: #fffbeb;
+    border: 1px solid #fde68a;
+    border-radius: 8px;
+    padding: 12px;
+    margin: 10px 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 13px;
+}
 
 .note-input { width: 100%; padding: 10px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 13px; margin-bottom: 10px; }
 
@@ -76,10 +88,10 @@ body { font-family: Arial, Helvetica, sans-serif; background: #f4f6f9; color: #1
 .approve-button { background: #166534; color: white; }
 .reject-button { background: #991b1b; color: white; }
 .action-button { border: none; padding: 10px 16px; border-radius: 8px; font-weight: bold; font-size: 13px; cursor: pointer; flex: 1; }
+.action-button:disabled { opacity: 0.5; cursor: not-allowed; }
 
 .empty-note { color: #9ca3af; text-align: center; padding: 30px 0; }
 
-/* Override modal */
 .modal-overlay {
     display: none;
     position: fixed;
@@ -106,8 +118,6 @@ body { font-family: Arial, Helvetica, sans-serif; background: #f4f6f9; color: #1
 .modal-box h3 { margin-bottom: 16px; }
 .modal-box label { font-size: 13px; font-weight: bold; display: block; margin-bottom: 6px; }
 .modal-box select, .modal-box input { width: 100%; padding: 12px; border: 1px solid #d1d5db; border-radius: 8px; margin-bottom: 14px; font-size: 14px; }
-
-.override-course-item { display: flex; align-items: center; gap: 8px; padding: 8px; }
 
 .modal-buttons { display: flex; gap: 10px; margin-top: 10px; }
 .modal-buttons button { flex: 1; padding: 12px; border-radius: 8px; font-weight: bold; border: none; cursor: pointer; }
@@ -147,7 +157,7 @@ body { font-family: Arial, Helvetica, sans-serif; background: #f4f6f9; color: #1
 
     <section class="page-title">
         <h2>Exam Registrations</h2>
-        <p>Review student exam registrations, approve or reject, or create a manual override for a student who has explained their situation.</p>
+        <p>Review CA1, CA2, End-of-Term, Supplementary and Deferred exam registrations.</p>
     </section>
 
     <div id="message" class="message"></div>
@@ -162,8 +172,15 @@ body { font-family: Arial, Helvetica, sans-serif; background: #f4f6f9; color: #1
     <div class="filter-bar">
         <select id="examTypeFilter" onchange="loadRegistrations()">
             <option value="all">All Exam Types</option>
-            <option value="mid_term">Mid-Term</option>
+            <option value="ca1">CA1</option>
+            <option value="ca2">CA2</option>
             <option value="end_of_term">End-of-Term</option>
+        </select>
+        <select id="modeFilter" onchange="loadRegistrations()">
+            <option value="all">All Modes</option>
+            <option value="normal">Normal</option>
+            <option value="supplementary">Supplementary</option>
+            <option value="deferred">Deferred</option>
         </select>
     </div>
 
@@ -178,24 +195,34 @@ body { font-family: Arial, Helvetica, sans-serif; background: #f4f6f9; color: #1
 <div class="modal-overlay" id="overrideModal">
     <div class="modal-box">
         <h3>Create Admin Override Registration</h3>
-        <p style="font-size:12px; color:#6b7280; margin-bottom:14px;">Use this for a student who explained their situation and has been manually cleared to write despite not meeting the fee requirement.</p>
+        <p style="font-size:12px; color:#6b7280; margin-bottom:14px;">Use this for a student who explained their situation and has been manually cleared, regardless of fee status.</p>
 
         <label for="overrideStudentSelect">Student</label>
-        <select id="overrideStudentSelect" onchange="loadOverrideStudentCourses()">
+        <select id="overrideStudentSelect">
             <option value="">Select student</option>
+        </select>
+
+        <label for="overrideCourseSelect">Course</label>
+        <select id="overrideCourseSelect">
+            <option value="">Select course</option>
         </select>
 
         <label for="overrideExamType">Exam Type</label>
         <select id="overrideExamType">
-            <option value="mid_term">Mid-Term</option>
+            <option value="ca1">CA1</option>
+            <option value="ca2">CA2</option>
             <option value="end_of_term">End-of-Term</option>
+        </select>
+
+        <label for="overrideMode">Mode</label>
+        <select id="overrideMode">
+            <option value="normal">Normal</option>
+            <option value="supplementary">Supplementary</option>
+            <option value="deferred">Deferred</option>
         </select>
 
         <label for="overrideTermNumber">Term Number</label>
         <input type="number" id="overrideTermNumber" min="1" value="1">
-
-        <label>Courses</label>
-        <div id="overrideCoursesContainer" style="margin-bottom:14px;"><p class="empty-note">Select a student first.</p></div>
 
         <label for="overrideNote">Note (optional)</label>
         <input type="text" id="overrideNote" placeholder="e.g. Approved after finance office confirmed payment plan">
@@ -216,6 +243,10 @@ body { font-family: Arial, Helvetica, sans-serif; background: #f4f6f9; color: #1
 
 let currentTab = "pending";
 let allStudentsForOverride = [];
+let allCoursesForOverride = [];
+
+const FEE_REQUIREMENT = { ca1: 50, ca2: 75, end_of_term: 100 };
+const EXAM_LABEL = { ca1: "CA1", ca2: "CA2", end_of_term: "End-of-Term" };
 
 const message = document.getElementById("message");
 
@@ -250,18 +281,21 @@ async function loadRegistrations() {
     container.innerHTML = `<p class="empty-note">Loading...</p>`;
 
     const examTypeFilter = document.getElementById("examTypeFilter").value;
+    const modeFilter = document.getElementById("modeFilter").value;
 
     let query = supabaseClient
         .from("exam_registrations")
         .select(`
-            id, exam_type, term_number, course_ids, fee_percentage_at_registration,
-            status, admin_note, is_admin_override, created_at,
-            student_profiles ( student_number, user_profiles ( first_name, last_name ) )
+            id, exam_type, registration_mode, term_number, fee_percentage_at_registration,
+            special_fee_confirmed, status, admin_note, is_admin_override, created_at,
+            student_profiles ( student_number, user_profiles ( first_name, last_name ) ),
+            courses ( code, name )
         `)
         .order("created_at", { ascending: false });
 
     if (currentTab !== "all") query = query.eq("status", currentTab);
     if (examTypeFilter !== "all") query = query.eq("exam_type", examTypeFilter);
+    if (modeFilter !== "all") query = query.eq("registration_mode", modeFilter);
 
     const { data: registrations, error } = await query;
 
@@ -275,52 +309,51 @@ async function loadRegistrations() {
         return;
     }
 
-    // Fetch course names for display
-    const allCourseIds = [...new Set(registrations.flatMap(r => r.course_ids))];
-    const { data: courses } = await supabaseClient.from("courses").select("id, code, name").in("id", allCourseIds);
-    const courseMap = {};
-    (courses || []).forEach(c => courseMap[c.id] = c);
-
-    const feeRequirement = { mid_term: 50, end_of_term: 100 };
-
     container.innerHTML = registrations.map(r => {
 
         const name = r.student_profiles?.user_profiles
             ? `${r.student_profiles.user_profiles.first_name} ${r.student_profiles.user_profiles.last_name}`
             : "Unknown";
 
-        const examLabel = r.exam_type === "mid_term" ? "Mid-Term" : "End-of-Term";
-        const requirement = feeRequirement[r.exam_type];
-        const feeOk = r.fee_percentage_at_registration >= requirement;
+        const requirement = r.registration_mode === "normal" ? FEE_REQUIREMENT[r.exam_type] : 100;
+        const feePct = r.fee_percentage_at_registration;
+        const feeOk = feePct !== null && feePct >= requirement;
+        const needsSpecialFee = r.registration_mode !== "normal";
 
         return `
             <div class="registration-card">
                 <div class="reg-top">
                     <div>
                         <div class="student-name">${escapeHtml(name)}</div>
-                        <div class="student-meta">${escapeHtml(r.student_profiles?.student_number || "")} • Term ${r.term_number} • Submitted ${new Date(r.created_at).toLocaleDateString()}</div>
+                        <div class="student-meta">${escapeHtml(r.student_profiles?.student_number || "")} • ${escapeHtml(r.courses?.code || "")} — ${escapeHtml(r.courses?.name || "")} • Term ${r.term_number} • Submitted ${new Date(r.created_at).toLocaleDateString()}</div>
                     </div>
                     <div class="tag-row">
-                        <span class="tag exam-type">${examLabel}</span>
-                        <span class="tag ${feeOk ? "fee-ok" : "fee-low"}">${r.fee_percentage_at_registration}% Paid (needs ${requirement}%)</span>
+                        <span class="tag exam-type">${EXAM_LABEL[r.exam_type]}</span>
+                        <span class="tag mode-${r.registration_mode}">${r.registration_mode.charAt(0).toUpperCase() + r.registration_mode.slice(1)}</span>
+                        <span class="tag ${feeOk ? "fee-ok" : "fee-low"}">${feePct !== null ? feePct + "% Paid" : "No Record"} (needs ${requirement}%)</span>
                         <span class="tag ${r.status}">${r.status.charAt(0).toUpperCase() + r.status.slice(1)}</span>
                         ${r.is_admin_override ? `<span class="tag override">Admin Override</span>` : ""}
                     </div>
                 </div>
 
-                <div class="reg-courses">
-                    <strong>Courses:</strong>
-                    ${r.course_ids.map(cid => courseMap[cid] ? `<div>${escapeHtml(courseMap[cid].code)} — ${escapeHtml(courseMap[cid].name)}</div>` : "").join("")}
-                </div>
-
                 ${r.admin_note ? `<div style="font-size:13px; color:#6b7280; margin-bottom:10px;"><strong>Note:</strong> ${escapeHtml(r.admin_note)}</div>` : ""}
 
                 ${r.status === "pending" ? `
+
+                    ${needsSpecialFee ? `
+                        <div class="special-fee-check">
+                            <input type="checkbox" id="specialfee-${r.id}" ${r.special_fee_confirmed ? "checked" : ""}>
+                            <label for="specialfee-${r.id}">Confirm the ${r.registration_mode} fee has been received for this student</label>
+                        </div>
+                    ` : ""}
+
                     <input type="text" class="note-input" id="note-${r.id}" placeholder="Optional note (e.g. reason for rejection)">
+
                     <div class="action-row">
-                        <button class="action-button approve-button" onclick="reviewRegistration('${r.id}', 'approved')">✓ Approve</button>
-                        <button class="action-button reject-button" onclick="reviewRegistration('${r.id}', 'rejected')">✗ Reject</button>
+                        <button class="action-button approve-button" onclick="reviewRegistration('${r.id}', 'approved', ${needsSpecialFee})">✓ Approve</button>
+                        <button class="action-button reject-button" onclick="reviewRegistration('${r.id}', 'rejected', ${needsSpecialFee})">✗ Reject</button>
                     </div>
+
                 ` : ""}
             </div>
         `;
@@ -330,22 +363,38 @@ async function loadRegistrations() {
 }
 
 
-async function reviewRegistration(registrationId, status) {
+async function reviewRegistration(registrationId, status, needsSpecialFee) {
 
     const noteInput = document.getElementById(`note-${registrationId}`);
     const note = noteInput ? noteInput.value.trim() : "";
 
+    if (status === "approved" && needsSpecialFee) {
+        const specialFeeCheckbox = document.getElementById(`specialfee-${registrationId}`);
+        if (!specialFeeCheckbox.checked) {
+            showMessage("Please confirm the special fee has been received before approving this registration.", "error");
+            return;
+        }
+    }
+
     const { data: { user } } = await supabaseClient.auth.getUser();
+
+    const specialFeeCheckbox = document.getElementById(`specialfee-${registrationId}`);
+
+    const payload = {
+        status: status,
+        admin_note: note || null,
+        reviewed_by: user.id,
+        reviewed_at: new Date().toISOString()
+    };
+
+    if (specialFeeCheckbox) {
+        payload.special_fee_confirmed = specialFeeCheckbox.checked;
+    }
 
     const { error } =
         await supabaseClient
             .from("exam_registrations")
-            .update({
-                status: status,
-                admin_note: note || null,
-                reviewed_by: user.id,
-                reviewed_at: new Date().toISOString()
-            })
+            .update(payload)
             .eq("id", registrationId);
 
     if (error) {
@@ -384,6 +433,21 @@ async function openOverrideModal() {
 
     }
 
+    if (allCoursesForOverride.length === 0) {
+
+        const { data: courses } = await supabaseClient.from("courses").select("id, code, name").order("code");
+        allCoursesForOverride = courses || [];
+
+        const select = document.getElementById("overrideCourseSelect");
+        allCoursesForOverride.forEach(c => {
+            const option = document.createElement("option");
+            option.value = c.id;
+            option.textContent = `${c.code} — ${c.name}`;
+            select.appendChild(option);
+        });
+
+    }
+
 }
 
 
@@ -392,59 +456,17 @@ function closeOverrideModal() {
 }
 
 
-async function loadOverrideStudentCourses() {
-
-    const studentId = document.getElementById("overrideStudentSelect").value;
-    const container = document.getElementById("overrideCoursesContainer");
-
-    if (!studentId) {
-        container.innerHTML = `<p class="empty-note">Select a student first.</p>`;
-        return;
-    }
-
-    container.innerHTML = `<p class="empty-note">Loading...</p>`;
-
-    const { data: enrollments } =
-        await supabaseClient
-            .from("enrollments")
-            .select("courses ( id, code, name )")
-            .eq("student_id", studentId)
-            .eq("status", "enrolled");
-
-    const courses = (enrollments || []).map(e => e.courses).filter(Boolean);
-
-    if (courses.length === 0) {
-        container.innerHTML = `<p class="empty-note">This student has no enrolled courses.</p>`;
-        return;
-    }
-
-    container.innerHTML = courses.map(c => `
-        <div class="override-course-item">
-            <input type="checkbox" id="ovcourse-${c.id}" value="${c.id}" checked>
-            <label for="ovcourse-${c.id}">${escapeHtml(c.code)} — ${escapeHtml(c.name)}</label>
-        </div>
-    `).join("");
-
-}
-
-
 async function createOverride() {
 
     const studentId = document.getElementById("overrideStudentSelect").value;
+    const courseId = document.getElementById("overrideCourseSelect").value;
     const examType = document.getElementById("overrideExamType").value;
+    const mode = document.getElementById("overrideMode").value;
     const termNumber = Number(document.getElementById("overrideTermNumber").value);
     const note = document.getElementById("overrideNote").value.trim();
 
-    if (!studentId) {
-        showMessage("Please select a student.", "error");
-        return;
-    }
-
-    const checkedBoxes = document.querySelectorAll("#overrideCoursesContainer input[type=checkbox]:checked");
-    const courseIds = Array.from(checkedBoxes).map(cb => cb.value);
-
-    if (courseIds.length === 0) {
-        showMessage("Please select at least one course.", "error");
+    if (!studentId || !courseId) {
+        showMessage("Please select a student and a course.", "error");
         return;
     }
 
@@ -453,16 +475,18 @@ async function createOverride() {
     const { error } =
         await supabaseClient.from("exam_registrations").upsert({
             student_id: studentId,
+            course_id: courseId,
             exam_type: examType,
+            registration_mode: mode,
             term_number: termNumber,
-            course_ids: courseIds,
             fee_percentage_at_registration: null,
+            special_fee_confirmed: mode !== "normal",
             status: "approved",
             is_admin_override: true,
             admin_note: note || "Manually approved by admin as an exception.",
             reviewed_by: user.id,
             reviewed_at: new Date().toISOString()
-        }, { onConflict: "student_id,exam_type,term_number" });
+        }, { onConflict: "student_id,course_id,term_number,exam_type,registration_mode" });
 
     if (error) {
         showMessage("Unable to create override: " + error.message, "error");
