@@ -63,17 +63,82 @@ input {
 .period-top { display: flex; justify-content: space-between; align-items: start; gap: 10px; flex-wrap: wrap; }
 .period-label { font-weight: bold; font-size: 15px; }
 .period-dates { font-size: 13px; color: #6b7280; margin-top: 4px; }
+.period-student-count { font-size: 12px; color: #6b7280; margin-top: 6px; }
 
 .status-badge { padding: 4px 12px; border-radius: 20px; font-size: 11px; font-weight: bold; }
 .status-badge.active { background: #dcfce7; color: #166534; }
 .status-badge.inactive { background: #f3f4f6; color: #6b7280; }
 .status-badge.current { background: #eff6ff; color: #1d4ed8; }
 
-.action-row { display: flex; gap: 8px; margin-top: 12px; }
+.action-row { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
 
 .action-button { border: none; padding: 8px 14px; border-radius: 6px; font-weight: bold; font-size: 12px; cursor: pointer; }
 .close-button { background: #fee2e2; color: #991b1b; }
 .reopen-button { background: #dcfce7; color: #166534; }
+.manage-students-button { background: #ede9fe; color: #6d28d9; }
+
+.students-panel {
+    display: none;
+    margin-top: 14px;
+    border-top: 1px solid #f0f1f3;
+    padding-top: 14px;
+}
+
+.students-panel.open { display: block; }
+
+.student-search-row { display: flex; gap: 8px; margin-bottom: 12px; }
+.student-search-row input { margin-bottom: 0; flex: 1; }
+
+.add-student-button {
+    background: #111827;
+    color: white;
+    border: none;
+    padding: 12px 16px;
+    border-radius: 8px;
+    font-weight: bold;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.search-results {
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    max-height: 180px;
+    overflow-y: auto;
+    margin-bottom: 12px;
+}
+
+.search-result-item {
+    padding: 10px 12px;
+    border-bottom: 1px solid #f0f1f3;
+    cursor: pointer;
+    font-size: 13px;
+}
+
+.search-result-item:hover { background: #f4f6f9; }
+.search-result-item:last-child { border-bottom: none; }
+
+.attached-students-label { font-size: 12px; font-weight: bold; color: #6b7280; margin-bottom: 8px; }
+
+.attached-student-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 12px;
+    background: #f9fafb;
+    border-radius: 8px;
+    margin-bottom: 6px;
+    font-size: 13px;
+}
+
+.remove-student-button {
+    background: none;
+    border: none;
+    color: #991b1b;
+    font-weight: bold;
+    cursor: pointer;
+    font-size: 13px;
+}
 
 .empty-note { color: #9ca3af; text-align: center; padding: 30px 0; }
 
@@ -100,7 +165,7 @@ input {
 
     <section class="page-title">
         <h2>Exam Periods</h2>
-        <p>Open a window for Supplementary/Deferred registration and exam-writing once a term has ended.</p>
+        <p>Open a window for Supplementary/Deferred registration and exam-writing for a specific group of students once their term has ended.</p>
     </section>
 
     <div id="message" class="message"></div>
@@ -110,7 +175,7 @@ input {
         <h3>Create New Exam Period</h3>
 
         <label for="periodLabel">Label</label>
-        <input type="text" id="periodLabel" placeholder="e.g. Supplementary/Deferred — September 2026">
+        <input type="text" id="periodLabel" placeholder="e.g. September 2026 Intake — Supplementary/Deferred">
 
         <div class="form-row">
             <div>
@@ -142,6 +207,8 @@ input {
 <script>
 
 const message = document.getElementById("message");
+let allPeriods = [];
+let openStudentsPanelId = null;
 
 function showMessage(text, type) {
     message.textContent = text;
@@ -175,14 +242,29 @@ async function loadPeriods() {
         return;
     }
 
-    if (!periods || periods.length === 0) {
+    allPeriods = periods || [];
+
+    if (allPeriods.length === 0) {
         container.innerHTML = `<p class="empty-note">No exam periods created yet.</p>`;
         return;
     }
 
+    const periodIds = allPeriods.map(p => p.id);
+
+    const { data: studentLinks } =
+        await supabaseClient
+            .from("exam_period_students")
+            .select("period_id")
+            .in("period_id", periodIds);
+
+    const countByPeriod = {};
+    (studentLinks || []).forEach(l => {
+        countByPeriod[l.period_id] = (countByPeriod[l.period_id] || 0) + 1;
+    });
+
     const today = new Date().toISOString().split("T")[0];
 
-    container.innerHTML = periods.map(p => {
+    container.innerHTML = allPeriods.map(p => {
 
         const isCurrentlyRunning = p.is_active && today >= p.start_date && today <= p.end_date;
 
@@ -190,12 +272,16 @@ async function loadPeriods() {
         if (isCurrentlyRunning) statusBadge = `<span class="status-badge current">Currently Open</span>`;
         else if (p.is_active) statusBadge = `<span class="status-badge active">Active (outside date range)</span>`;
 
+        const studentCount = countByPeriod[p.id] || 0;
+        const isPanelOpen = openStudentsPanelId === p.id;
+
         return `
             <div class="period-item">
                 <div class="period-top">
                     <div>
                         <div class="period-label">${escapeHtml(p.label)}</div>
                         <div class="period-dates">${new Date(p.start_date + "T00:00:00").toLocaleDateString()} — ${new Date(p.end_date + "T00:00:00").toLocaleDateString()}</div>
+                        <div class="period-student-count">👥 ${studentCount} student(s) attached</div>
                     </div>
                     ${statusBadge}
                 </div>
@@ -204,11 +290,166 @@ async function loadPeriods() {
                         ? `<button class="action-button close-button" onclick="togglePeriod('${p.id}', false)">Close This Period</button>`
                         : `<button class="action-button reopen-button" onclick="togglePeriod('${p.id}', true)">Reopen This Period</button>`
                     }
+                    <button class="action-button manage-students-button" onclick="toggleStudentsPanel('${p.id}')">${isPanelOpen ? "Hide" : "👥 Manage Students"}</button>
+                </div>
+
+                <div class="students-panel ${isPanelOpen ? "open" : ""}" id="panel-${p.id}">
+                    <div class="student-search-row">
+                        <input type="text" id="search-${p.id}" placeholder="Search by student number or name..." oninput="searchStudents('${p.id}')">
+                    </div>
+                    <div class="search-results" id="searchResults-${p.id}" style="display:none;"></div>
+
+                    <div class="attached-students-label">Currently attached:</div>
+                    <div id="attachedList-${p.id}"><p class="empty-note">Loading...</p></div>
                 </div>
             </div>
         `;
 
     }).join("");
+
+    // Load the attached student list for whichever panel is currently open
+    if (openStudentsPanelId) {
+        await loadAttachedStudents(openStudentsPanelId);
+    }
+
+}
+
+
+function toggleStudentsPanel(periodId) {
+    openStudentsPanelId = (openStudentsPanelId === periodId) ? null : periodId;
+    loadPeriods();
+}
+
+
+async function loadAttachedStudents(periodId) {
+
+    const container = document.getElementById(`attachedList-${periodId}`);
+    if (!container) return;
+
+    container.innerHTML = `<p class="empty-note">Loading...</p>`;
+
+    const { data: links, error } =
+        await supabaseClient
+            .from("exam_period_students")
+            .select("id, student_profiles ( id, student_number, user_profiles ( first_name, last_name ) )")
+            .eq("period_id", periodId);
+
+    if (error) {
+        container.innerHTML = `<p class="empty-note">Unable to load: ${escapeHtml(error.message)}</p>`;
+        return;
+    }
+
+    if (!links || links.length === 0) {
+        container.innerHTML = `<p class="empty-note">No students attached yet. Search above to add some.</p>`;
+        return;
+    }
+
+    container.innerHTML = links.map(link => {
+
+        const sp = link.student_profiles;
+        const name = sp?.user_profiles ? `${sp.user_profiles.first_name} ${sp.user_profiles.last_name}` : "Unknown";
+
+        return `
+            <div class="attached-student-item">
+                <span>${escapeHtml(sp?.student_number || "")} — ${escapeHtml(name)}</span>
+                <button class="remove-student-button" onclick="removeStudent('${link.id}', '${periodId}')">Remove</button>
+            </div>
+        `;
+
+    }).join("");
+
+}
+
+
+let searchDebounceTimeout = null;
+
+function searchStudents(periodId) {
+
+    if (searchDebounceTimeout) clearTimeout(searchDebounceTimeout);
+
+    searchDebounceTimeout = setTimeout(async () => {
+
+        const query = document.getElementById(`search-${periodId}`).value.trim();
+        const resultsContainer = document.getElementById(`searchResults-${periodId}`);
+
+        if (!query) {
+            resultsContainer.style.display = "none";
+            resultsContainer.innerHTML = "";
+            return;
+        }
+
+        const { data: students, error } =
+            await supabaseClient
+                .from("student_profiles")
+                .select("id, student_number, user_profiles ( first_name, last_name )")
+                .or(`student_number.ilike.%${query}%`)
+                .limit(10);
+
+        // Also search by name separately since Supabase can't easily OR across a joined table in one query
+        const { data: nameMatches } =
+            await supabaseClient
+                .from("student_profiles")
+                .select("id, student_number, user_profiles!inner ( first_name, last_name )")
+                .or(`first_name.ilike.%${query}%,last_name.ilike.%${query}%`, { foreignTable: "user_profiles" })
+                .limit(10);
+
+        const combined = [...(students || []), ...(nameMatches || [])];
+        const uniqueById = {};
+        combined.forEach(s => { uniqueById[s.id] = s; });
+        const results = Object.values(uniqueById);
+
+        if (results.length === 0) {
+            resultsContainer.style.display = "block";
+            resultsContainer.innerHTML = `<div class="search-result-item">No matching students found.</div>`;
+            return;
+        }
+
+        resultsContainer.style.display = "block";
+        resultsContainer.innerHTML = results.map(s => {
+            const name = s.user_profiles ? `${s.user_profiles.first_name} ${s.user_profiles.last_name}` : "Unknown";
+            return `<div class="search-result-item" onclick="addStudent('${periodId}', '${s.id}')">${escapeHtml(s.student_number)} — ${escapeHtml(name)}</div>`;
+        }).join("");
+
+    }, 350);
+
+}
+
+
+async function addStudent(periodId, studentProfileId) {
+
+    const { error } =
+        await supabaseClient.from("exam_period_students").insert({
+            period_id: periodId,
+            student_id: studentProfileId
+        });
+
+    if (error) {
+        showMessage(error.code === "23505" ? "That student is already attached to this period." : "Unable to add: " + error.message, "error");
+        return;
+    }
+
+    document.getElementById(`search-${periodId}`).value = "";
+    document.getElementById(`searchResults-${periodId}`).style.display = "none";
+
+    showMessage("Student added to exam period.", "success");
+    await loadAttachedStudents(periodId);
+    await loadPeriods();
+
+}
+
+
+async function removeStudent(linkId, periodId) {
+
+    const { error } = await supabaseClient.from("exam_period_students").delete().eq("id", linkId);
+
+    if (error) {
+        showMessage("Unable to remove: " + error.message, "error");
+        return;
+    }
+
+    showMessage("Student removed from exam period.", "success");
+    await loadAttachedStudents(periodId);
+    await loadPeriods();
 
 }
 
@@ -245,7 +486,7 @@ async function createPeriod() {
         return;
     }
 
-    showMessage("Exam period created.", "success");
+    showMessage("Exam period created. Use \"Manage Students\" below to add who it applies to.", "success");
     document.getElementById("periodLabel").value = "";
     document.getElementById("startDate").value = "";
     document.getElementById("endDate").value = "";
