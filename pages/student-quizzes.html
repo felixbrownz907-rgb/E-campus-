@@ -163,6 +163,59 @@ body { font-family: Arial, Helvetica, sans-serif; background: #f4f6f9; color: #1
 
 .empty-note { color: #9ca3af; text-align: center; padding: 30px 0; }
 
+/* ============ PRE-EXAM CONFIRM SCREEN (replaces native confirm()) ============ */
+
+.pre-exam-screen {
+    display: none;
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: #111827;
+    z-index: 998;
+    overflow-y: auto;
+    padding: 20px;
+    align-items: center;
+    justify-content: center;
+}
+
+.pre-exam-screen.active { display: flex; }
+
+.pre-exam-box {
+    background: white;
+    border-radius: 14px;
+    padding: 24px;
+    max-width: 500px;
+    width: 100%;
+}
+
+.pre-exam-box h3 { font-size: 19px; margin-bottom: 16px; color: #111827; }
+.pre-exam-box ul { margin: 0 0 20px 20px; font-size: 14px; color: #374151; line-height: 1.7; }
+
+.pre-exam-buttons { display: flex; gap: 10px; }
+
+.pre-exam-ready-button {
+    flex: 1;
+    background: #111827;
+    color: white;
+    border: none;
+    padding: 14px;
+    border-radius: 8px;
+    font-weight: bold;
+    font-size: 15px;
+    cursor: pointer;
+}
+
+.pre-exam-cancel-button {
+    flex: 1;
+    background: #f3f4f6;
+    color: #374151;
+    border: none;
+    padding: 14px;
+    border-radius: 8px;
+    font-weight: bold;
+    font-size: 15px;
+    cursor: pointer;
+}
+
 /* ============ EXAM ROOM (full screen) ============ */
 
 .exam-room {
@@ -310,6 +363,25 @@ body { font-family: Arial, Helvetica, sans-serif; background: #f4f6f9; color: #1
 
 .violation-warning-toast.show { display: block; }
 
+.error-toast {
+    display: none;
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #991b1b;
+    color: white;
+    padding: 16px 24px;
+    border-radius: 10px;
+    font-weight: bold;
+    z-index: 1003;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    text-align: center;
+    max-width: 90%;
+}
+
+.error-toast.show { display: block; }
+
 </style>
 </head>
 
@@ -356,6 +428,26 @@ body { font-family: Arial, Helvetica, sans-serif; background: #f4f6f9; color: #1
 </main>
 
 
+<!-- ============ PRE-EXAM CONFIRM SCREEN — replaces native confirm() entirely ============ -->
+
+<div class="pre-exam-screen" id="preExamScreen">
+    <div class="pre-exam-box">
+        <h3 id="preExamTitle">Ready to begin?</h3>
+        <ul>
+            <li>Avoid leaving this page or switching apps — you get a warning for the first 3 times.</li>
+            <li>On the 4th time, your exam locks automatically and is flagged for your lecturer.</li>
+            <li>Copying and pasting is disabled.</li>
+            <li>Everyone shares the same end time — joining late means less time.</li>
+            <li>Your answers save automatically — if time runs out, you're marked on what you completed.</li>
+        </ul>
+        <div class="pre-exam-buttons">
+            <button class="pre-exam-cancel-button" onclick="cancelPreExam()">Not Yet</button>
+            <button class="pre-exam-ready-button" id="preExamReadyButton" onclick="confirmPreExam()">Yes, I'm Ready</button>
+        </div>
+    </div>
+</div>
+
+
 <!-- ============ FULL EXAM ROOM ============ -->
 
 <div class="exam-room" id="examRoom">
@@ -388,6 +480,7 @@ body { font-family: Arial, Helvetica, sans-serif; background: #f4f6f9; color: #1
 
 <div class="copy-warning-toast" id="copyWarningToast">⚠️ Copying and pasting is not allowed during this exam.</div>
 <div class="violation-warning-toast" id="violationWarningToast"></div>
+<div class="error-toast" id="errorToast"></div>
 
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -439,7 +532,7 @@ let authUserId = null;
 let studentProfileId = null;
 let approvedRegistrationModes = {};
 let overridesByQuiz = {};
-let currentExamPeriodOpen = false; // whether THIS student's automatic Supp/Deferred window (or a manual override) is open today
+let currentExamPeriodOpen = false;
 
 let activeQuiz = null;
 let activeQuestions = [];
@@ -453,6 +546,7 @@ let ignoringViolationEvents = false;
 
 let countdownInterval = null;
 let quizzesNeedingCountdown = [];
+let pendingQuizIdForConfirm = null; // holds the quiz id while the pre-exam confirm screen is showing
 
 
 function escapeHtml(value) {
@@ -462,6 +556,14 @@ function escapeHtml(value) {
         .replace(/>/g, "&gt;")
         .replace(/"/g, "&quot;")
         .replace(/'/g, "&#039;");
+}
+
+
+function showErrorToast(message) {
+    const toast = document.getElementById("errorToast");
+    toast.textContent = "⚠️ " + message;
+    toast.classList.add("show");
+    setTimeout(() => { toast.classList.remove("show"); }, 5000);
 }
 
 
@@ -592,8 +694,6 @@ async function loadRegistrationStatus() {
 }
 
 
-// ===== Whether THIS student's Supp/Deferred window is open today — automatic date math =====
-// off their own most recently ended term, OR a manual admin override, whichever applies.
 async function loadExamPeriodStatus() {
 
     const today = new Date();
@@ -622,7 +722,6 @@ async function loadExamPeriodStatus() {
         return;
     }
 
-    // Fall back to a manual admin override, if one currently covers this student.
     const { data: myPeriodLinks } =
         await supabaseClient
             .from("exam_period_students")
@@ -676,121 +775,130 @@ async function loadQuizzes() {
 
     const container = document.getElementById("quizzesContainer");
 
-    const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
+    try {
 
-    if (authError || !user) {
-        window.location.href = "student-login.html";
-        return;
-    }
+        const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
 
-    authUserId = user.id;
+        if (authError || !user) {
+            window.location.href = "student-login.html";
+            return;
+        }
 
-    const { data: studentProfile } =
-        await supabaseClient.from("student_profiles").select("id").eq("user_id", user.id).single();
+        authUserId = user.id;
 
-    if (!studentProfile) {
-        container.innerHTML = `<div class="card"><p class="empty-note">Unable to load your student profile.</p></div>`;
-        return;
-    }
+        const { data: studentProfile } =
+            await supabaseClient.from("student_profiles").select("id").eq("user_id", user.id).single();
 
-    studentProfileId = studentProfile.id;
+        if (!studentProfile) {
+            container.innerHTML = `<div class="card"><p class="empty-note">Unable to load your student profile.</p></div>`;
+            return;
+        }
 
-    const { data: enrollments } =
-        await supabaseClient
-            .from("enrollments")
-            .select("courses ( id, code, name )")
-            .eq("student_id", studentProfileId)
-            .eq("status", "enrolled");
+        studentProfileId = studentProfile.id;
 
-    const courseIds = (enrollments || []).map(e => e.courses?.id).filter(Boolean);
-    const courseMap = {};
-    (enrollments || []).forEach(e => { if (e.courses) courseMap[e.courses.id] = e.courses; });
-
-    if (courseIds.length === 0) {
-        container.innerHTML = `<div class="card"><p class="empty-note">You are not enrolled in any courses yet.</p></div>`;
-        return;
-    }
-
-    const [_, __, quizzesResult] = await Promise.all([
-        loadRegistrationStatus(),
-        loadExamPeriodStatus(),
-        supabaseClient.from("quizzes").select("*").in("course_id", courseIds)
-    ]);
-
-    const { data: allQuizzes, error } = quizzesResult;
-
-    if (error) {
-        container.innerHTML = `<div class="card"><p class="empty-note">Unable to load: ${escapeHtml(error.message)}</p></div>`;
-        return;
-    }
-
-    const allQuizIds = (allQuizzes || []).map(q => q.id);
-    overridesByQuiz = {};
-
-    if (allQuizIds.length > 0) {
-        const { data: overrides } =
+        const { data: enrollments } =
             await supabaseClient
-                .from("quiz_student_overrides")
-                .select("quiz_id, scheduled_start, duration_minutes")
+                .from("enrollments")
+                .select("courses ( id, code, name )")
                 .eq("student_id", studentProfileId)
-                .in("quiz_id", allQuizIds);
+                .eq("status", "enrolled");
 
-        (overrides || []).forEach(o => { overridesByQuiz[o.quiz_id] = o; });
-    }
+        const courseIds = (enrollments || []).map(e => e.courses?.id).filter(Boolean);
+        const courseMap = {};
+        (enrollments || []).forEach(e => { if (e.courses) courseMap[e.courses.id] = e.courses; });
 
-    const quizzes = (allQuizzes || []).filter(q =>
-        !(q.is_exam || q.is_final_exam || q.ca_number) || q.scheduled_start || overridesByQuiz[q.id]
-    );
+        if (courseIds.length === 0) {
+            container.innerHTML = `<div class="card"><p class="empty-note">You are not enrolled in any courses yet.</p></div>`;
+            return;
+        }
 
-    if (!quizzes || quizzes.length === 0) {
-        container.innerHTML = `<div class="card"><p class="empty-note">No quizzes or exams available yet.</p></div>`;
-        return;
-    }
+        const [_, __, quizzesResult] = await Promise.all([
+            loadRegistrationStatus(),
+            loadExamPeriodStatus(),
+            supabaseClient.from("quizzes").select("*").in("course_id", courseIds)
+        ]);
 
-    const quizIds = quizzes.map(q => q.id);
+        const { data: allQuizzes, error } = quizzesResult;
 
-    let { data: attempts } =
-        await supabaseClient
-            .from("quiz_attempts")
-            .select("id, quiz_id, score, submitted_at, violation_flag, cleared_by_lecturer, answers")
-            .eq("student_id", authUserId)
-            .in("quiz_id", quizIds);
+        if (error) {
+            container.innerHTML = `<div class="card"><p class="empty-note">Unable to load: ${escapeHtml(error.message)}</p></div>`;
+            return;
+        }
 
-    attempts = attempts || [];
+        const allQuizIds = (allQuizzes || []).map(q => q.id);
+        overridesByQuiz = {};
 
-    const anyFinalized = await finalizeExpiredAttemptsIfNeeded(allQuizzes, attempts);
+        if (allQuizIds.length > 0) {
+            const { data: overrides } =
+                await supabaseClient
+                    .from("quiz_student_overrides")
+                    .select("quiz_id, scheduled_start, duration_minutes")
+                    .eq("student_id", studentProfileId)
+                    .in("quiz_id", allQuizIds);
 
-    if (anyFinalized) {
-        const { data: refreshedAttempts } =
+            (overrides || []).forEach(o => { overridesByQuiz[o.quiz_id] = o; });
+        }
+
+        const quizzes = (allQuizzes || []).filter(q =>
+            !(q.is_exam || q.is_final_exam || q.ca_number) || q.scheduled_start || overridesByQuiz[q.id]
+        );
+
+        if (!quizzes || quizzes.length === 0) {
+            container.innerHTML = `<div class="card"><p class="empty-note">No quizzes or exams available yet.</p></div>`;
+            return;
+        }
+
+        const quizIds = quizzes.map(q => q.id);
+
+        let { data: attempts } =
             await supabaseClient
                 .from("quiz_attempts")
-                .select("quiz_id, score, submitted_at, violation_flag, cleared_by_lecturer")
+                .select("id, quiz_id, score, submitted_at, violation_flag, cleared_by_lecturer, answers")
                 .eq("student_id", authUserId)
                 .in("quiz_id", quizIds);
-        attempts = refreshedAttempts || [];
-    }
 
-    const attemptsByQuiz = {};
-    attempts.forEach(a => {
-        if (!attemptsByQuiz[a.quiz_id]) attemptsByQuiz[a.quiz_id] = [];
-        attemptsByQuiz[a.quiz_id].push(a);
-    });
+        attempts = attempts || [];
 
-    const bestScoreByQuiz = {};
-    attempts.forEach(a => {
-        if (a.score === null || a.violation_flag) return;
-        if (!bestScoreByQuiz[a.quiz_id] || a.score > bestScoreByQuiz[a.quiz_id]) {
-            bestScoreByQuiz[a.quiz_id] = a.score;
+        const anyFinalized = await finalizeExpiredAttemptsIfNeeded(allQuizzes, attempts);
+
+        if (anyFinalized) {
+            const { data: refreshedAttempts } =
+                await supabaseClient
+                    .from("quiz_attempts")
+                    .select("quiz_id, score, submitted_at, violation_flag, cleared_by_lecturer")
+                    .eq("student_id", authUserId)
+                    .in("quiz_id", quizIds);
+            attempts = refreshedAttempts || [];
         }
-    });
 
-    const quizzesByCourse = {};
-    (allQuizzes || []).forEach(q => {
-        if (!quizzesByCourse[q.course_id]) quizzesByCourse[q.course_id] = [];
-        quizzesByCourse[q.course_id].push(q);
-    });
+        const attemptsByQuiz = {};
+        attempts.forEach(a => {
+            if (!attemptsByQuiz[a.quiz_id]) attemptsByQuiz[a.quiz_id] = [];
+            attemptsByQuiz[a.quiz_id].push(a);
+        });
 
-    renderQuizzes(quizzes, courseMap, attemptsByQuiz, bestScoreByQuiz, quizzesByCourse);
+        const bestScoreByQuiz = {};
+        attempts.forEach(a => {
+            if (a.score === null || a.violation_flag) return;
+            if (!bestScoreByQuiz[a.quiz_id] || a.score > bestScoreByQuiz[a.quiz_id]) {
+                bestScoreByQuiz[a.quiz_id] = a.score;
+            }
+        });
+
+        const quizzesByCourse = {};
+        (allQuizzes || []).forEach(q => {
+            if (!quizzesByCourse[q.course_id]) quizzesByCourse[q.course_id] = [];
+            quizzesByCourse[q.course_id].push(q);
+        });
+
+        renderQuizzes(quizzes, courseMap, attemptsByQuiz, bestScoreByQuiz, quizzesByCourse);
+
+    } catch (err) {
+
+        console.error("loadQuizzes failed:", err);
+        container.innerHTML = `<div class="card"><p class="empty-note">Something went wrong loading exams: ${escapeHtml(err.message || String(err))}</p></div>`;
+
+    }
 
 }
 
@@ -1009,20 +1117,21 @@ function startCountdownTicker() {
 }
 
 
+// ===== Entry point when "Start Exam" is tapped =====
 async function beginQuiz(quizId) {
 
     const { data: quiz, error: quizError } =
         await supabaseClient.from("quizzes").select("*").eq("id", quizId).single();
 
     if (quizError || !quiz) {
-        alert("Unable to load this quiz.");
+        showErrorToast("Unable to load this quiz.");
         return;
     }
 
     const regStatus = getRegistrationStatusForQuiz(quiz);
 
     if (!regStatus.registered) {
-        alert(regStatus.reason === "period_closed"
+        showErrorToast(regStatus.reason === "period_closed"
             ? "Your Supplementary/Deferred writing window isn't open right now."
             : "You have not registered for this exam. Please go to Exam Registration first.");
         return;
@@ -1031,7 +1140,7 @@ async function beginQuiz(quizId) {
     const schedule = getEffectiveSchedule(quiz);
 
     if (quiz.is_exam && isWindowClosed(schedule)) {
-        alert("This exam's window has just closed. You can no longer start it.");
+        showErrorToast("This exam's window has just closed. You can no longer start it.");
         await loadQuizzes();
         return;
     }
@@ -1048,7 +1157,7 @@ async function beginQuiz(quizId) {
     );
 
     if (genuineCompletion) {
-        alert("You have already completed this exam. Your score has been recorded.");
+        showErrorToast("You have already completed this exam. Your score has been recorded.");
         await loadQuizzes();
         return;
     }
@@ -1058,81 +1167,138 @@ async function beginQuiz(quizId) {
     );
 
     if (pendingViolationExisting) {
-        alert("Your previous attempt was flagged and is awaiting your lecturer's review. You cannot start a new attempt until it is cleared.");
+        showErrorToast("Your previous attempt was flagged and is awaiting your lecturer's review. You cannot start a new attempt until it is cleared.");
         await loadQuizzes();
         return;
     }
 
-    const phantomAttemptIds = (existingAttempts || []).map(a => a.id);
-
-    if (phantomAttemptIds.length > 0) {
-        await supabaseClient.from("quiz_attempts").delete().in("id", phantomAttemptIds);
-    }
-
-    const { data: questions, error: qError } =
-        await supabaseClient.from("quiz_questions").select("*").eq("quiz_id", quizId);
-
-    if (qError || !questions || questions.length === 0) {
-        alert("This quiz has no questions yet.");
+    // If this is a locked exam, show the in-page confirm screen instead of native confirm() —
+    // native confirm() can silently fail to resolve on some Android/PWA setups, which was
+    // exactly why students tapping "OK" saw nothing happen.
+    if (quiz.is_exam) {
+        pendingQuizIdForConfirm = quizId;
+        document.getElementById("preExamScreen").classList.add("active");
         return;
     }
 
-    if (quiz.is_exam) {
-        const confirmed = confirm(
-            "This is a locked exam. Once you start:\n\n• Avoid leaving this page or switching apps — you get a warning for the first 3 times\n• On the 4th time, your exam locks automatically and is flagged for your lecturer\n• Copying and pasting is disabled\n• Everyone shares the same end time — joining late means less time\n• Your answers save automatically — if time runs out, you're marked on what you completed\n\nAre you ready to begin?"
-        );
-        if (!confirmed) return;
-    }
+    await actuallyStartQuiz(quizId);
 
-    activeQuiz = quiz;
-    activeQuestions = questions;
-    examLocked = false;
-    violationCount = 0;
-    updateViolationCounter();
+}
 
-    const { data: attemptRow, error: insertError } =
-        await supabaseClient
-            .from("quiz_attempts")
-            .insert({
-                quiz_id: quizId,
-                student_id: authUserId,
-                started_at: new Date().toISOString(),
-                answers: {},
-                violation_count: 0
-            })
-            .select("id")
-            .single();
 
-    if (insertError) {
-        alert("Unable to start: " + insertError.message);
-        return;
-    }
+function cancelPreExam() {
+    pendingQuizIdForConfirm = null;
+    document.getElementById("preExamScreen").classList.remove("active");
+}
 
-    activeAttemptId = attemptRow.id;
 
-    renderExamRoom();
+async function confirmPreExam() {
 
-    document.getElementById("examRoom").classList.add("active");
+    const quizId = pendingQuizIdForConfirm;
+    pendingQuizIdForConfirm = null;
+    document.getElementById("preExamScreen").classList.remove("active");
 
-    if (quiz.is_exam) {
-        document.addEventListener("visibilitychange", handleVisibilityChange);
-        window.addEventListener("blur", handleWindowBlur);
-        document.addEventListener("copy", handleCopyPasteAttempt);
-        document.addEventListener("cut", handleCopyPasteAttempt);
-        document.addEventListener("paste", handleCopyPasteAttempt);
-        document.addEventListener("contextmenu", handleCopyPasteAttempt);
-    }
+    if (!quizId) return;
 
-    const absoluteEnd = getAbsoluteEndTime(schedule);
+    await actuallyStartQuiz(quizId);
 
-    if (absoluteEnd) {
-        examEndTime = absoluteEnd;
-        startTimer();
-    } else if (schedule.duration_minutes) {
-        examEndTime = Date.now() + (schedule.duration_minutes * 60000);
-        startTimer();
-    } else {
-        document.getElementById("examTimer").textContent = "";
+}
+
+
+// ===== The actual work of starting the quiz — separated so both the confirm screen and =====
+// ordinary (non-exam) quizzes both funnel through the same reliable path.
+async function actuallyStartQuiz(quizId) {
+
+    try {
+
+        const phantomAttemptIds = [];
+
+        const { data: existingAttempts } =
+            await supabaseClient
+                .from("quiz_attempts")
+                .select("id, score, violation_flag")
+                .eq("quiz_id", quizId)
+                .eq("student_id", authUserId);
+
+        (existingAttempts || []).forEach(a => phantomAttemptIds.push(a.id));
+
+        if (phantomAttemptIds.length > 0) {
+            await supabaseClient.from("quiz_attempts").delete().in("id", phantomAttemptIds);
+        }
+
+        const { data: quiz, error: quizError } =
+            await supabaseClient.from("quizzes").select("*").eq("id", quizId).single();
+
+        if (quizError || !quiz) {
+            showErrorToast("Unable to load this quiz.");
+            return;
+        }
+
+        const { data: questions, error: qError } =
+            await supabaseClient.from("quiz_questions").select("*").eq("quiz_id", quizId);
+
+        if (qError || !questions || questions.length === 0) {
+            showErrorToast("This quiz has no questions yet.");
+            return;
+        }
+
+        activeQuiz = quiz;
+        activeQuestions = questions;
+        examLocked = false;
+        violationCount = 0;
+        updateViolationCounter();
+
+        const { data: attemptRow, error: insertError } =
+            await supabaseClient
+                .from("quiz_attempts")
+                .insert({
+                    quiz_id: quizId,
+                    student_id: authUserId,
+                    started_at: new Date().toISOString(),
+                    answers: {},
+                    violation_count: 0
+                })
+                .select("id")
+                .single();
+
+        if (insertError) {
+            showErrorToast("Unable to start: " + insertError.message);
+            return;
+        }
+
+        activeAttemptId = attemptRow.id;
+
+        renderExamRoom();
+
+        document.getElementById("examRoom").classList.add("active");
+
+        if (quiz.is_exam) {
+            document.addEventListener("visibilitychange", handleVisibilityChange);
+            window.addEventListener("blur", handleWindowBlur);
+            document.addEventListener("copy", handleCopyPasteAttempt);
+            document.addEventListener("cut", handleCopyPasteAttempt);
+            document.addEventListener("paste", handleCopyPasteAttempt);
+            document.addEventListener("contextmenu", handleCopyPasteAttempt);
+        }
+
+        const schedule = getEffectiveSchedule(quiz);
+        const absoluteEnd = getAbsoluteEndTime(schedule);
+
+        if (absoluteEnd) {
+            examEndTime = absoluteEnd;
+            startTimer();
+        } else if (schedule.duration_minutes) {
+            examEndTime = Date.now() + (schedule.duration_minutes * 60000);
+            startTimer();
+        } else {
+            document.getElementById("examTimer").textContent = "";
+        }
+
+    } catch (err) {
+
+        console.error("actuallyStartQuiz failed:", err);
+        showErrorToast("Something went wrong starting the exam: " + (err.message || String(err)));
+
     }
 
 }
@@ -1305,6 +1471,12 @@ function handleCopyPasteAttempt(event) {
 }
 
 
+function updateViolationCounter() {
+    const el = document.getElementById("violationCounter");
+    if (el) el.textContent = `${violationCount} of ${MAX_VIOLATIONS_BEFORE_LOCK} warnings used`;
+}
+
+
 function lockExam(reason) {
 
     examLocked = true;
@@ -1378,7 +1550,7 @@ async function submitExam(isViolation, violationReason) {
 
     if (!isViolation) {
         document.getElementById("examRoom").classList.remove("active");
-        alert(finalScore !== null ? `Submitted. Your score: ${finalScore}%` : "Submitted. Your answers will be graded by your lecturer.");
+        showErrorToast(finalScore !== null ? `Submitted. Your score: ${finalScore}%` : "Submitted. Your answers will be graded by your lecturer.");
         await loadQuizzes();
     }
 
