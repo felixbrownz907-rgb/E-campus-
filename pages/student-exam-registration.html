@@ -179,22 +179,10 @@ body { font-family: Arial, Helvetica, sans-serif; background: #f4f6f9; color: #1
 
 <script>
 
-// ============================================================
-// AUTOMATIC DATE MODEL — everything below is calculated purely from
-// each term's own end_date (which admin already sets). No manual
-// per-student period assignment is needed for the normal flow.
-//
-// TERM ends on end_date.
-// EXAM PERIOD:            end_date + 1  through  end_date + 7   (7 days)
-//                          — CA1/CA2 late catch-up + End-of-Term itself
-// SUPPLEMENTARY/DEFERRED: end_date + 12 through  end_date + 14  (3 days,
-//                          starting 5 days after the Exam Period ends)
-// ============================================================
-
 const CA1_CA2_FEE_REQUIREMENT = { ca1: 50, ca2: 75 };
 const END_OF_TERM_FEE_REQUIREMENT = 100;
-const REGISTRATION_WINDOW_DAYS = 4; // CA1/CA2 registration opens this many days before their in-term date
-const CA_DAY_OFFSET = { ca1: 14, ca2: 28 }; // CA1/CA2 still sit inside the active term, unchanged
+const REGISTRATION_WINDOW_DAYS = 4;
+const CA_DAY_OFFSET = { ca1: 14, ca2: 28 };
 
 const EXAM_PERIOD_START_OFFSET = 1;
 const EXAM_PERIOD_LENGTH_DAYS = 7;
@@ -210,7 +198,7 @@ let allTerms = [];
 let activeTerm = null;
 let mostRecentEndedTerm = null;
 let existingRegistrations = [];
-let manualOverridePeriod = null; // admin's manual exam_periods override, if one currently covers this student
+let manualOverridePeriod = null;
 
 function escapeHtml(value) {
     return String(value ?? "")
@@ -291,7 +279,6 @@ async function startPage() {
         .filter(t => new Date(t.end_date + "T00:00:00") < today)
         .sort((a, b) => new Date(b.end_date) - new Date(a.end_date))[0];
 
-    // Manual admin override — kept as a backup path for genuine exceptions, on top of the automatic dates.
     const { data: myPeriodLinks } =
         await supabaseClient
             .from("exam_period_students")
@@ -432,19 +419,16 @@ async function renderNormalMode() {
     const endedTermFee = mostRecentEndedTerm ? await calculateFeePercentageForTerm(mostRecentEndedTerm) : null;
 
     const endedExamPeriod = mostRecentEndedTerm ? getExamPeriodWindow(mostRecentEndedTerm) : null;
-    const inEndedExamPeriod = endedExamPeriod && today >= endedExamPeriod.start && today <= endedExamPeriod.finish;
+    const inEndedExamPeriod = endedExamPeriod ? (today >= endedExamPeriod.start && today <= endedExamPeriod.finish) : false;
 
     let html = "";
 
-    // ===== CA1 and CA2: primarily within the active term, with late catch-up during the ended =====
-    // term's Exam Period if they were missed and that term is the one this student just finished.
+    // ===== CA1 and CA2: within the active term, with automatic late catch-up during the ended term's Exam Period. =====
     for (const examType of ["ca1", "ca2"]) {
-
-        const existing = findExistingRegistration is undefined ? null : null; // placeholder guard, real check below
-        const already = enrolledCourses.every(c => findExistingRegistration(c.id, examType, "normal"));
 
         let statusBadge = "";
         let bodyHtml = "";
+        let resolved = false;
 
         if (activeTerm) {
 
@@ -458,46 +442,33 @@ async function renderNormalMode() {
                 const daysUntilOpen = daysBetween(today, windowOpenDate);
                 statusBadge = `<span class="status-badge not-open">Not Open Yet</span>`;
                 bodyHtml = `<div class="countdown-note">📅 Registration opens in ${daysUntilOpen} day${daysUntilOpen === 1 ? "" : "s"} — ${REGISTRATION_WINDOW_DAYS} days before the exam.</div>`;
+                resolved = true;
 
             } else if (today <= examDate) {
 
-                bodyHtml = renderFeeGatedChecklist(activeTermFee, requirement, activeTerm, examType, "normal", false);
-                statusBadge = bodyHtml.openBadge;
-                bodyHtml = bodyHtml.html;
-
-            } else if (inEndedExamPeriod === false && mostRecentEndedTerm && activeTerm.term_number === mostRecentEndedTerm.term_number) {
-
-                // Shouldn't normally hit — same term can't be both active and ended — kept for safety.
-                statusBadge = `<span class="status-badge closed">Registration Closed</span>`;
-                bodyHtml = `<p class="empty-note">The registration window for this exam has closed.</p>`;
-
-            } else {
-
-                statusBadge = `<span class="status-badge closed">Registration Closed</span>`;
-                bodyHtml = `<p class="empty-note">The registration window for this exam has closed. If you're now in your Exam Period (right after your term ended), check below — you may still be able to register there.</p>`;
+                const result = renderFeeGatedChecklist(activeTermFee, requirement, activeTerm, examType, "normal", false);
+                statusBadge = result.openBadge;
+                bodyHtml = result.html;
+                resolved = true;
 
             }
 
         }
 
-        // Late catch-up during the ended term's Exam Period (applies whether or not the above ran,
-        // since a student might have no active term at all right now — e.g. between terms).
-        if ((!activeTerm || !bodyHtml) && mostRecentEndedTerm && inEndedExamPeriod) {
+        if (!resolved && mostRecentEndedTerm && inEndedExamPeriod) {
 
             const requirement = CA1_CA2_FEE_REQUIREMENT[examType];
             const result = renderFeeGatedChecklist(endedTermFee, requirement, mostRecentEndedTerm, examType, "normal", true);
             statusBadge = result.openBadge;
             bodyHtml = result.html;
+            resolved = true;
 
-        } else if (!activeTerm && !mostRecentEndedTerm) {
+        }
 
-            statusBadge = `<span class="status-badge closed">Not Available</span>`;
-            bodyHtml = `<p class="empty-note">No term found to register against.</p>`;
-
-        } else if (!bodyHtml) {
+        if (!resolved) {
 
             statusBadge = `<span class="status-badge closed">Registration Closed</span>`;
-            bodyHtml = `<p class="empty-note">This registration window is not currently open.</p>`;
+            bodyHtml = `<p class="empty-note">This registration window is not currently open. If your term just ended, check back during your Exam Period.</p>`;
 
         }
 
@@ -513,7 +484,7 @@ async function renderNormalMode() {
 
     }
 
-    // ===== End-of-Term: entirely governed by the ended term's Exam Period — never the active term's own dates. =====
+    // ===== End-of-Term: entirely governed by the ended term's Exam Period. =====
     {
         const requirement = END_OF_TERM_FEE_REQUIREMENT;
         let statusBadge = "";
@@ -559,8 +530,6 @@ async function renderNormalMode() {
 }
 
 
-// Builds the fee-gated course checklist shared by CA1/CA2/End-of-Term normal registration.
-// isLate=true just changes the wording shown, not the fee logic — same requirement either way.
 function renderFeeGatedChecklist(feePercentage, requirement, term, examType, mode, isLate) {
 
     if (feePercentage === null) {
