@@ -191,7 +191,7 @@ let allTerms = [];
 let activeTerm = null;
 let mostRecentEndedTerm = null;
 let existingRegistrations = [];
-let currentExamPeriod = null; // the exam_periods row that is currently open right now, if any
+let currentExamPeriod = null; // the exam_periods row that is currently open AND includes this student, if any
 
 function escapeHtml(value) {
     return String(value ?? "")
@@ -249,20 +249,35 @@ async function startPage() {
         .filter(t => new Date(t.end_date + "T00:00:00") < today)
         .sort((a, b) => new Date(b.end_date) - new Date(a.end_date))[0];
 
-    // Load the currently-open exam period, if any — Supplementary/Deferred can only happen while one is active.
-    const todayStr = today.toISOString().split("T")[0];
-
-    const { data: openPeriods } =
+    // ===== Find the exam periods THIS student is specifically attached to. =====
+    const { data: myPeriodLinks } =
         await supabaseClient
-            .from("exam_periods")
-            .select("*")
-            .eq("is_active", true)
-            .lte("start_date", todayStr)
-            .gte("end_date", todayStr)
-            .order("start_date", { ascending: false })
-            .limit(1);
+            .from("exam_period_students")
+            .select("period_id")
+            .eq("student_id", studentProfileId);
 
-    currentExamPeriod = (openPeriods && openPeriods.length > 0) ? openPeriods[0] : null;
+    const myPeriodIds = (myPeriodLinks || []).map(l => l.period_id);
+
+    if (myPeriodIds.length > 0) {
+
+        const todayStr = today.toISOString().split("T")[0];
+
+        const { data: openPeriods } =
+            await supabaseClient
+                .from("exam_periods")
+                .select("*")
+                .in("id", myPeriodIds)
+                .eq("is_active", true)
+                .lte("start_date", todayStr)
+                .gte("end_date", todayStr)
+                .order("start_date", { ascending: false })
+                .limit(1);
+
+        currentExamPeriod = (openPeriods && openPeriods.length > 0) ? openPeriods[0] : null;
+
+    } else {
+        currentExamPeriod = null;
+    }
 
     const { data: enrollments } =
         await supabaseClient
@@ -399,7 +414,7 @@ async function renderNormalMode() {
         } else if (today > examDate) {
 
             statusBadge = `<span class="status-badge closed">Registration Closed</span>`;
-            bodyHtml = `<p class="empty-note">The registration window for this exam has closed. Contact admin if you missed it — you may be able to register as Deferred once the term ends and an exam period is open.</p>`;
+            bodyHtml = `<p class="empty-note">The registration window for this exam has closed. Contact admin if you missed it — you may be added to a Supplementary/Deferred exam period once your term ends.</p>`;
 
         } else if (feePercentage === null) {
 
@@ -449,7 +464,7 @@ async function renderSpecialMode(mode) {
     const content = document.getElementById("content");
     const label = mode === "supplementary" ? "Supplementary" : "Deferred";
 
-    // ===== GATE 1: An exam period must currently be open for Supplementary/Deferred to be possible at all. =====
+    // ===== GATE 1: An exam period must currently be open, AND this specific student must be attached to it. =====
     if (!currentExamPeriod) {
 
         content.innerHTML = `
@@ -458,10 +473,10 @@ async function renderSpecialMode(mode) {
                     <div>
                         <h3>${label} Registration</h3>
                     </div>
-                    <span class="status-badge closed">No Exam Period Open</span>
+                    <span class="status-badge closed">No Exam Period Available</span>
                 </div>
                 <div class="period-closed-note">
-                    🔒 ${label} registration is only available while admin has an exam period open. There is no exam period open right now. Please check back once one has been announced, or contact admin.
+                    🔒 ${label} registration is only available while admin has opened an exam period that specifically includes you. There is no such period open for you right now. Please check back once one has been announced, or contact admin.
                 </div>
             </div>
         `;
@@ -496,7 +511,7 @@ async function renderSpecialMode(mode) {
                     <div class="exam-type-meta">Term ended: ${new Date(mostRecentEndedTerm.end_date + "T00:00:00").toLocaleDateString()}</div>
                 </div>
             </div>
-            <div class="period-note">📅 Exam period open: "${escapeHtml(currentExamPeriod.label)}" — closes ${new Date(currentExamPeriod.end_date + "T00:00:00").toLocaleDateString()}. You must complete registration and write your exam before this date.</div>
+            <div class="period-note">📅 You have been added to the exam period "${escapeHtml(currentExamPeriod.label)}" — it closes ${new Date(currentExamPeriod.end_date + "T00:00:00").toLocaleDateString()}. You must complete registration and write your exam before this date.</div>
             ${feeBlockHtml}
             <div class="special-fee-note">
                 ℹ️ ${label} registration also requires a separate ${label.toLowerCase()} fee to be paid. This is confirmed by admin when they review your registration — you do not need to prove it here, but your registration will not be approved until admin confirms this payment.
@@ -595,7 +610,7 @@ async function submitRegistrations(examType, mode) {
 
 async function submitSpecialRegistrations(mode) {
 
-    // ===== Re-check the exam period right before submitting, in case it closed while the page was open. =====
+    // ===== Re-check right before submitting, in case the period closed or was removed while the page was open. =====
     if (!currentExamPeriod) {
         alert("The exam period has closed. You can no longer submit this registration.");
         await startPage();
