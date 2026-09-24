@@ -339,7 +339,7 @@ body { font-family: Arial, Helvetica, sans-serif; background: #f4f6f9; color: #1
         <h3>📋 Locked Exam Rules</h3>
         <ul>
             <li>You must have an <strong>approved</strong> exam registration for this exact course before an exam becomes available.</li>
-            <li>Supplementary and Deferred exams can only be written while admin has an exam period open.</li>
+            <li>Supplementary and Deferred exams can only be written while admin has an exam period open that specifically includes you.</li>
             <li>Avoid leaving this page or switching to another app once the exam begins. You will get a warning the first 3 times you do this.</li>
             <li>On the <strong>4th time</strong> you leave the page, your exam will be locked immediately and flagged for your lecturer's review.</li>
             <li>Copying and pasting is disabled during the exam.</li>
@@ -409,9 +409,9 @@ function getRequiredRegistrationType(quiz) {
 
 let authUserId = null;
 let studentProfileId = null;
-let approvedRegistrationModes = {}; // key: "<course_id>_<exam_type>" -> the registration_mode that got approved ('normal'/'supplementary'/'deferred')
+let approvedRegistrationModes = {};
 let overridesByQuiz = {};
-let currentExamPeriodOpen = false; // whether an exam_period is currently active today
+let currentExamPeriodOpen = false; // whether an exam_period that specifically includes THIS student is currently active
 
 let activeQuiz = null;
 let activeQuestions = [];
@@ -542,8 +542,6 @@ async function finalizeExpiredAttemptsIfNeeded(allQuizzes, attempts) {
 }
 
 
-// ===== Load approved registrations, keeping track of WHICH mode got approved for each course+exam type. =====
-// If both a normal AND a supplementary/deferred registration exist and are approved, normal wins (no period restriction).
 async function loadRegistrationStatus() {
 
     approvedRegistrationModes = {};
@@ -558,7 +556,6 @@ async function loadRegistrationStatus() {
     (registrations || []).forEach(r => {
         const key = `${r.course_id}_${r.exam_type}`;
         const existingMode = approvedRegistrationModes[key];
-        // Prefer 'normal' over supplementary/deferred if both somehow exist, since normal has no period restriction.
         if (!existingMode || existingMode !== "normal") {
             approvedRegistrationModes[key] = r.registration_mode;
         }
@@ -567,8 +564,21 @@ async function loadRegistrationStatus() {
 }
 
 
-// ===== Load whether an exam_period is open today — needed to gate supplementary/deferred exam writing. =====
+// ===== Load whether an exam_period that specifically includes THIS student is open today. =====
 async function loadExamPeriodStatus() {
+
+    const { data: myPeriodLinks } =
+        await supabaseClient
+            .from("exam_period_students")
+            .select("period_id")
+            .eq("student_id", studentProfileId);
+
+    const myPeriodIds = (myPeriodLinks || []).map(l => l.period_id);
+
+    if (myPeriodIds.length === 0) {
+        currentExamPeriodOpen = false;
+        return;
+    }
 
     const todayStr = new Date().toISOString().split("T")[0];
 
@@ -576,6 +586,7 @@ async function loadExamPeriodStatus() {
         await supabaseClient
             .from("exam_periods")
             .select("id")
+            .in("id", myPeriodIds)
             .eq("is_active", true)
             .lte("start_date", todayStr)
             .gte("end_date", todayStr)
@@ -598,7 +609,7 @@ function getRegistrationStatusForQuiz(quiz) {
 
     if (mode === "normal") return { registered: true, mode: "normal" };
 
-    // Supplementary or deferred — only usable while an exam period is currently open.
+    // Supplementary or deferred — only usable while an exam period covering THIS student is currently open.
     if (!currentExamPeriodOpen) return { registered: false, reason: "period_closed", mode: mode };
 
     return { registered: true, mode: mode };
@@ -787,7 +798,7 @@ function renderQuizzes(quizzes, courseMap, attemptsByQuiz, bestScoreByQuiz, quiz
                 statusLabel = "Exam Period Closed";
                 statusClass = "not-registered";
                 buttonText = "Exam Period Closed";
-                registrationNote = `🔒 Your ${regStatus.mode} registration for ${examLabel} was approved, but there is no exam period open right now. Contact admin — this can only be written while an exam period is active.`;
+                registrationNote = `🔒 Your ${regStatus.mode} registration for ${examLabel} was approved, but there is no exam period open for you right now. Contact admin — this can only be written while an exam period that includes you is active.`;
 
             } else {
 
@@ -957,7 +968,7 @@ async function beginQuiz(quizId) {
 
     if (!regStatus.registered) {
         alert(regStatus.reason === "period_closed"
-            ? "There is no exam period open right now. This exam can only be written while an exam period is active."
+            ? "There is no exam period open for you right now. This exam can only be written while an exam period that includes you is active."
             : "You have not registered for this exam. Please go to Exam Registration first.");
         return;
     }
