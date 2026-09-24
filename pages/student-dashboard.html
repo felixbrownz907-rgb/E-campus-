@@ -223,6 +223,8 @@ body {
 .term-countdown-card.urgent { background: linear-gradient(135deg, #991b1b, #7f1d1d); }
 .term-countdown-card.upcoming { background: linear-gradient(135deg, #1d4ed8, #1e3a8a); }
 .term-countdown-card.ended { background: linear-gradient(135deg, #374151, #1f2937); }
+.term-countdown-card.exam-period { background: linear-gradient(135deg, #7c3aed, #5b21b6); }
+.term-countdown-card.supp-deferred { background: linear-gradient(135deg, #be185d, #831843); }
 
 .term-countdown-top {
     display: flex;
@@ -236,6 +238,18 @@ body {
 .term-countdown-label { font-size: 13px; opacity: 0.85; font-weight: bold; }
 .term-countdown-days { font-size: 30px; font-weight: bold; }
 .term-countdown-note { font-size: 12px; opacity: 0.9; margin-top: 4px; }
+
+.term-countdown-action {
+    display: inline-block;
+    margin-top: 12px;
+    background: white;
+    color: #172033;
+    text-decoration: none;
+    padding: 10px 16px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: bold;
+}
 
 /* ===== ROOMS ===== */
 
@@ -742,6 +756,12 @@ body {
 
 const WEEKDAY_NAMES = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
+// Same automatic date model used in student-exam-registration.html / student-quizzes.html
+const EXAM_PERIOD_START_OFFSET = 1;
+const EXAM_PERIOD_LENGTH_DAYS = 7;
+const SUPP_DEFERRED_GAP_DAYS = 5;
+const SUPP_DEFERRED_LENGTH_DAYS = 3;
+
 function escapeHtml(value) {
     return String(value ?? "")
         .replace(/&/g, "&amp;")
@@ -755,6 +775,26 @@ function average(numbers) {
     const valid = numbers.filter(n => n !== null && n !== undefined && !isNaN(n));
     if (valid.length === 0) return 0;
     return Math.round(valid.reduce((a, b) => a + Number(b), 0) / valid.length);
+}
+
+function addDays(date, days) {
+    const d = new Date(date);
+    d.setDate(d.getDate() + days);
+    return d;
+}
+
+function getExamPeriodWindow(term) {
+    const end = new Date(term.end_date + "T00:00:00");
+    const start = addDays(end, EXAM_PERIOD_START_OFFSET);
+    const finish = addDays(start, EXAM_PERIOD_LENGTH_DAYS - 1);
+    return { start, finish };
+}
+
+function getSuppDeferredWindow(term) {
+    const examPeriod = getExamPeriodWindow(term);
+    const start = addDays(examPeriod.finish, SUPP_DEFERRED_GAP_DAYS);
+    const finish = addDays(start, SUPP_DEFERRED_LENGTH_DAYS - 1);
+    return { start, finish };
 }
 
 
@@ -800,55 +840,106 @@ async function loadTermCountdown(studentProfileId) {
 
     const mostRecentTerm = terms[terms.length - 1];
 
+    // ===== Check if the student is currently inside their Exam Period or Supp/Deferred window, =====
+    // based on whichever term most recently ended — this takes priority over the ordinary countdown,
+    // since it needs to be the first thing they see and act on.
+    const mostRecentEndedTerm = terms
+        .filter(t => new Date(t.end_date + "T00:00:00") < today)
+        .sort((a, b) => new Date(b.end_date) - new Date(a.end_date))[0];
+
     let html = "";
 
-    if (activeTerm) {
+    if (mostRecentEndedTerm) {
 
-        const end = new Date(activeTerm.end_date + "T00:00:00");
-        const daysRemaining = Math.ceil((end - today) / (1000 * 60 * 60 * 24));
+        const examPeriod = getExamPeriodWindow(mostRecentEndedTerm);
+        const suppDeferredWindow = getSuppDeferredWindow(mostRecentEndedTerm);
 
-        let urgencyClass = "plenty";
-        if (daysRemaining <= 7) urgencyClass = "urgent";
-        else if (daysRemaining <= 14) urgencyClass = "soon";
+        if (today >= examPeriod.start && today <= examPeriod.finish) {
 
-        html = `
-            <div class="term-countdown-card ${urgencyClass}">
-                <div class="term-countdown-top">
-                    <span class="term-countdown-label">TERM ${activeTerm.term_number} — TIME REMAINING</span>
+            const daysLeft = Math.ceil((examPeriod.finish - today) / (1000 * 60 * 60 * 24)) + 1;
+
+            html = `
+                <div class="term-countdown-card exam-period">
+                    <div class="term-countdown-top">
+                        <span class="term-countdown-label">📢 YOUR EXAM PERIOD IS OPEN — TERM ${mostRecentEndedTerm.term_number}</span>
+                    </div>
+                    <div class="term-countdown-days">${daysLeft} ${daysLeft === 1 ? "day" : "days"} left</div>
+                    <div class="term-countdown-note">Register for your End-of-Term exam, or catch up on any CA1/CA2 you missed. Closes ${examPeriod.finish.toLocaleDateString()}.</div>
+                    <a href="student-exam-registration.html" class="term-countdown-action">Go to Exam Registration →</a>
                 </div>
-                <div class="term-countdown-days">${daysRemaining} ${daysRemaining === 1 ? "day" : "days"} left</div>
-                <div class="term-countdown-note">Term ${activeTerm.term_number} ends on ${end.toLocaleDateString()}</div>
-            </div>
-        `;
+            `;
 
-    } else if (upcomingTerm) {
+        } else if (today >= suppDeferredWindow.start && today <= suppDeferredWindow.finish) {
 
-        const start = new Date(upcomingTerm.start_date + "T00:00:00");
-        const daysUntilStart = Math.ceil((start - today) / (1000 * 60 * 60 * 24));
+            const daysLeft = Math.ceil((suppDeferredWindow.finish - today) / (1000 * 60 * 60 * 24)) + 1;
 
-        html = `
-            <div class="term-countdown-card upcoming">
-                <div class="term-countdown-top">
-                    <span class="term-countdown-label">TERM ${upcomingTerm.term_number} — STARTING SOON</span>
+            html = `
+                <div class="term-countdown-card supp-deferred">
+                    <div class="term-countdown-top">
+                        <span class="term-countdown-label">📢 SUPPLEMENTARY / DEFERRED WINDOW IS OPEN — TERM ${mostRecentEndedTerm.term_number}</span>
+                    </div>
+                    <div class="term-countdown-days">${daysLeft} ${daysLeft === 1 ? "day" : "days"} left</div>
+                    <div class="term-countdown-note">If you still haven't written, register now as Supplementary or Deferred. Closes ${suppDeferredWindow.finish.toLocaleDateString()}.</div>
+                    <a href="student-exam-registration.html" class="term-countdown-action">Go to Exam Registration →</a>
                 </div>
-                <div class="term-countdown-days">${daysUntilStart} ${daysUntilStart === 1 ? "day" : "days"} until it begins</div>
-                <div class="term-countdown-note">Term ${upcomingTerm.term_number} starts on ${start.toLocaleDateString()}</div>
-            </div>
-        `;
+            `;
 
-    } else if (mostRecentTerm) {
+        }
 
-        const end = new Date(mostRecentTerm.end_date + "T00:00:00");
+    }
 
-        html = `
-            <div class="term-countdown-card ended">
-                <div class="term-countdown-top">
-                    <span class="term-countdown-label">TERM ${mostRecentTerm.term_number} — ENDED</span>
+    // If no exam-period banner applies, fall back to the ordinary term countdown.
+    if (!html) {
+
+        if (activeTerm) {
+
+            const end = new Date(activeTerm.end_date + "T00:00:00");
+            const daysRemaining = Math.ceil((end - today) / (1000 * 60 * 60 * 24));
+
+            let urgencyClass = "plenty";
+            if (daysRemaining <= 7) urgencyClass = "urgent";
+            else if (daysRemaining <= 14) urgencyClass = "soon";
+
+            html = `
+                <div class="term-countdown-card ${urgencyClass}">
+                    <div class="term-countdown-top">
+                        <span class="term-countdown-label">TERM ${activeTerm.term_number} — TIME REMAINING</span>
+                    </div>
+                    <div class="term-countdown-days">${daysRemaining} ${daysRemaining === 1 ? "day" : "days"} left</div>
+                    <div class="term-countdown-note">Term ${activeTerm.term_number} ends on ${end.toLocaleDateString()}</div>
                 </div>
-                <div class="term-countdown-days">Term ${mostRecentTerm.term_number} finished</div>
-                <div class="term-countdown-note">Ended on ${end.toLocaleDateString()}. Waiting for your next term to be scheduled.</div>
-            </div>
-        `;
+            `;
+
+        } else if (upcomingTerm) {
+
+            const start = new Date(upcomingTerm.start_date + "T00:00:00");
+            const daysUntilStart = Math.ceil((start - today) / (1000 * 60 * 60 * 24));
+
+            html = `
+                <div class="term-countdown-card upcoming">
+                    <div class="term-countdown-top">
+                        <span class="term-countdown-label">TERM ${upcomingTerm.term_number} — STARTING SOON</span>
+                    </div>
+                    <div class="term-countdown-days">${daysUntilStart} ${daysUntilStart === 1 ? "day" : "days"} until it begins</div>
+                    <div class="term-countdown-note">Term ${upcomingTerm.term_number} starts on ${start.toLocaleDateString()}</div>
+                </div>
+            `;
+
+        } else if (mostRecentTerm) {
+
+            const end = new Date(mostRecentTerm.end_date + "T00:00:00");
+
+            html = `
+                <div class="term-countdown-card ended">
+                    <div class="term-countdown-top">
+                        <span class="term-countdown-label">TERM ${mostRecentTerm.term_number} — ENDED</span>
+                    </div>
+                    <div class="term-countdown-days">Term ${mostRecentTerm.term_number} finished</div>
+                    <div class="term-countdown-note">Ended on ${end.toLocaleDateString()}. Waiting for your next term to be scheduled.</div>
+                </div>
+            `;
+
+        }
 
     }
 
@@ -884,7 +975,6 @@ async function loadFeesSummary(studentProfileId) {
     let totalPaid = 0;
     let earliestDueDate = null;
 
-    // ===== PERFORMANCE FIX: one batched query for all payments instead of one query per fee record. =====
     const feeRecordIds = currentTermRecords.map(r => r.id);
 
     const { data: allPayments } =
@@ -1382,9 +1472,6 @@ async function startDashboard() {
     }
 
 
-    // Broadcast announcements are (user_id IS NULL AND course_id IS NULL).
-    // A personal notification (like the acceptance-letter alert) has a real user_id set,
-    // so it now only matches the intended student instead of leaking to everyone.
     const orConditions = [`user_id.eq.${user.id}`, `and(user_id.is.null,course_id.is.null)`];
 
     const { data: announcements } =
