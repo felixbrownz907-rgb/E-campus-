@@ -73,11 +73,13 @@ body { font-family: Arial, Helvetica, sans-serif; background: #f4f6f9; color: #1
 .status-badge.open { background: #dcfce7; color: #166534; }
 .status-badge.closed { background: #f3f4f6; color: #991b1b; }
 .status-badge.blocked { background: #fee2e2; color: #991b1b; }
+.status-badge.late { background: #fef3c7; color: #92400e; }
 
 .countdown-note { background: #eff6ff; color: #1d4ed8; padding: 12px; border-radius: 8px; font-size: 13px; font-weight: bold; margin-bottom: 10px; }
 .fee-warning { background: #fee2e2; color: #991b1b; padding: 14px; border-radius: 10px; font-size: 13px; margin-bottom: 14px; line-height: 1.5; }
 .fee-ok { background: #f0fdf4; color: #166534; padding: 12px; border-radius: 8px; font-size: 13px; margin-bottom: 14px; }
 .period-note { background: #eff6ff; color: #1d4ed8; padding: 12px; border-radius: 8px; font-size: 13px; font-weight: bold; margin-bottom: 14px; }
+.late-note { background: #fef3c7; color: #92400e; padding: 12px; border-radius: 8px; font-size: 13px; font-weight: bold; margin-bottom: 14px; }
 .period-closed-note { background: #fee2e2; color: #991b1b; padding: 14px; border-radius: 10px; font-size: 13px; margin-bottom: 14px; line-height: 1.5; }
 
 .course-check-item {
@@ -402,6 +404,10 @@ async function renderNormalMode() {
 
         const requirement = FEE_REQUIREMENT[examType];
 
+        // ===== A missed deadline can still be registered late, IF admin has added this student =====
+        // ===== to a currently open exam period. Same fee rules as normal — no exception there. =====
+        const isLateViaExamPeriod = today > examDate && !!currentExamPeriod;
+
         let statusBadge = "";
         let bodyHtml = "";
 
@@ -411,10 +417,10 @@ async function renderNormalMode() {
             statusBadge = `<span class="status-badge not-open">Not Open Yet</span>`;
             bodyHtml = `<div class="countdown-note">📅 Registration opens in ${daysUntilOpen} day${daysUntilOpen === 1 ? "" : "s"} — ${REGISTRATION_WINDOW_DAYS} days before the exam.</div>`;
 
-        } else if (today > examDate) {
+        } else if (today > examDate && !isLateViaExamPeriod) {
 
             statusBadge = `<span class="status-badge closed">Registration Closed</span>`;
-            bodyHtml = `<p class="empty-note">The registration window for this exam has closed. Contact admin if you missed it — you may be added to a Supplementary/Deferred exam period once your term ends.</p>`;
+            bodyHtml = `<p class="empty-note">The registration window for this exam has closed. If admin opens an exam period and adds you to it, you'll be able to register late here — or you may register as Supplementary/Deferred once your term ends and a period is open.</p>`;
 
         } else if (feePercentage === null) {
 
@@ -428,8 +434,16 @@ async function renderNormalMode() {
 
         } else {
 
-            statusBadge = `<span class="status-badge open">Open Now</span>`;
+            statusBadge = isLateViaExamPeriod
+                ? `<span class="status-badge late">Late Registration Open</span>`
+                : `<span class="status-badge open">Open Now</span>`;
+
+            const lateNoteHtml = isLateViaExamPeriod
+                ? `<div class="late-note">⏰ The normal deadline for this exam passed, but you've been added to the open exam period "${escapeHtml(currentExamPeriod.label)}" — you can still register now. This period closes ${new Date(currentExamPeriod.end_date + "T00:00:00").toLocaleDateString()}.</div>`
+                : "";
+
             bodyHtml = `
+                ${lateNoteHtml}
                 <div class="fee-ok">✓ You have paid ${feePercentage}% of your tuition — requirement met (${requirement}% required).</div>
                 <div id="courseList-${examType}">
                     ${enrolledCourses.map(c => renderCourseCheckItem(c, examType, "normal")).join("")}
