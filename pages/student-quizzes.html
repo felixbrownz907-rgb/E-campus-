@@ -339,7 +339,7 @@ body { font-family: Arial, Helvetica, sans-serif; background: #f4f6f9; color: #1
         <h3>📋 Locked Exam Rules</h3>
         <ul>
             <li>You must have an <strong>approved</strong> exam registration for this exact course before an exam becomes available.</li>
-            <li>Supplementary and Deferred exams can only be written while admin has an exam period open that specifically includes you.</li>
+            <li>Supplementary and Deferred exams can only be written during your automatic 3-day window, 5 days after your Exam Period ends.</li>
             <li>Avoid leaving this page or switching to another app once the exam begins. You will get a warning the first 3 times you do this.</li>
             <li>On the <strong>4th time</strong> you leave the page, your exam will be locked immediately and flagged for your lecturer's review.</li>
             <li>Copying and pasting is disabled during the exam.</li>
@@ -399,6 +399,11 @@ body { font-family: Arial, Helvetica, sans-serif; background: #f4f6f9; color: #1
 const PASS_THRESHOLD = 70;
 const MAX_VIOLATIONS_BEFORE_LOCK = 4;
 
+const EXAM_PERIOD_START_OFFSET = 1;
+const EXAM_PERIOD_LENGTH_DAYS = 7;
+const SUPP_DEFERRED_GAP_DAYS = 5;
+const SUPP_DEFERRED_LENGTH_DAYS = 3;
+
 function getRequiredRegistrationType(quiz) {
     if (quiz.is_final_exam) return "end_of_term";
     if (quiz.ca_number === 1) return "ca1";
@@ -407,11 +412,34 @@ function getRequiredRegistrationType(quiz) {
 }
 
 
+function addDays(date, days) {
+    const d = new Date(date);
+    d.setDate(d.getDate() + days);
+    return d;
+}
+
+
+function getExamPeriodWindow(term) {
+    const end = new Date(term.end_date + "T00:00:00");
+    const start = addDays(end, EXAM_PERIOD_START_OFFSET);
+    const finish = addDays(start, EXAM_PERIOD_LENGTH_DAYS - 1);
+    return { start, finish };
+}
+
+
+function getSuppDeferredWindow(term) {
+    const examPeriod = getExamPeriodWindow(term);
+    const start = addDays(examPeriod.finish, SUPP_DEFERRED_GAP_DAYS);
+    const finish = addDays(start, SUPP_DEFERRED_LENGTH_DAYS - 1);
+    return { start, finish };
+}
+
+
 let authUserId = null;
 let studentProfileId = null;
 let approvedRegistrationModes = {};
 let overridesByQuiz = {};
-let currentExamPeriodOpen = false; // whether an exam_period that specifically includes THIS student is currently active
+let currentExamPeriodOpen = false; // whether THIS student's automatic Supp/Deferred window (or a manual override) is open today
 
 let activeQuiz = null;
 let activeQuestions = [];
@@ -564,9 +592,37 @@ async function loadRegistrationStatus() {
 }
 
 
-// ===== Load whether an exam_period that specifically includes THIS student is open today. =====
+// ===== Whether THIS student's Supp/Deferred window is open today — automatic date math =====
+// off their own most recently ended term, OR a manual admin override, whichever applies.
 async function loadExamPeriodStatus() {
 
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const { data: terms } =
+        await supabaseClient
+            .from("student_terms")
+            .select("*")
+            .eq("student_id", studentProfileId)
+            .order("term_number", { ascending: true });
+
+    const mostRecentEndedTerm = (terms || [])
+        .filter(t => new Date(t.end_date + "T00:00:00") < today)
+        .sort((a, b) => new Date(b.end_date) - new Date(a.end_date))[0];
+
+    let inAutomaticWindow = false;
+
+    if (mostRecentEndedTerm) {
+        const window = getSuppDeferredWindow(mostRecentEndedTerm);
+        inAutomaticWindow = today >= window.start && today <= window.finish;
+    }
+
+    if (inAutomaticWindow) {
+        currentExamPeriodOpen = true;
+        return;
+    }
+
+    // Fall back to a manual admin override, if one currently covers this student.
     const { data: myPeriodLinks } =
         await supabaseClient
             .from("exam_period_students")
@@ -580,7 +636,7 @@ async function loadExamPeriodStatus() {
         return;
     }
 
-    const todayStr = new Date().toISOString().split("T")[0];
+    const todayStr = today.toISOString().split("T")[0];
 
     const { data: openPeriods } =
         await supabaseClient
@@ -609,7 +665,6 @@ function getRegistrationStatusForQuiz(quiz) {
 
     if (mode === "normal") return { registered: true, mode: "normal" };
 
-    // Supplementary or deferred — only usable while an exam period covering THIS student is currently open.
     if (!currentExamPeriodOpen) return { registered: false, reason: "period_closed", mode: mode };
 
     return { registered: true, mode: mode };
@@ -798,7 +853,7 @@ function renderQuizzes(quizzes, courseMap, attemptsByQuiz, bestScoreByQuiz, quiz
                 statusLabel = "Exam Period Closed";
                 statusClass = "not-registered";
                 buttonText = "Exam Period Closed";
-                registrationNote = `🔒 Your ${regStatus.mode} registration for ${examLabel} was approved, but there is no exam period open for you right now. Contact admin — this can only be written while an exam period that includes you is active.`;
+                registrationNote = `🔒 Your ${regStatus.mode} registration for ${examLabel} was approved, but your Supplementary/Deferred writing window isn't open right now. Contact admin if you believe this is wrong.`;
 
             } else {
 
@@ -968,7 +1023,7 @@ async function beginQuiz(quizId) {
 
     if (!regStatus.registered) {
         alert(regStatus.reason === "period_closed"
-            ? "There is no exam period open for you right now. This exam can only be written while an exam period that includes you is active."
+            ? "Your Supplementary/Deferred writing window isn't open right now."
             : "You have not registered for this exam. Please go to Exam Registration first.");
         return;
     }
