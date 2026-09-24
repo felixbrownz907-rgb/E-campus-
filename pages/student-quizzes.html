@@ -204,6 +204,8 @@ body { font-family: Arial, Helvetica, sans-serif; background: #f4f6f9; color: #1
     cursor: pointer;
 }
 
+.pre-exam-ready-button:disabled { opacity: 0.6; cursor: not-allowed; }
+
 .pre-exam-cancel-button {
     flex: 1;
     background: #f3f4f6;
@@ -546,7 +548,7 @@ let ignoringViolationEvents = false;
 
 let countdownInterval = null;
 let quizzesNeedingCountdown = [];
-let pendingQuizIdForConfirm = null; // holds the quiz id while the pre-exam confirm screen is showing
+let pendingQuizIdForConfirm = null;
 
 
 function escapeHtml(value) {
@@ -563,7 +565,7 @@ function showErrorToast(message) {
     const toast = document.getElementById("errorToast");
     toast.textContent = "⚠️ " + message;
     toast.classList.add("show");
-    setTimeout(() => { toast.classList.remove("show"); }, 5000);
+    setTimeout(() => { toast.classList.remove("show"); }, 6000);
 }
 
 
@@ -1117,7 +1119,6 @@ function startCountdownTicker() {
 }
 
 
-// ===== Entry point when "Start Exam" is tapped =====
 async function beginQuiz(quizId) {
 
     const { data: quiz, error: quizError } =
@@ -1172,9 +1173,6 @@ async function beginQuiz(quizId) {
         return;
     }
 
-    // If this is a locked exam, show the in-page confirm screen instead of native confirm() —
-    // native confirm() can silently fail to resolve on some Android/PWA setups, which was
-    // exactly why students tapping "OK" saw nothing happen.
     if (quiz.is_exam) {
         pendingQuizIdForConfirm = quizId;
         document.getElementById("preExamScreen").classList.add("active");
@@ -1195,18 +1193,34 @@ function cancelPreExam() {
 async function confirmPreExam() {
 
     const quizId = pendingQuizIdForConfirm;
-    pendingQuizIdForConfirm = null;
-    document.getElementById("preExamScreen").classList.remove("active");
 
-    if (!quizId) return;
+    if (!quizId) {
+        document.getElementById("preExamScreen").classList.remove("active");
+        return;
+    }
 
-    await actuallyStartQuiz(quizId);
+    // Disable the button and show progress INSIDE the confirm screen — don't hide the
+    // screen yet, so if starting the quiz fails, the student sees exactly what happened
+    // instead of just landing back on the main page with no explanation.
+    const readyButton = document.getElementById("preExamReadyButton");
+    readyButton.disabled = true;
+    readyButton.textContent = "Starting...";
+
+    const started = await actuallyStartQuiz(quizId);
+
+    readyButton.disabled = false;
+    readyButton.textContent = "Yes, I'm Ready";
+
+    if (started) {
+        pendingQuizIdForConfirm = null;
+        document.getElementById("preExamScreen").classList.remove("active");
+    }
+    // If it failed, the screen stays open, the error toast is visible, and the student can try again.
 
 }
 
 
-// ===== The actual work of starting the quiz — separated so both the confirm screen and =====
-// ordinary (non-exam) quizzes both funnel through the same reliable path.
+// ===== Returns true on success, false on failure — lets the caller decide whether to close the confirm screen. =====
 async function actuallyStartQuiz(quizId) {
 
     try {
@@ -1231,7 +1245,7 @@ async function actuallyStartQuiz(quizId) {
 
         if (quizError || !quiz) {
             showErrorToast("Unable to load this quiz.");
-            return;
+            return false;
         }
 
         const { data: questions, error: qError } =
@@ -1239,7 +1253,7 @@ async function actuallyStartQuiz(quizId) {
 
         if (qError || !questions || questions.length === 0) {
             showErrorToast("This quiz has no questions yet.");
-            return;
+            return false;
         }
 
         activeQuiz = quiz;
@@ -1248,6 +1262,8 @@ async function actuallyStartQuiz(quizId) {
         violationCount = 0;
         updateViolationCounter();
 
+        // violation_count is intentionally left out of this insert — the column defaults
+        // to 0 on its own, so this insert can never fail even if that column has any issue.
         const { data: attemptRow, error: insertError } =
             await supabaseClient
                 .from("quiz_attempts")
@@ -1255,15 +1271,14 @@ async function actuallyStartQuiz(quizId) {
                     quiz_id: quizId,
                     student_id: authUserId,
                     started_at: new Date().toISOString(),
-                    answers: {},
-                    violation_count: 0
+                    answers: {}
                 })
                 .select("id")
                 .single();
 
         if (insertError) {
             showErrorToast("Unable to start: " + insertError.message);
-            return;
+            return false;
         }
 
         activeAttemptId = attemptRow.id;
@@ -1294,10 +1309,13 @@ async function actuallyStartQuiz(quizId) {
             document.getElementById("examTimer").textContent = "";
         }
 
+        return true;
+
     } catch (err) {
 
         console.error("actuallyStartQuiz failed:", err);
         showErrorToast("Something went wrong starting the exam: " + (err.message || String(err)));
+        return false;
 
     }
 
