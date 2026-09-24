@@ -77,6 +77,8 @@ body { font-family: Arial, Helvetica, sans-serif; background: #f4f6f9; color: #1
 .countdown-note { background: #eff6ff; color: #1d4ed8; padding: 12px; border-radius: 8px; font-size: 13px; font-weight: bold; margin-bottom: 10px; }
 .fee-warning { background: #fee2e2; color: #991b1b; padding: 14px; border-radius: 10px; font-size: 13px; margin-bottom: 14px; line-height: 1.5; }
 .fee-ok { background: #f0fdf4; color: #166534; padding: 12px; border-radius: 8px; font-size: 13px; margin-bottom: 14px; }
+.period-note { background: #eff6ff; color: #1d4ed8; padding: 12px; border-radius: 8px; font-size: 13px; font-weight: bold; margin-bottom: 14px; }
+.period-closed-note { background: #fee2e2; color: #991b1b; padding: 14px; border-radius: 10px; font-size: 13px; margin-bottom: 14px; line-height: 1.5; }
 
 .course-check-item {
     display: flex;
@@ -178,12 +180,8 @@ body { font-family: Arial, Helvetica, sans-serif; background: #f4f6f9; color: #1
 const TERM_LENGTH_DAYS = 42;
 const REGISTRATION_WINDOW_DAYS = 4;
 
-// Fee requirements per exam type
 const FEE_REQUIREMENT = { ca1: 50, ca2: 75, end_of_term: 100 };
-
-// Days into the term when each normal exam is scheduled — adjust here if these dates are wrong.
 const EXAM_DAY_OFFSET = { ca1: 14, ca2: 28, end_of_term: 42 };
-
 const EXAM_LABEL = { ca1: "CA1", ca2: "CA2", end_of_term: "End-of-Term" };
 
 let studentProfileId = null;
@@ -193,6 +191,7 @@ let allTerms = [];
 let activeTerm = null;
 let mostRecentEndedTerm = null;
 let existingRegistrations = [];
+let currentExamPeriod = null; // the exam_periods row that is currently open right now, if any
 
 function escapeHtml(value) {
     return String(value ?? "")
@@ -250,6 +249,21 @@ async function startPage() {
         .filter(t => new Date(t.end_date + "T00:00:00") < today)
         .sort((a, b) => new Date(b.end_date) - new Date(a.end_date))[0];
 
+    // Load the currently-open exam period, if any — Supplementary/Deferred can only happen while one is active.
+    const todayStr = today.toISOString().split("T")[0];
+
+    const { data: openPeriods } =
+        await supabaseClient
+            .from("exam_periods")
+            .select("*")
+            .eq("is_active", true)
+            .lte("start_date", todayStr)
+            .gte("end_date", todayStr)
+            .order("start_date", { ascending: false })
+            .limit(1);
+
+    currentExamPeriod = (openPeriods && openPeriods.length > 0) ? openPeriods[0] : null;
+
     const { data: enrollments } =
         await supabaseClient
             .from("enrollments")
@@ -293,22 +307,24 @@ async function calculateFeePercentageForTerm(term) {
 
     if (!feeRecords || feeRecords.length === 0) return null;
 
-    // We match fee records loosely to the relevant period since student_term_fees isn't
-    // directly linked to student_terms.term_number in this schema. If your fee records
-    // ARE tied to a specific academic term, this still sums correctly per student.
+    const feeRecordIds = feeRecords.map(r => r.id);
+
+    const { data: allPayments } =
+        feeRecordIds.length > 0
+            ? await supabaseClient.from("fee_payments").select("student_fee_id, amount").in("student_fee_id", feeRecordIds)
+            : { data: [] };
+
+    const paidByRecordId = {};
+    (allPayments || []).forEach(p => {
+        paidByRecordId[p.student_fee_id] = (paidByRecordId[p.student_fee_id] || 0) + Number(p.amount);
+    });
+
     let totalFee = 0;
     let totalPaid = 0;
 
     for (const record of feeRecords) {
-
-        const { data: payments } =
-            await supabaseClient.from("fee_payments").select("amount").eq("student_fee_id", record.id);
-
-        const paidForThis = (payments || []).reduce((sum, p) => sum + Number(p.amount), 0);
-
         totalFee += Number(record.total_fee);
-        totalPaid += paidForThis;
-
+        totalPaid += paidByRecordId[record.id] || 0;
     }
 
     if (totalFee <= 0) return null;
@@ -383,7 +399,7 @@ async function renderNormalMode() {
         } else if (today > examDate) {
 
             statusBadge = `<span class="status-badge closed">Registration Closed</span>`;
-            bodyHtml = `<p class="empty-note">The registration window for this exam has closed. Contact admin if you missed it — you may be able to register as Deferred once the term ends.</p>`;
+            bodyHtml = `<p class="empty-note">The registration window for this exam has closed. Contact admin if you missed it — you may be able to register as Deferred once the term ends and an exam period is open.</p>`;
 
         } else if (feePercentage === null) {
 
@@ -433,6 +449,26 @@ async function renderSpecialMode(mode) {
     const content = document.getElementById("content");
     const label = mode === "supplementary" ? "Supplementary" : "Deferred";
 
+    // ===== GATE 1: An exam period must currently be open for Supplementary/Deferred to be possible at all. =====
+    if (!currentExamPeriod) {
+
+        content.innerHTML = `
+            <div class="exam-type-block">
+                <div class="exam-type-top">
+                    <div>
+                        <h3>${label} Registration</h3>
+                    </div>
+                    <span class="status-badge closed">No Exam Period Open</span>
+                </div>
+                <div class="period-closed-note">
+                    🔒 ${label} registration is only available while admin has an exam period open. There is no exam period open right now. Please check back once one has been announced, or contact admin.
+                </div>
+            </div>
+        `;
+        return;
+
+    }
+
     if (!mostRecentEndedTerm) {
         content.innerHTML = `<p class="empty-note">${label} registration is only available once one of your terms has ended. You don't have a completed term yet.</p>`;
         return;
@@ -460,6 +496,7 @@ async function renderSpecialMode(mode) {
                     <div class="exam-type-meta">Term ended: ${new Date(mostRecentEndedTerm.end_date + "T00:00:00").toLocaleDateString()}</div>
                 </div>
             </div>
+            <div class="period-note">📅 Exam period open: "${escapeHtml(currentExamPeriod.label)}" — closes ${new Date(currentExamPeriod.end_date + "T00:00:00").toLocaleDateString()}. You must complete registration and write your exam before this date.</div>
             ${feeBlockHtml}
             <div class="special-fee-note">
                 ℹ️ ${label} registration also requires a separate ${label.toLowerCase()} fee to be paid. This is confirmed by admin when they review your registration — you do not need to prove it here, but your registration will not be approved until admin confirms this payment.
@@ -557,6 +594,13 @@ async function submitRegistrations(examType, mode) {
 
 
 async function submitSpecialRegistrations(mode) {
+
+    // ===== Re-check the exam period right before submitting, in case it closed while the page was open. =====
+    if (!currentExamPeriod) {
+        alert("The exam period has closed. You can no longer submit this registration.");
+        await startPage();
+        return;
+    }
 
     const checkboxes = document.querySelectorAll(`.exam-type-block input[type=checkbox]:checked`);
 
