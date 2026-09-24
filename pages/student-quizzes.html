@@ -87,6 +87,7 @@ body { font-family: Arial, Helvetica, sans-serif; background: #f4f6f9; color: #1
 
 .ca-tag { background: #fef3c7; color: #92400e; padding: 3px 9px; border-radius: 20px; font-size: 11px; font-weight: bold; }
 .override-tag { background: #ede9fe; color: #6d28d9; padding: 3px 9px; border-radius: 20px; font-size: 11px; font-weight: bold; }
+.mode-tag { background: #fce7f3; color: #9d174d; padding: 3px 9px; border-radius: 20px; font-size: 11px; font-weight: bold; }
 
 .status-badge {
     padding: 4px 10px;
@@ -338,6 +339,7 @@ body { font-family: Arial, Helvetica, sans-serif; background: #f4f6f9; color: #1
         <h3>📋 Locked Exam Rules</h3>
         <ul>
             <li>You must have an <strong>approved</strong> exam registration for this exact course before an exam becomes available.</li>
+            <li>Supplementary and Deferred exams can only be written while admin has an exam period open.</li>
             <li>Avoid leaving this page or switching to another app once the exam begins. You will get a warning the first 3 times you do this.</li>
             <li>On the <strong>4th time</strong> you leave the page, your exam will be locked immediately and flagged for your lecturer's review.</li>
             <li>Copying and pasting is disabled during the exam.</li>
@@ -407,8 +409,9 @@ function getRequiredRegistrationType(quiz) {
 
 let authUserId = null;
 let studentProfileId = null;
-let approvedRegistrationKeys = new Set();
+let approvedRegistrationModes = {}; // key: "<course_id>_<exam_type>" -> the registration_mode that got approved ('normal'/'supplementary'/'deferred')
 let overridesByQuiz = {};
+let currentExamPeriodOpen = false; // whether an exam_period is currently active today
 
 let activeQuiz = null;
 let activeQuestions = [];
@@ -539,31 +542,66 @@ async function finalizeExpiredAttemptsIfNeeded(allQuizzes, attempts) {
 }
 
 
+// ===== Load approved registrations, keeping track of WHICH mode got approved for each course+exam type. =====
+// If both a normal AND a supplementary/deferred registration exist and are approved, normal wins (no period restriction).
 async function loadRegistrationStatus() {
 
-    approvedRegistrationKeys = new Set();
+    approvedRegistrationModes = {};
 
     const { data: registrations } =
         await supabaseClient
             .from("exam_registrations")
-            .select("course_id, exam_type, status")
+            .select("course_id, exam_type, registration_mode, status")
             .eq("student_id", studentProfileId)
             .eq("status", "approved");
 
     (registrations || []).forEach(r => {
-        approvedRegistrationKeys.add(`${r.course_id}_${r.exam_type}`);
+        const key = `${r.course_id}_${r.exam_type}`;
+        const existingMode = approvedRegistrationModes[key];
+        // Prefer 'normal' over supplementary/deferred if both somehow exist, since normal has no period restriction.
+        if (!existingMode || existingMode !== "normal") {
+            approvedRegistrationModes[key] = r.registration_mode;
+        }
     });
 
 }
 
 
-function isRegisteredFor(quiz) {
+// ===== Load whether an exam_period is open today — needed to gate supplementary/deferred exam writing. =====
+async function loadExamPeriodStatus() {
+
+    const todayStr = new Date().toISOString().split("T")[0];
+
+    const { data: openPeriods } =
+        await supabaseClient
+            .from("exam_periods")
+            .select("id")
+            .eq("is_active", true)
+            .lte("start_date", todayStr)
+            .gte("end_date", todayStr)
+            .limit(1);
+
+    currentExamPeriodOpen = !!(openPeriods && openPeriods.length > 0);
+
+}
+
+
+function getRegistrationStatusForQuiz(quiz) {
 
     const requiredType = getRequiredRegistrationType(quiz);
 
-    if (!requiredType) return true;
+    if (!requiredType) return { registered: true };
 
-    return approvedRegistrationKeys.has(`${quiz.course_id}_${requiredType}`);
+    const mode = approvedRegistrationModes[`${quiz.course_id}_${requiredType}`];
+
+    if (!mode) return { registered: false, reason: "not_registered" };
+
+    if (mode === "normal") return { registered: true, mode: "normal" };
+
+    // Supplementary or deferred — only usable while an exam period is currently open.
+    if (!currentExamPeriodOpen) return { registered: false, reason: "period_closed", mode: mode };
+
+    return { registered: true, mode: mode };
 
 }
 
@@ -607,8 +645,9 @@ async function loadQuizzes() {
         return;
     }
 
-    const [_, quizzesResult] = await Promise.all([
+    const [_, __, quizzesResult] = await Promise.all([
         loadRegistrationStatus(),
+        loadExamPeriodStatus(),
         supabaseClient.from("quizzes").select("*").in("course_id", courseIds)
     ]);
 
@@ -711,7 +750,7 @@ function renderQuizzes(quizzes, courseMap, attemptsByQuiz, bestScoreByQuiz, quiz
 
         const lockInfo = getCALockInfo(quiz, quizzesByCourse, bestScoreByQuiz);
         const requiredRegType = getRequiredRegistrationType(quiz);
-        const registered = isRegisteredFor(quiz);
+        const regStatus = getRegistrationStatusForQuiz(quiz);
 
         const schedule = getEffectiveSchedule(quiz);
 
@@ -739,13 +778,25 @@ function renderQuizzes(quizzes, courseMap, attemptsByQuiz, bestScoreByQuiz, quiz
             statusClass = "done";
             buttonText = "Already Submitted";
 
-        } else if (requiredRegType && !registered) {
+        } else if (requiredRegType && !regStatus.registered) {
 
-            statusLabel = "Not Registered";
-            statusClass = "not-registered";
-            buttonText = "Registration Required";
             const examLabel = requiredRegType === "ca1" ? "CA1" : requiredRegType === "ca2" ? "CA2" : "End-of-Term";
-            registrationNote = `🔒 You have not registered for the ${examLabel} exam for this course. <a href="student-exam-registration.html">Go to Exam Registration</a> before this exam will unlock.`;
+
+            if (regStatus.reason === "period_closed") {
+
+                statusLabel = "Exam Period Closed";
+                statusClass = "not-registered";
+                buttonText = "Exam Period Closed";
+                registrationNote = `🔒 Your ${regStatus.mode} registration for ${examLabel} was approved, but there is no exam period open right now. Contact admin — this can only be written while an exam period is active.`;
+
+            } else {
+
+                statusLabel = "Not Registered";
+                statusClass = "not-registered";
+                buttonText = "Registration Required";
+                registrationNote = `🔒 You have not registered for the ${examLabel} exam for this course. <a href="student-exam-registration.html">Go to Exam Registration</a> before this exam will unlock.`;
+
+            }
 
         } else if (pendingViolation) {
 
@@ -806,6 +857,7 @@ function renderQuizzes(quizzes, courseMap, attemptsByQuiz, bestScoreByQuiz, quiz
         else if (quiz.ca_number) typeTag = `<span class="ca-tag">CA${quiz.ca_number}</span>`;
         if (quiz.is_exam) typeTag += ` <span class="exam-tag">EXAM</span>`;
         if (schedule.isOverride) typeTag += ` <span class="override-tag">PERSONAL WINDOW</span>`;
+        if (regStatus.mode && regStatus.mode !== "normal") typeTag += ` <span class="mode-tag">${regStatus.mode.toUpperCase()}</span>`;
 
         const card = document.createElement("div");
         card.className = "card";
@@ -831,7 +883,7 @@ function renderQuizzes(quizzes, courseMap, attemptsByQuiz, bestScoreByQuiz, quiz
             <button class="start-button" ${buttonDisabled ? "disabled" : ""} onclick="beginQuiz('${quiz.id}')">${buttonText}</button>
             ${lockInfo.locked ? `<div class="locked-reason">🔒 ${escapeHtml(lockInfo.reason)}</div>` : ""}
             ${registrationNote ? `<div class="registration-note">${registrationNote}</div>` : ""}
-            ${(pendingViolation && !validCompletion && registered) ? `<div class="locked-reason">⚠️ Your previous attempt was flagged for repeated exam-window violations. Your lecturer must review and reopen it before you can try again.</div>` : ""}
+            ${(pendingViolation && !validCompletion && regStatus.registered) ? `<div class="locked-reason">⚠️ Your previous attempt was flagged for repeated exam-window violations. Your lecturer must review and reopen it before you can try again.</div>` : ""}
             ${windowClosedNote ? `<div class="window-note">${escapeHtml(windowClosedNote)}</div>` : ""}
         `;
 
@@ -901,8 +953,12 @@ async function beginQuiz(quizId) {
         return;
     }
 
-    if (!isRegisteredFor(quiz)) {
-        alert("You have not registered for this exam. Please go to Exam Registration first.");
+    const regStatus = getRegistrationStatusForQuiz(quiz);
+
+    if (!regStatus.registered) {
+        alert(regStatus.reason === "period_closed"
+            ? "There is no exam period open right now. This exam can only be written while an exam period is active."
+            : "You have not registered for this exam. Please go to Exam Registration first.");
         return;
     }
 
@@ -1013,12 +1069,6 @@ async function beginQuiz(quizId) {
         document.getElementById("examTimer").textContent = "";
     }
 
-}
-
-
-function updateViolationCounter() {
-    const el = document.getElementById("violationCounter");
-    if (el) el.textContent = `${violationCount} of ${MAX_VIOLATIONS_BEFORE_LOCK} warnings used`;
 }
 
 
