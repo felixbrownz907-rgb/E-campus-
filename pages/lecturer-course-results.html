@@ -40,6 +40,35 @@ select {
 .message.success { display: block; background: #dcfce7; color: #166534; }
 .message.error { display: block; background: #fee2e2; color: #991b1b; }
 
+.publish-banner {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    padding: 16px;
+    border-radius: 10px;
+    margin-bottom: 16px;
+    font-size: 14px;
+    font-weight: bold;
+}
+
+.publish-banner.published { background: #dcfce7; color: #166534; }
+.publish-banner.unpublished { background: #fef3c7; color: #92400e; }
+
+.publish-toggle-button {
+    border: none;
+    padding: 10px 18px;
+    border-radius: 8px;
+    font-weight: bold;
+    cursor: pointer;
+    font-size: 13px;
+    white-space: nowrap;
+}
+
+.publish-toggle-button.to-publish { background: #166534; color: white; }
+.publish-toggle-button.to-unpublish { background: #991b1b; color: white; }
+
 .summary-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 16px; }
 .summary-box { background: #f9fafb; border-radius: 8px; padding: 12px; text-align: center; }
 .summary-box .value { font-size: 18px; font-weight: bold; }
@@ -118,7 +147,7 @@ select {
 
     <section class="page-title">
         <h2>Student Results</h2>
-        <p>Select a course and an exam or quiz to see every student's score in one place — and type in a score directly for anyone who wrote outside the system.</p>
+        <p>Select a course and an exam or quiz. Type in a score for anyone who wrote outside the system, then Publish when you're ready for students to see it.</p>
     </section>
 
     <div id="message" class="message"></div>
@@ -143,6 +172,7 @@ select {
     </section>
 
     <section class="card">
+        <div id="publishBannerContainer"></div>
         <div id="summaryRow"></div>
         <div class="table-wrap">
             <div id="resultsContainer"><p class="empty-note">Select a course and an exam/quiz above to begin.</p></div>
@@ -162,6 +192,7 @@ select {
 let currentStudents = [];
 let currentQuizId = null;
 let currentCourseId = null;
+let currentQuizIsPublished = false;
 
 function escapeHtml(value) {
     return String(value ?? "")
@@ -234,6 +265,7 @@ async function loadQuizList() {
     container.innerHTML = `<p class="empty-note">Select an exam/quiz above.</p>`;
     saveAllButton.style.display = "none";
     document.getElementById("summaryRow").innerHTML = "";
+    document.getElementById("publishBannerContainer").innerHTML = "";
 
     if (!courseId) return;
 
@@ -242,7 +274,7 @@ async function loadQuizList() {
     const { data: quizzes } =
         await supabaseClient
             .from("quizzes")
-            .select("id, title, is_final_exam, ca_number")
+            .select("id, title, is_final_exam, ca_number, is_published")
             .eq("course_id", courseId)
             .order("ca_number", { ascending: true });
 
@@ -267,17 +299,25 @@ async function loadResultsTable() {
     const container = document.getElementById("resultsContainer");
     const saveAllButton = document.getElementById("saveAllButton");
     const summaryRow = document.getElementById("summaryRow");
+    const publishBannerContainer = document.getElementById("publishBannerContainer");
 
     if (!quizId) {
         container.innerHTML = `<p class="empty-note">Select an exam/quiz above.</p>`;
         saveAllButton.style.display = "none";
         summaryRow.innerHTML = "";
+        publishBannerContainer.innerHTML = "";
         return;
     }
 
     currentQuizId = quizId;
     container.innerHTML = `<p class="empty-note">Loading...</p>`;
     saveAllButton.style.display = "none";
+
+    const { data: quizRow } =
+        await supabaseClient.from("quizzes").select("is_published").eq("id", quizId).single();
+
+    currentQuizIsPublished = !!(quizRow && quizRow.is_published);
+    renderPublishBanner();
 
     const { data: enrollments } =
         await supabaseClient
@@ -317,7 +357,7 @@ async function loadResultsTable() {
     const attemptByAuthId = {};
     (attempts || []).forEach(a => { attemptByAuthId[a.student_id] = a; });
 
-    let publishedCount = 0;
+    let recordedCount = 0;
     let manualCount = 0;
     let notRecordedCount = 0;
     const scoresForAverage = [];
@@ -361,8 +401,8 @@ async function loadResultsTable() {
                     manualCount++;
                 } else {
                     sourceTag = `<span class="source-tag system">Wrote online</span>`;
-                    publishedCount++;
                 }
+                recordedCount++;
 
             }
 
@@ -395,7 +435,7 @@ async function loadResultsTable() {
     summaryRow.innerHTML = `
         <div class="summary-row">
             <div class="summary-box"><div class="value">${currentStudents.length}</div><div class="label">Enrolled</div></div>
-            <div class="summary-box"><div class="value">${publishedCount + manualCount}</div><div class="label">Scores Recorded</div></div>
+            <div class="summary-box"><div class="value">${recordedCount}</div><div class="label">Scores Recorded</div></div>
             <div class="summary-box"><div class="value">${notRecordedCount}</div><div class="label">Missing</div></div>
             <div class="summary-box"><div class="value">${classAverage}%</div><div class="label">Class Average</div></div>
         </div>
@@ -403,6 +443,47 @@ async function loadResultsTable() {
 
     container.innerHTML = html;
     saveAllButton.style.display = "block";
+
+}
+
+
+function renderPublishBanner() {
+
+    const container = document.getElementById("publishBannerContainer");
+
+    container.innerHTML = currentQuizIsPublished
+        ? `
+            <div class="publish-banner published">
+                <span>✓ Published — students can currently see this score.</span>
+                <button class="publish-toggle-button to-unpublish" onclick="togglePublish(false)">Unpublish</button>
+            </div>
+        `
+        : `
+            <div class="publish-banner unpublished">
+                <span>🔒 Not published — students cannot see this score yet, even where one is already recorded.</span>
+                <button class="publish-toggle-button to-publish" onclick="togglePublish(true)">Publish Results</button>
+            </div>
+        `;
+
+}
+
+
+async function togglePublish(publishState) {
+
+    if (!currentQuizId) return;
+
+    const { error } =
+        await supabaseClient.from("quizzes").update({ is_published: publishState }).eq("id", currentQuizId);
+
+    if (error) {
+        showMessage("Unable to update: " + error.message, "error");
+        return;
+    }
+
+    currentQuizIsPublished = publishState;
+    renderPublishBanner();
+
+    showMessage(publishState ? "Published. Students can now see this score." : "Unpublished. Students can no longer see this score.", "success");
 
 }
 
@@ -460,7 +541,7 @@ async function saveOneScore(studentProfileId) {
         return;
     }
 
-    showMessage("Score saved and published.", "success");
+    showMessage(currentQuizIsPublished ? "Score saved — already published, so visible now." : "Score saved (not yet published — students still won't see it until you publish).", "success");
     await loadResultsTable();
 
 }
@@ -516,7 +597,7 @@ async function saveAllScores() {
     }
 
     if (savedCount > 0) {
-        showMessage(`Saved and published ${savedCount} score(s)${errorCount > 0 ? `, ${errorCount} failed` : ""}.`, errorCount > 0 ? "error" : "success");
+        showMessage(`Saved ${savedCount} score(s)${errorCount > 0 ? `, ${errorCount} failed` : ""}.${currentQuizIsPublished ? "" : " Remember to Publish when ready."}`, errorCount > 0 ? "error" : "success");
     } else {
         showMessage("No scores were entered to save.", "error");
     }
