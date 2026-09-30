@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Publish Results | E-Campus</title>
+
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: Arial, Helvetica, sans-serif; background: #f4f6f9; color: #172033; }
+
+.header { background: #111827; color: white; padding: 18px 25px; display: flex; align-items: center; gap: 14px; }
+.logo { width: 55px; height: 55px; object-fit: contain; background: white; border-radius: 8px; }
+.header h1 { font-size: 22px; }
+.header p { color: #d4af37; font-size: 13px; margin-top: 3px; }
+.back-button { margin-left: auto; background: #d4af37; color: #111827; text-decoration: none; padding: 10px 16px; border-radius: 8px; font-weight: bold; font-size: 13px; }
+
+.container { max-width: 950px; margin: 25px auto; padding: 0 20px; }
+
+.page-title { margin-bottom: 20px; }
+.page-title h2 { font-size: 28px; margin-bottom: 6px; }
+.page-title p { color: #6b7280; font-size: 14px; }
+
+.card { background: white; padding: 20px; border-radius: 14px; margin-bottom: 18px; box-shadow: 0 3px 12px rgba(0,0,0,0.06); }
+
+label { font-size: 13px; font-weight: bold; display: block; margin-bottom: 6px; }
+
+select {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    font-size: 14px;
+    margin-bottom: 14px;
+}
+
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+.message { padding: 12px; border-radius: 8px; margin-bottom: 16px; display: none; font-size: 13px; }
+.message.success { display: block; background: #dcfce7; color: #166534; }
+.message.error { display: block; background: #fee2e2; color: #991b1b; }
+
+.results-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.results-table th { text-align: left; padding: 10px 8px; background: #f4f6f9; font-size: 11px; color: #6b7280; border-bottom: 2px solid #e5e7eb; }
+.results-table td { padding: 10px 8px; border-bottom: 1px solid #f0f1f3; vertical-align: middle; }
+
+.score-input {
+    width: 80px;
+    padding: 8px;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    font-size: 13px;
+}
+
+.source-tag { font-size: 10px; padding: 3px 8px; border-radius: 10px; font-weight: bold; }
+.source-tag.system { background: #dbeafe; color: #1d4ed8; }
+.source-tag.manual { background: #fef3c7; color: #92400e; }
+.source-tag.none { background: #f3f4f6; color: #9ca3af; }
+
+.save-row-button {
+    background: #111827;
+    color: white;
+    border: none;
+    padding: 8px 14px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.save-row-button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.save-all-button {
+    background: #d4af37;
+    color: #111827;
+    border: none;
+    padding: 13px 20px;
+    border-radius: 8px;
+    font-weight: bold;
+    cursor: pointer;
+    width: 100%;
+    margin-top: 16px;
+}
+
+.empty-note { color: #9ca3af; text-align: center; padding: 30px 0; }
+
+.table-wrap { overflow-x: auto; }
+
+@media (max-width: 600px) {
+    .form-row { grid-template-columns: 1fr; }
+}
+
+</style>
+</head>
+
+
+<body>
+
+<header class="header">
+    <img src="https://pub-b3e2d39712e84119875e84c5ec5f5c09.r2.dev/Logo/IMG-20260816-WA0050(1).jpg" alt="Sunningdale University Logo" class="logo">
+    <div>
+        <h1>E-Campus</h1>
+        <p>Sunningdale University</p>
+    </div>
+    <a href="lecturer-dashboard.html" class="back-button">← Dashboard</a>
+</header>
+
+
+<main class="container">
+
+    <section class="page-title">
+        <h2>Publish Results</h2>
+        <p>For students who wrote their exam outside the system, type their score in directly — everyone else's score fills in automatically from their online attempt.</p>
+    </section>
+
+    <div id="message" class="message"></div>
+
+    <section class="card">
+
+        <div class="form-row">
+            <div>
+                <label for="courseSelect">Course</label>
+                <select id="courseSelect" onchange="loadResultsTable()">
+                    <option value="">Select a course...</option>
+                </select>
+            </div>
+            <div>
+                <label for="examTypeSelect">Exam Type</label>
+                <select id="examTypeSelect" onchange="loadResultsTable()">
+                    <option value="ca1">CA1</option>
+                    <option value="ca2">CA2</option>
+                    <option value="end_of_term">End-of-Term</option>
+                </select>
+            </div>
+        </div>
+
+    </section>
+
+    <section class="card">
+        <div class="table-wrap">
+            <div id="resultsContainer"><p class="empty-note">Select a course above to begin.</p></div>
+        </div>
+        <button class="save-all-button" id="saveAllButton" style="display:none;" onclick="saveAllScores()">Save All Entered Scores</button>
+    </section>
+
+</main>
+
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../supabase-config.js"></script>
+
+
+<script>
+
+const EXAM_LABEL = { ca1: "CA1", ca2: "CA2", end_of_term: "End-of-Term" };
+
+let lecturerAuthId = null;
+let currentStudents = [];
+let currentQuizId = null;
+let currentCourseId = null;
+
+function escapeHtml(value) {
+    return String(value ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+}
+
+function showMessage(text, type) {
+    const el = document.getElementById("message");
+    el.textContent = text;
+    el.className = "message " + type;
+    setTimeout(() => { el.className = "message"; }, 4000);
+}
+
+
+async function startPage() {
+
+    const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
+
+    if (authError || !user) {
+        window.location.href = "lecturer-login.html";
+        return;
+    }
+
+    lecturerAuthId = user.id;
+
+    const { data: lecturerProfile } =
+        await supabaseClient.from("lecturer_profiles").select("id").eq("user_id", user.id).single();
+
+    if (!lecturerProfile) {
+        document.getElementById("resultsContainer").innerHTML = `<p class="empty-note">Unable to load your lecturer profile.</p>`;
+        return;
+    }
+
+    const { data: assignments } =
+        await supabaseClient
+            .from("course_lecturers")
+            .select("courses ( id, code, name )")
+            .eq("lecturer_id", lecturerProfile.id);
+
+    const courses = (assignments || []).map(a => a.courses).filter(Boolean);
+
+    const select = document.getElementById("courseSelect");
+    courses.forEach(c => {
+        const opt = document.createElement("option");
+        opt.value = c.id;
+        opt.textContent = `${c.code} — ${c.name}`;
+        select.appendChild(opt);
+    });
+
+}
+
+
+async function loadResultsTable() {
+
+    const courseId = document.getElementById("courseSelect").value;
+    const examType = document.getElementById("examTypeSelect").value;
+    const container = document.getElementById("resultsContainer");
+    const saveAllButton = document.getElementById("saveAllButton");
+
+    if (!courseId) {
+        container.innerHTML = `<p class="empty-note">Select a course above to begin.</p>`;
+        saveAllButton.style.display = "none";
+        return;
+    }
+
+    currentCourseId = courseId;
+    container.innerHTML = `<p class="empty-note">Loading...</p>`;
+    saveAllButton.style.display = "none";
+
+    // Find the quiz for this course + exam type.
+    let quizQuery = supabaseClient.from("quizzes").select("id, title").eq("course_id", courseId);
+
+    if (examType === "end_of_term") {
+        quizQuery = quizQuery.eq("is_final_exam", true);
+    } else {
+        quizQuery = quizQuery.eq("ca_number", examType === "ca1" ? 1 : 2);
+    }
+
+    const { data: quizzes } = await quizQuery;
+
+    if (!quizzes || quizzes.length === 0) {
+        container.innerHTML = `<p class="empty-note">No ${EXAM_LABEL[examType]} exam has been created yet for this course.</p>`;
+        return;
+    }
+
+    const quiz = quizzes[0];
+    currentQuizId = quiz.id;
+
+    // Enrolled students for this course.
+    const { data: enrollments } =
+        await supabaseClient
+            .from("enrollments")
+            .select("student_id, student_profiles ( id, student_number, user_profiles ( first_name, last_name ) )")
+            .eq("course_id", courseId)
+            .eq("status", "enrolled");
+
+    currentStudents = (enrollments || []).map(e => e.student_profiles).filter(Boolean);
+
+    if (currentStudents.length === 0) {
+        container.innerHTML = `<p class="empty-note">No students are enrolled in this course.</p>`;
+        return;
+    }
+
+    // Existing attempts (whether from the online system or previously entered manually).
+    const studentAuthIds = [];
+    for (const s of currentStudents) {
+        studentAuthIds.push(s.id); // placeholder, real lookup below
+    }
+
+    // quiz_attempts.student_id is the AUTH user id, not student_profiles.id — get that mapping.
+    const studentProfileIds = currentStudents.map(s => s.id);
+
+    const { data: profileToAuth } =
+        await supabaseClient
+            .from("student_profiles")
+            .select("id, user_id")
+            .in("id", studentProfileIds);
+
+    const authIdByProfileId = {};
+    (profileToAuth || []).forEach(p => { authIdByProfileId[p.id] = p.user_id; });
+
+    const authIds = Object.values(authIdByProfileId);
+
+    const { data: attempts } =
+        await supabaseClient
+            .from("quiz_attempts")
+            .select("student_id, score, violation_flag, entry_source")
+            .eq("quiz_id", quiz.id)
+            .in("student_id", authIds);
+
+    const attemptByAuthId = {};
+    (attempts || []).forEach(a => {
+        if (a.score !== null && !a.violation_flag) {
+            attemptByAuthId[a.student_id] = a;
+        }
+    });
+
+    let html = `
+        <table class="results-table">
+            <thead>
+                <tr>
+                    <th>Student No.</th>
+                    <th>Name</th>
+                    <th>Current Score</th>
+                    <th>Enter Score</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+    `;
+
+    currentStudents.forEach(student => {
+
+        const name = student.user_profiles ? `${student.user_profiles.first_name} ${student.user_profiles.last_name}` : "Unknown";
+        const authId = authIdByProfileId[student.id];
+        const existing = attemptByAuthId[authId];
+
+        let sourceTag = `<span class="source-tag none">Not recorded</span>`;
+        let currentScoreDisplay = "—";
+
+        if (existing) {
+            currentScoreDisplay = existing.score + "%";
+            sourceTag = existing.entry_source === "manual"
+                ? `<span class="source-tag manual">Manually entered</span>`
+                : `<span class="source-tag system">Wrote online</span>`;
+        }
+
+        html += `
+            <tr>
+                <td>${escapeHtml(student.student_number)}</td>
+                <td>${escapeHtml(name)}</td>
+                <td>${currentScoreDisplay}<br>${sourceTag}</td>
+                <td>
+                    <input type="number" class="score-input" id="score-${student.id}" min="0" max="100" placeholder="0-100" data-auth-id="${authId || ""}" data-student-profile-id="${student.id}">
+                </td>
+                <td>
+                    <button class="save-row-button" onclick="saveOneScore('${student.id}')">Save</button>
+                </td>
+            </tr>
+        `;
+
+    });
+
+    html += `</tbody></table>`;
+
+    container.innerHTML = html;
+    saveAllButton.style.display = "block";
+
+}
+
+
+async function saveOneScore(studentProfileId) {
+
+    const input = document.getElementById(`score-${studentProfileId}`);
+    const value = input.value.trim();
+
+    if (value === "") {
+        showMessage("Enter a score first.", "error");
+        return;
+    }
+
+    const scoreNum = Number(value);
+
+    if (isNaN(scoreNum) || scoreNum < 0 || scoreNum > 100) {
+        showMessage("Score must be a number between 0 and 100.", "error");
+        return;
+    }
+
+    const authId = input.dataset.authId;
+
+    if (!authId) {
+        showMessage("Unable to find this student's account — cannot save.", "error");
+        return;
+    }
+
+    // Remove any prior attempt for this student on this quiz, then insert the manual entry fresh.
+    const { data: existingAttempts } =
+        await supabaseClient
+            .from("quiz_attempts")
+            .select("id")
+            .eq("quiz_id", currentQuizId)
+            .eq("student_id", authId);
+
+    const oldIds = (existingAttempts || []).map(a => a.id);
+
+    if (oldIds.length > 0) {
+        await supabaseClient.from("quiz_attempts").delete().in("id", oldIds);
+    }
+
+    const { error } =
+        await supabaseClient.from("quiz_attempts").insert({
+            quiz_id: currentQuizId,
+            student_id: authId,
+            started_at: new Date().toISOString(),
+            submitted_at: new Date().toISOString(),
+            answers: {},
+            score: scoreNum,
+            entry_source: "manual"
+        });
+
+    if (error) {
+        showMessage("Unable to save: " + error.message, "error");
+        return;
+    }
+
+    showMessage("Score saved.", "success");
+    await loadResultsTable();
+
+}
+
+
+async function saveAllScores() {
+
+    const inputs = document.querySelectorAll(".score-input");
+    let savedCount = 0;
+    let errorCount = 0;
+
+    for (const input of inputs) {
+
+        const value = input.value.trim();
+        if (value === "") continue;
+
+        const scoreNum = Number(value);
+        if (isNaN(scoreNum) || scoreNum < 0 || scoreNum > 100) {
+            errorCount++;
+            continue;
+        }
+
+        const authId = input.dataset.authId;
+        if (!authId) { errorCount++; continue; }
+
+        const { data: existingAttempts } =
+            await supabaseClient
+                .from("quiz_attempts")
+                .select("id")
+                .eq("quiz_id", currentQuizId)
+                .eq("student_id", authId);
+
+        const oldIds = (existingAttempts || []).map(a => a.id);
+
+        if (oldIds.length > 0) {
+            await supabaseClient.from("quiz_attempts").delete().in("id", oldIds);
+        }
+
+        const { error } =
+            await supabaseClient.from("quiz_attempts").insert({
+                quiz_id: currentQuizId,
+                student_id: authId,
+                started_at: new Date().toISOString(),
+                submitted_at: new Date().toISOString(),
+                answers: {},
+                score: scoreNum,
+                entry_source: "manual"
+            });
+
+        if (error) errorCount++;
+        else savedCount++;
+
+    }
+
+    if (savedCount > 0) {
+        showMessage(`Saved ${savedCount} score(s)${errorCount > 0 ? `, ${errorCount} failed` : ""}.`, errorCount > 0 ? "error" : "success");
+    } else {
+        showMessage("No scores were entered to save.", "error");
+    }
+
+    await loadResultsTable();
+
+}
+
+
+startPage();
+
+</script>
+
+</body>
+</html>
