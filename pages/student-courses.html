@@ -1,654 +1,307 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>My Courses | E-Campus</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>My Lessons | E-Campus</title>
 
-    <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; }
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: Arial, Helvetica, sans-serif; background: #f4f6f9; color: #172033; }
 
-        body { font-family: Arial, Helvetica, sans-serif; background: #f5f6f8; color: #111827; line-height: 1.6; }
+.header { background: #111827; color: white; padding: 18px 25px; display: flex; align-items: center; gap: 14px; }
+.logo { width: 55px; height: 55px; object-fit: contain; background: white; border-radius: 8px; }
+.header h1 { font-size: 22px; }
+.header p { color: #d4af37; font-size: 13px; margin-top: 3px; }
+.back-button { margin-left: auto; background: #d4af37; color: #111827; text-decoration: none; padding: 10px 16px; border-radius: 8px; font-weight: bold; font-size: 13px; }
 
-        .page-header {
-            background: #ffffff;
-            border-bottom: 1px solid #e5e7eb;
-            padding: 18px 24px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            position: sticky;
-            top: 0;
-            z-index: 100;
-        }
+.container { max-width: 950px; margin: 25px auto; padding: 0 20px; }
 
-        .brand { display: flex; align-items: center; gap: 14px; }
-        .brand-logo { width: 52px; height: 52px; object-fit: contain; }
-        .brand-text h1 { font-size: 22px; }
-        .brand-text p { color: #b58b17; font-weight: 600; font-size: 14px; }
+.page-title { margin-bottom: 20px; }
+.page-title h2 { font-size: 28px; margin-bottom: 6px; }
+.page-title p { color: #6b7280; font-size: 14px; }
 
-        .back-button {
-            border: none;
-            background: #111827;
-            color: white;
-            padding: 12px 18px;
-            border-radius: 10px;
-            cursor: pointer;
-            font-weight: 600;
-        }
+.term-note {
+    background: #eff6ff;
+    border: 1px solid #bfdbfe;
+    color: #1d4ed8;
+    padding: 12px 16px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    font-size: 13px;
+    font-weight: bold;
+}
 
-        .page-container { max-width: 1000px; margin: 0 auto; padding: 30px 20px 60px; }
+.course-card {
+    background: white;
+    border-radius: 14px;
+    padding: 20px;
+    margin-bottom: 16px;
+    box-shadow: 0 3px 12px rgba(0,0,0,0.06);
+}
 
-        .welcome-banner {
-            background: linear-gradient(135deg, #111827, #1f2937);
-            color: white;
-            border-radius: 16px;
-            padding: 28px;
-            margin-bottom: 25px;
-        }
+.course-card h3 { font-size: 17px; margin-bottom: 6px; }
+.course-meta { font-size: 12px; color: #6b7280; margin-bottom: 12px; }
 
-        .welcome-banner h2 { font-size: 24px; margin-bottom: 6px; }
-        .welcome-banner .sub { color: #d4af37; font-weight: 600; margin-bottom: 16px; }
-        .welcome-banner .window-note {
-            background: rgba(212,175,55,0.15);
-            border: 1px solid rgba(212,175,55,0.4);
-            border-radius: 10px;
-            padding: 12px 14px;
-            font-size: 13px;
-            margin-bottom: 18px;
-        }
+.progress-bar-bg { background: #e5e7eb; border-radius: 20px; height: 10px; overflow: hidden; margin: 8px 0 14px; }
+.progress-bar-fill { background: #d4af37; height: 100%; }
 
-        .steps-list { font-size: 14px; color: #d1d5db; }
-        .steps-list div { margin-bottom: 6px; }
-        .steps-list strong { color: white; }
+.module-block { margin-bottom: 14px; }
+.module-block h4 { font-size: 14px; margin-bottom: 8px; color: #111827; }
 
-        .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 25px; }
+.lesson-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 12px;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    margin-bottom: 6px;
+    text-decoration: none;
+    color: #172033;
+    font-size: 13px;
+}
 
-        .stat-card { background: white; border: 1px solid #e5e7eb; border-radius: 14px; padding: 18px; text-align: center; }
-        .stat-card .number { font-size: 26px; font-weight: 800; }
-        .stat-card .label { color: #6b7280; font-size: 12px; margin-top: 4px; }
+.lesson-row:hover { background: #f9fafb; }
+.lesson-row .lesson-title { display: flex; align-items: center; gap: 8px; }
+.lesson-row .check { font-size: 15px; }
 
-        .course-card { background: white; border: 1px solid #e5e7eb; border-radius: 16px; margin-bottom: 16px; overflow: hidden; }
+.empty-note { color: #9ca3af; text-align: center; padding: 30px 0; }
 
-        .course-header { padding: 20px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; gap: 12px; }
-
-        .course-code { color: #b58b17; font-weight: 800; font-size: 12px; letter-spacing: 1px; }
-        .course-header h4 { font-size: 18px; margin: 4px 0; }
-        .course-meta { color: #6b7280; font-size: 13px; }
-
-        .term-note { font-size: 12px; margin-top: 6px; font-weight: bold; }
-        .term-note.ok { color: #166534; }
-        .term-note.warn { color: #92400e; }
-        .term-note.locked { color: #991b1b; }
-
-        .progress-bar-bg { background: #e5e7eb; border-radius: 20px; height: 8px; overflow: hidden; margin-top: 8px; }
-        .progress-bar-fill { background: #b58b17; height: 100%; }
-
-        .expand-icon { font-size: 20px; color: #6b7280; }
-
-        .course-body { display: none; padding: 0 20px 20px; border-top: 1px solid #e5e7eb; }
-        .course-body.open { display: block; }
-
-        .locked-notice {
-            background: #fee2e2;
-            color: #991b1b;
-            border-radius: 10px;
-            padding: 14px;
-            margin-top: 16px;
-            font-size: 14px;
-            font-weight: bold;
-        }
-
-        .module-block { margin-top: 16px; }
-        .module-block h5 { font-size: 15px; margin-bottom: 8px; color: #111827; display: flex; align-items: center; gap: 8px; }
-
-        .unit-lock-tag {
-            font-size: 11px;
-            background: #f3f4f6;
-            color: #6b7280;
-            padding: 3px 8px;
-            border-radius: 20px;
-            font-weight: bold;
-        }
-
-        .unit-pass-tag { font-size: 11px; background: #dcfce7; color: #166534; padding: 3px 8px; border-radius: 20px; font-weight: bold; }
-
-        .lesson-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 12px; background: #f9fafb; border-radius: 8px; margin-bottom: 6px; cursor: pointer; }
-        .lesson-row.done { background: #ecfdf5; }
-        .lesson-row.locked-row { opacity: 0.5; cursor: not-allowed; }
-        .lesson-title { font-size: 14px; }
-        .lesson-check { font-size: 16px; }
-
-        .lesson-content-panel { display: none; background: #fffbeb; border: 1px solid #fde68a; border-radius: 10px; padding: 16px; margin: 6px 0 10px; font-size: 14px; }
-        .lesson-content-panel.open { display: block; }
-        .lesson-content-panel h6 { margin-bottom: 8px; }
-        .lesson-content-panel p { margin-bottom: 10px; color: #374151; white-space: pre-wrap; }
-        .video-embed { margin-bottom: 12px; }
-        .video-embed a { color: #1d4ed8; font-weight: bold; font-size: 13px; }
-        .video-embed iframe { display: block; }
-
-        .complete-button { background: #111827; color: white; border: none; padding: 9px 16px; border-radius: 8px; font-weight: 700; font-size: 13px; cursor: pointer; }
-        .complete-button:disabled { opacity: 0.6; cursor: not-allowed; }
-
-        .assessment-block {
-            margin-top: 14px;
-            background: #eff6ff;
-            border: 1px solid #bfdbfe;
-            border-radius: 10px;
-            padding: 14px;
-        }
-
-        .assessment-block .title { font-weight: bold; margin-bottom: 6px; }
-        .assessment-block .go-link {
-            display: inline-block;
-            margin-top: 8px;
-            background: #1d4ed8;
-            color: white;
-            text-decoration: none;
-            padding: 8px 14px;
-            border-radius: 6px;
-            font-size: 13px;
-            font-weight: bold;
-        }
-
-        .loading, .empty-state, .error-state { background: white; border: 1px solid #e5e7eb; border-radius: 16px; padding: 40px 20px; text-align: center; }
-        .loading-icon, .empty-icon, .error-icon { font-size: 38px; margin-bottom: 10px; }
-        .loading p, .empty-state p, .error-state p { color: #6b7280; }
-        .error-state { border-color: #fecaca; }
-        .error-state h4 { color: #b91c1c; margin-bottom: 5px; }
-
-        .footer { background: #111827; color: white; padding: 25px 20px; text-align: center; }
-        .footer p { color: #d1d5db; font-size: 13px; }
-
-        @media (max-width: 700px) { .stats { grid-template-columns: 1fr; } }
-    </style>
+</style>
 </head>
+
 
 <body>
 
-    <header class="page-header">
-        <div class="brand">
-            <img src="https://pub-b3e2d39712e84119875e84c5ec5f5c09.r2.dev/Logo/IMG-20260816-WA0050(1).jpg" alt="Sunningdale University Logo" class="brand-logo">
-            <div class="brand-text">
-                <h1>E-Campus</h1>
-                <p>Sunningdale University</p>
-            </div>
-        </div>
-        <button class="back-button" onclick="window.location.href='student-dashboard.html'">← Dashboard</button>
-    </header>
+<header class="header">
+    <img src="https://pub-b3e2d39712e84119875e84c5ec5f5c09.r2.dev/Logo/IMG-20260816-WA0050(1).jpg" alt="Sunningdale University Logo" class="logo">
+    <div>
+        <h1>E-Campus</h1>
+        <p>Sunningdale University</p>
+    </div>
+    <a href="student-dashboard.html" class="back-button">← Dashboard</a>
+</header>
 
 
-    <main class="page-container">
+<main class="container">
 
-        <section class="welcome-banner">
-            <h2>Welcome, Online Student!</h2>
-            <div class="sub">Enjoy your learning journey with us!</div>
+    <section class="page-title">
+        <h2>My Lessons</h2>
+        <p>Your courses for the current term only — courses from a previous term will no longer appear here once that term has ended.</p>
+    </section>
 
-            <div class="window-note">
-                ⏳ <strong>Access Window:</strong> You have 3 months to complete each term's units and assessments. The academic year is divided into 3 terms of 3 months each.
-            </div>
+    <div id="termNoteContainer"></div>
 
-            <div class="steps-list">
-                <div><strong>Step 1:</strong> Choose the course you want to learn by opening it below.</div>
-                <div><strong>Step 2:</strong> Access materials for your courses.</div>
-                <div><strong>Step 3:</strong> Reach out to your lecturer or coordinator for questions.</div>
-                <div><strong>Step 4:</strong> Each Unit has Topics, and under each Topic there are notes and videos.</div>
-                <div><strong>Step 5:</strong> Complete the Assessment Test to proceed to the next Unit.</div>
-                <div><strong>Step 6:</strong> Assessment Tests are part of your Continuous Assessment (CA). Take them seriously.</div>
-            </div>
-        </section>
+    <div id="coursesContainer"><p class="empty-note">Loading...</p></div>
+
+</main>
 
 
-        <section class="stats">
-            <div class="stat-card"><div class="number" id="totalCourses">0</div><div class="label">Registered Courses</div></div>
-            <div class="stat-card"><div class="number" id="completedLessonsCount">0</div><div class="label">Topics Completed</div></div>
-            <div class="stat-card"><div class="number" id="overallProgress">0%</div><div class="label">Overall Progress</div></div>
-        </section>
-
-        <div id="coursesContainer">
-            <div class="loading">
-                <div class="loading-icon">⏳</div>
-                <p>Loading your courses...</p>
-            </div>
-        </div>
-
-    </main>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../supabase-config.js"></script>
 
 
-    <footer class="footer">
-        <p>© 2026 Sunningdale University. All rights reserved.</p>
-    </footer>
+<script>
+
+function escapeHtml(value) {
+    return String(value ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+}
 
 
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="../supabase-config.js"></script>
+// ===== Same logic used across the LMS: find the student's current term_number from =====
+// student_terms (active, or most recently ended if between terms), then match it to the
+// global academic_terms row with the same term_number to get the academic_term_id that
+// enrollments are scoped by. A prior term's enrollments are never included.
+async function getCurrentAcademicTermInfo(studentProfileId) {
+
+    const { data: terms } =
+        await supabaseClient
+            .from("student_terms")
+            .select("*")
+            .eq("student_id", studentProfileId)
+            .order("term_number", { ascending: true });
+
+    const allTerms = terms || [];
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const activeTerm = allTerms.find(t => {
+        const start = new Date(t.start_date + "T00:00:00");
+        const end = new Date(t.end_date + "T00:00:00");
+        return today >= start && today <= end;
+    });
+
+    const mostRecentEndedTerm = allTerms
+        .filter(t => new Date(t.end_date + "T00:00:00") < today)
+        .sort((a, b) => new Date(b.end_date) - new Date(a.end_date))[0];
+
+    const relevantStudentTerm = activeTerm || mostRecentEndedTerm;
+
+    if (!relevantStudentTerm) return { termNumber: null, academicTermId: null };
+
+    const { data: academicTermRow } =
+        await supabaseClient
+            .from("academic_terms")
+            .select("id")
+            .eq("term_number", relevantStudentTerm.term_number)
+            .limit(1)
+            .maybeSingle();
+
+    return {
+        termNumber: relevantStudentTerm.term_number,
+        academicTermId: academicTermRow ? academicTermRow.id : null
+    };
+
+}
 
 
-    <script>
+async function startPage() {
 
-        const PASS_THRESHOLD = 70;
+    const container = document.getElementById("coursesContainer");
 
-        let studentProfileId = null;
-        let authUserId = null;
-        let allModules = [];
-        let allLessons = [];
-        let allQuizzes = [];
-        let completedLessonIds = new Set();
-        let passedModuleIds = new Set();
+    const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
 
+    if (authError || !user) {
+        window.location.href = "student-login.html";
+        return;
+    }
 
-        function escapeHtml(value) {
-            return String(value ?? "")
-                .replace(/&/g, "&amp;")
-                .replace(/</g, "&lt;")
-                .replace(/>/g, "&gt;")
-                .replace(/"/g, "&quot;")
-                .replace(/'/g, "&#039;");
-        }
+    const { data: studentProfile } =
+        await supabaseClient.from("student_profiles").select("id").eq("user_id", user.id).single();
 
+    if (!studentProfile) {
+        container.innerHTML = `<p class="empty-note">Unable to load your student profile.</p>`;
+        return;
+    }
 
-        function getYoutubeEmbedUrl(url) {
-            if (!url) return null;
-            const match = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})/);
-            return match ? `https://www.youtube.com/embed/${match[1]}` : null;
-        }
+    const { academicTermId, termNumber } = await getCurrentAcademicTermInfo(studentProfile.id);
 
+    if (!academicTermId) {
+        document.getElementById("termNoteContainer").innerHTML = `
+            <div class="term-note">⚠️ No current term could be determined for your account. Contact admin if courses are missing.</div>
+        `;
+    } else {
+        document.getElementById("termNoteContainer").innerHTML = `
+            <div class="term-note">📅 Showing courses registered for Term ${termNumber} only.</div>
+        `;
+    }
 
-        function daysBetween(a, b) {
-            return Math.ceil((b - a) / (1000 * 60 * 60 * 24));
-        }
+    // ===== THE FIX: enrollments filtered by academic_term_id, not just student_id. =====
+    // A course from a term that's no longer current simply isn't included in this query at all.
+    let enrollmentQuery = supabaseClient
+        .from("enrollments")
+        .select("courses ( id, code, name, credits )")
+        .eq("student_id", studentProfile.id)
+        .eq("status", "enrolled");
 
+    if (academicTermId) {
+        enrollmentQuery = enrollmentQuery.eq("academic_term_id", academicTermId);
+    }
 
-        document.addEventListener("DOMContentLoaded", loadCourses);
+    const { data: enrollments } = await enrollmentQuery;
 
+    const courses = (enrollments || []).map(e => e.courses).filter(Boolean);
 
-        async function loadCourses() {
+    if (courses.length === 0) {
+        container.innerHTML = `<p class="empty-note">You are not registered for any courses this term yet. <a href="student-register-courses.html">Register for courses</a> to get started.</p>`;
+        return;
+    }
 
-            const container = document.getElementById("coursesContainer");
+    const courseIds = courses.map(c => c.id);
 
-            try {
+    const { data: modules } =
+        await supabaseClient
+            .from("course_modules")
+            .select("id, course_id, module_number, title")
+            .in("course_id", courseIds)
+            .order("module_number");
 
-                const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
+    const moduleIds = (modules || []).map(m => m.id);
 
-                if (authError || !user) {
-                    container.innerHTML = `
-                        <div class="error-state">
-                            <div class="error-icon">🔐</div>
-                            <h4>Student login required</h4>
-                            <p>Please log in to view your registered courses.</p>
-                        </div>
+    const { data: lessons } =
+        moduleIds.length > 0
+            ? await supabaseClient.from("lessons").select("id, module_id, lesson_number, title").in("module_id", moduleIds).order("lesson_number")
+            : { data: [] };
+
+    const lessonIds = (lessons || []).map(l => l.id);
+
+    const { data: progressRows } =
+        lessonIds.length > 0
+            ? await supabaseClient.from("lesson_progress").select("lesson_id, status").eq("student_id", user.id).in("lesson_id", lessonIds)
+            : { data: [] };
+
+    const completedLessonIds = new Set((progressRows || []).filter(p => p.status === "completed").map(p => p.lesson_id));
+
+    const modulesByCourse = {};
+    (modules || []).forEach(m => {
+        if (!modulesByCourse[m.course_id]) modulesByCourse[m.course_id] = [];
+        modulesByCourse[m.course_id].push(m);
+    });
+
+    const lessonsByModule = {};
+    (lessons || []).forEach(l => {
+        if (!lessonsByModule[l.module_id]) lessonsByModule[l.module_id] = [];
+        lessonsByModule[l.module_id].push(l);
+    });
+
+    container.innerHTML = courses.map(course => {
+
+        const courseModules = (modulesByCourse[course.id] || []).sort((a, b) => a.module_number - b.module_number);
+
+        const allCourseLessons = courseModules.flatMap(m => lessonsByModule[m.id] || []);
+        const completedCount = allCourseLessons.filter(l => completedLessonIds.has(l.id)).length;
+        const pct = allCourseLessons.length > 0 ? Math.round((completedCount / allCourseLessons.length) * 100) : 0;
+
+        const modulesHtml = courseModules.map(module => {
+
+            const moduleLessons = (lessonsByModule[module.id] || []).sort((a, b) => a.lesson_number - b.lesson_number);
+
+            const lessonsHtml = moduleLessons.length === 0
+                ? `<p class="empty-note" style="padding:6px 0;">No lessons added yet.</p>`
+                : moduleLessons.map(lesson => {
+                    const isDone = completedLessonIds.has(lesson.id);
+                    return `
+                        <a href="student-lesson.html?lesson_id=${lesson.id}" class="lesson-row">
+                            <span class="lesson-title">
+                                <span class="check">${isDone ? "✅" : "⬜"}</span>
+                                Lesson ${lesson.lesson_number} — ${escapeHtml(lesson.title)}
+                            </span>
+                        </a>
                     `;
-                    return;
-                }
+                }).join("");
 
-                authUserId = user.id;
+            return `
+                <div class="module-block">
+                    <h4>Module ${module.module_number} — ${escapeHtml(module.title)}</h4>
+                    ${lessonsHtml}
+                </div>
+            `;
 
-                const { data: studentProfile, error: studentError } =
-                    await supabaseClient.from("student_profiles").select("id").eq("user_id", user.id).single();
+        }).join("");
 
-                if (studentError || !studentProfile) {
-                    container.innerHTML = `
-                        <div class="error-state">
-                            <div class="error-icon">⚠️</div>
-                            <h4>Unable to load your student record</h4>
-                            <p>${escapeHtml(studentError?.message || "Profile not found.")}</p>
-                        </div>
-                    `;
-                    return;
-                }
+        return `
+            <div class="course-card">
+                <h3>${escapeHtml(course.code)} — ${escapeHtml(course.name)}</h3>
+                <div class="course-meta">${completedCount} of ${allCourseLessons.length} lessons completed • ${course.credits || 0} credits</div>
+                <div class="progress-bar-bg"><div class="progress-bar-fill" style="width:${pct}%;"></div></div>
+                ${courseModules.length === 0 ? `<p class="empty-note">No modules added for this course yet.</p>` : modulesHtml}
+            </div>
+        `;
 
-                studentProfileId = studentProfile.id;
+    }).join("");
 
-                const { data: enrollments, error: enrollError } =
-                    await supabaseClient
-                        .from("enrollments")
-                        .select(`
-                            id, status,
-                            course:courses ( id, code, name, description, credits ),
-                            academic_terms ( id, name, start_date, end_date )
-                        `)
-                        .eq("student_id", studentProfileId)
-                        .eq("status", "enrolled")
-                        .order("enrollment_date", { ascending: false });
+}
 
-                if (enrollError) throw enrollError;
 
-                document.getElementById("totalCourses").textContent = (enrollments || []).length;
+startPage();
 
-                if (!enrollments || enrollments.length === 0) {
-                    container.innerHTML = `
-                        <div class="empty-state">
-                            <div class="empty-icon">📚</div>
-                            <h4>No registered courses</h4>
-                            <p>You currently have no confirmed courses. Register for courses to get started.</p>
-                        </div>
-                    `;
-                    return;
-                }
-
-                const courseIds = enrollments.map(e => e.course?.id).filter(Boolean);
-
-                const { data: modules } = await supabaseClient
-                    .from("course_modules")
-                    .select("id, course_id, module_number, title")
-                    .in("course_id", courseIds)
-                    .order("module_number");
-
-                allModules = modules || [];
-                const moduleIds = allModules.map(m => m.id);
-
-                let lessons = [];
-                if (moduleIds.length > 0) {
-                    const { data } = await supabaseClient
-                        .from("lessons")
-                        .select("id, module_id, lesson_number, title, description, content, video_url, estimated_hours")
-                        .in("module_id", moduleIds)
-                        .order("lesson_number");
-                    lessons = data || [];
-                }
-                allLessons = lessons;
-
-                let quizzes = [];
-                if (moduleIds.length > 0) {
-                    const { data } = await supabaseClient
-                        .from("quizzes")
-                        .select("id, module_id, title, is_exam")
-                        .in("module_id", moduleIds);
-                    quizzes = data || [];
-                }
-                allQuizzes = quizzes;
-
-                const quizIds = allQuizzes.map(q => q.id);
-                const lessonIds = allLessons.map(l => l.id);
-
-                let progress = [];
-                if (lessonIds.length > 0) {
-                    const { data } = await supabaseClient
-                        .from("lesson_progress")
-                        .select("lesson_id, status")
-                        .eq("student_id", authUserId)
-                        .in("lesson_id", lessonIds);
-                    progress = data || [];
-                }
-
-                completedLessonIds = new Set(
-                    progress.filter(p => p.status === "completed").map(p => p.lesson_id)
-                );
-
-                let attempts = [];
-                if (quizIds.length > 0) {
-                    const { data } = await supabaseClient
-                        .from("quiz_attempts")
-                        .select("quiz_id, score")
-                        .eq("student_id", authUserId)
-                        .in("quiz_id", quizIds);
-                    attempts = data || [];
-                }
-
-                const bestScoreByQuiz = {};
-                attempts.forEach(a => {
-                    if (a.score === null) return;
-                    if (!bestScoreByQuiz[a.quiz_id] || a.score > bestScoreByQuiz[a.quiz_id]) {
-                        bestScoreByQuiz[a.quiz_id] = a.score;
-                    }
-                });
-
-                passedModuleIds = new Set();
-                allQuizzes.forEach(q => {
-                    const best = bestScoreByQuiz[q.id];
-                    if (best !== undefined && best >= PASS_THRESHOLD) {
-                        passedModuleIds.add(q.module_id);
-                    }
-                });
-
-                document.getElementById("completedLessonsCount").textContent = completedLessonIds.size;
-                const overallPct = allLessons.length > 0
-                    ? Math.round((completedLessonIds.size / allLessons.length) * 100)
-                    : 0;
-                document.getElementById("overallProgress").textContent = overallPct + "%";
-
-                renderCourses(enrollments);
-
-            } catch (error) {
-
-                console.error("loadCourses failed:", error);
-                container.innerHTML = `
-                    <div class="error-state">
-                        <div class="error-icon">⚠️</div>
-                        <h4>Unable to load courses</h4>
-                        <p>${escapeHtml(error.message || "An unexpected error occurred.")}</p>
-                    </div>
-                `;
-
-            }
-
-        }
-
-
-        function getTermStatus(term) {
-
-            if (!term || !term.start_date || !term.end_date) {
-                return { state: "unknown", message: "" };
-            }
-
-            const now = new Date();
-            const start = new Date(term.start_date);
-            const end = new Date(term.end_date);
-
-            if (now < start) {
-                return { state: "upcoming", message: `Starts ${start.toLocaleDateString()}` };
-            }
-
-            if (now > end) {
-                return { state: "locked", message: `Access window closed (ended ${end.toLocaleDateString()})` };
-            }
-
-            const daysLeft = daysBetween(now, end);
-            if (daysLeft <= 14) {
-                return { state: "warn", message: `${daysLeft} day(s) left in this term's access window` };
-            }
-
-            return { state: "ok", message: `${daysLeft} day(s) left in this term's access window` };
-
-        }
-
-
-        function renderCourses(enrollments) {
-
-            const container = document.getElementById("coursesContainer");
-            container.innerHTML = "";
-
-            enrollments.forEach((enrollment, index) => {
-
-                const course = enrollment.course;
-                if (!course) return;
-
-                const term = enrollment.academic_terms;
-                const termStatus = getTermStatus(term);
-                const isTermLocked = termStatus.state === "locked" || termStatus.state === "upcoming";
-
-                const courseModules = allModules
-                    .filter(m => m.course_id === course.id)
-                    .sort((a, b) => a.module_number - b.module_number);
-
-                const courseLessons = allLessons.filter(l =>
-                    courseModules.some(m => m.id === l.module_id)
-                );
-
-                const completedInCourse = courseLessons.filter(l => completedLessonIds.has(l.id)).length;
-                const pct = courseLessons.length > 0
-                    ? Math.round((completedInCourse / courseLessons.length) * 100)
-                    : 0;
-
-                const card = document.createElement("article");
-                card.className = "course-card";
-
-                const termNoteClass = termStatus.state === "locked" ? "locked" : termStatus.state === "warn" ? "warn" : "ok";
-
-                card.innerHTML = `
-                    <div class="course-header" onclick="toggleCourse(${index})">
-                        <div style="flex:1;">
-                            <div class="course-code">${escapeHtml(course.code)}</div>
-                            <h4>${escapeHtml(course.name)}</h4>
-                            <div class="course-meta">${completedInCourse} of ${courseLessons.length} topics completed</div>
-                            ${term ? `<div class="term-note ${termNoteClass}">${escapeHtml(term.name)} — ${termStatus.message}</div>` : ""}
-                            <div class="progress-bar-bg"><div class="progress-bar-fill" style="width:${pct}%;"></div></div>
-                        </div>
-                        <div class="expand-icon" id="icon-${index}">▼</div>
-                    </div>
-                    <div class="course-body" id="body-${index}">
-                        ${isTermLocked
-                            ? `<div class="locked-notice">🔒 ${termStatus.message}. Contact the admissions office if you believe this is an error.</div>`
-                            : renderModules(courseModules, index)
-                        }
-                    </div>
-                `;
-
-                container.appendChild(card);
-
-            });
-
-        }
-
-
-        function renderModules(courseModules, courseIndex) {
-
-            if (courseModules.length === 0) {
-                return `<p style="color:#9ca3af; padding:14px 0;">No units have been added to this course yet.</p>`;
-            }
-
-            let html = "";
-
-            courseModules.forEach((module, idx) => {
-
-                const isFirstModule = idx === 0;
-                const previousModule = idx > 0 ? courseModules[idx - 1] : null;
-                const previousModuleHasQuiz = previousModule && allQuizzes.some(q => q.module_id === previousModule.id);
-                const previousPassed = previousModule ? passedModuleIds.has(previousModule.id) : true;
-
-                const unitUnlocked = isFirstModule || !previousModuleHasQuiz || previousPassed;
-
-                const moduleLessons = allLessons
-                    .filter(l => l.module_id === module.id)
-                    .sort((a, b) => a.lesson_number - b.lesson_number);
-
-                const moduleQuiz = allQuizzes.find(q => q.module_id === module.id);
-                const thisModulePassed = passedModuleIds.has(module.id);
-
-                html += `<div class="module-block">
-                    <h5>
-                        Unit ${module.module_number} — ${escapeHtml(module.title)}
-                        ${!unitUnlocked ? `<span class="unit-lock-tag">🔒 Locked</span>` : ""}
-                        ${unitUnlocked && thisModulePassed ? `<span class="unit-pass-tag">✓ Assessment Passed</span>` : ""}
-                    </h5>`;
-
-                if (!unitUnlocked) {
-
-                    html += `<p style="color:#9ca3af; font-size:13px;">Complete the previous Unit's Assessment Test (70% or higher) to unlock this Unit.</p>`;
-
-                } else if (moduleLessons.length === 0) {
-
-                    html += `<p style="color:#9ca3af; font-size:13px;">No topics added yet.</p>`;
-
-                } else {
-
-                    moduleLessons.forEach(lesson => {
-
-                        const done = completedLessonIds.has(lesson.id);
-                        const embedUrl = getYoutubeEmbedUrl(lesson.video_url);
-
-                        let videoHtml = "";
-                        if (lesson.video_url) {
-                            videoHtml = embedUrl
-                                ? `<div class="video-embed"><iframe width="100%" height="220" src="${embedUrl}" frameborder="0" allowfullscreen style="border-radius:10px;"></iframe></div>`
-                                : `<div class="video-embed"><a href="${escapeHtml(lesson.video_url)}" target="_blank">🎥 Watch video for this topic</a></div>`;
-                        }
-
-                        html += `
-                            <div class="lesson-row ${done ? "done" : ""}" onclick="toggleLesson('${lesson.id}')">
-                                <span class="lesson-title">${done ? "✅" : "⬜"} Topic ${lesson.lesson_number} — ${escapeHtml(lesson.title)}</span>
-                                <span class="lesson-check">›</span>
-                            </div>
-                            <div class="lesson-content-panel" id="panel-${lesson.id}">
-                                <h6>${escapeHtml(lesson.title)}</h6>
-                                ${videoHtml}
-                                <p>${escapeHtml(lesson.description || "No description provided.")}</p>
-                                ${lesson.content ? `<p>${escapeHtml(lesson.content)}</p>` : ""}
-                                <button class="complete-button" id="btn-${lesson.id}" onclick="event.stopPropagation(); markComplete('${lesson.id}')" ${done ? "disabled" : ""}>
-                                    ${done ? "✓ Completed" : "Mark as Complete"}
-                                </button>
-                            </div>
-                        `;
-
-                    });
-
-                    if (moduleQuiz) {
-
-                        html += `
-                            <div class="assessment-block">
-                                <div class="title">📝 Assessment Test: ${escapeHtml(moduleQuiz.title)}</div>
-                                <div style="font-size:13px; color:#374151;">
-                                    ${thisModulePassed ? "You have passed this assessment." : "Score 70% or higher to unlock the next Unit."}
-                                </div>
-                                <a href="student-quizzes.html" class="go-link">Go to Assessment Test</a>
-                            </div>
-                        `;
-
-                    }
-
-                }
-
-                html += `</div>`;
-
-            });
-
-            return html;
-
-        }
-
-
-        function toggleCourse(index) {
-            const body = document.getElementById(`body-${index}`);
-            const icon = document.getElementById(`icon-${index}`);
-            const isOpen = body.classList.toggle("open");
-            icon.textContent = isOpen ? "▲" : "▼";
-        }
-
-
-        function toggleLesson(lessonId) {
-            const panel = document.getElementById(`panel-${lessonId}`);
-            if (panel) panel.classList.toggle("open");
-        }
-
-
-        async function markComplete(lessonId) {
-
-            const button = document.getElementById(`btn-${lessonId}`);
-            button.disabled = true;
-            button.textContent = "Saving...";
-
-            const { error } = await supabaseClient
-                .from("lesson_progress")
-                .upsert({
-                    student_id: authUserId,
-                    lesson_id: lessonId,
-                    status: "completed",
-                    completed_at: new Date().toISOString()
-                }, { onConflict: "student_id,lesson_id" });
-
-            if (error) {
-                console.error(error);
-                alert("Unable to mark topic complete: " + error.message);
-                button.disabled = false;
-                button.textContent = "Mark as Complete";
-                return;
-            }
-
-            await loadCourses();
-
-        }
-
-    </script>
+</script>
 
 </body>
 </html>
