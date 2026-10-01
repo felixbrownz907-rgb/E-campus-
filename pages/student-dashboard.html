@@ -756,7 +756,6 @@ body {
 
 const WEEKDAY_NAMES = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
-// Same automatic date model used in student-exam-registration.html / student-quizzes.html
 const EXAM_PERIOD_START_OFFSET = 1;
 const EXAM_PERIOD_LENGTH_DAYS = 7;
 const SUPP_DEFERRED_GAP_DAYS = 5;
@@ -809,6 +808,53 @@ function closeMenu() {
 }
 
 
+// ===== Find which term_number is "current" for this student (active, or the one that just =====
+// ended if they're in the gap between terms), then match it to the global academic_terms row
+// with the same term_number to get the academic_term_id that enrollments/fees are scoped by.
+async function getCurrentAcademicTermInfo(studentProfileId) {
+
+    const { data: terms } =
+        await supabaseClient
+            .from("student_terms")
+            .select("*")
+            .eq("student_id", studentProfileId)
+            .order("term_number", { ascending: true });
+
+    const allTerms = terms || [];
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const activeTerm = allTerms.find(t => {
+        const start = new Date(t.start_date + "T00:00:00");
+        const end = new Date(t.end_date + "T00:00:00");
+        return today >= start && today <= end;
+    });
+
+    const mostRecentEndedTerm = allTerms
+        .filter(t => new Date(t.end_date + "T00:00:00") < today)
+        .sort((a, b) => new Date(b.end_date) - new Date(a.end_date))[0];
+
+    const relevantStudentTerm = activeTerm || mostRecentEndedTerm;
+
+    if (!relevantStudentTerm) return { termNumber: null, academicTermId: null, studentTerm: null };
+
+    const { data: academicTermRow } =
+        await supabaseClient
+            .from("academic_terms")
+            .select("id")
+            .eq("term_number", relevantStudentTerm.term_number)
+            .limit(1)
+            .maybeSingle();
+
+    return {
+        termNumber: relevantStudentTerm.term_number,
+        academicTermId: academicTermRow ? academicTermRow.id : null,
+        studentTerm: relevantStudentTerm
+    };
+
+}
+
+
 async function loadTermCountdown(studentProfileId) {
 
     const container = document.getElementById("termCountdownContainer");
@@ -840,9 +886,6 @@ async function loadTermCountdown(studentProfileId) {
 
     const mostRecentTerm = terms[terms.length - 1];
 
-    // ===== Check if the student is currently inside their Exam Period or Supp/Deferred window, =====
-    // based on whichever term most recently ended — this takes priority over the ordinary countdown,
-    // since it needs to be the first thing they see and act on.
     const mostRecentEndedTerm = terms
         .filter(t => new Date(t.end_date + "T00:00:00") < today)
         .sort((a, b) => new Date(b.end_date) - new Date(a.end_date))[0];
@@ -888,7 +931,6 @@ async function loadTermCountdown(studentProfileId) {
 
     }
 
-    // If no exam-period banner applies, fall back to the ordinary term countdown.
     if (!html) {
 
         if (activeTerm) {
@@ -948,34 +990,42 @@ async function loadTermCountdown(studentProfileId) {
 }
 
 
-async function loadFeesSummary(studentProfileId) {
+// ===== Fees: now scoped to ONLY the current academic_term_id — a prior term's fee record =====
+// (and whatever was paid against it) never appears here once that term is no longer current.
+async function loadFeesSummary(studentProfileId, academicTermId, termNumber) {
 
     const container = document.getElementById("feesSummaryContainer");
 
-    const { data: feeRecords } =
-        await supabaseClient
-            .from("student_term_fees")
-            .select(`
-                id, fee_type, total_fee, due_date,
-                academic_terms ( id, name, created_at )
-            `)
-            .eq("student_id", studentProfileId)
-            .order("created_at", { ascending: false });
-
-    if (!feeRecords || feeRecords.length === 0) {
+    if (!academicTermId) {
         container.innerHTML = "";
         return;
     }
 
-    const mostRecentTermId = feeRecords[0].academic_terms?.id;
-    const currentTermName = feeRecords[0].academic_terms?.name || "Current Term";
-    const currentTermRecords = feeRecords.filter(r => r.academic_terms?.id === mostRecentTermId);
+    const { data: feeRecords } =
+        await supabaseClient
+            .from("student_term_fees")
+            .select("id, fee_type, total_fee, due_date")
+            .eq("student_id", studentProfileId)
+            .eq("academic_term_id", academicTermId);
+
+    if (!feeRecords || feeRecords.length === 0) {
+        container.innerHTML = `
+            <div class="fees-summary-card">
+                <div class="fees-summary-top">
+                    <div class="fees-summary-title">💳 My Fees</div>
+                    <div class="fees-summary-term">Term ${termNumber}</div>
+                </div>
+                <p class="empty-note">No fee record has been set up for this term yet. Contact admin if you believe this is a mistake.</p>
+            </div>
+        `;
+        return;
+    }
 
     let totalFee = 0;
     let totalPaid = 0;
     let earliestDueDate = null;
 
-    const feeRecordIds = currentTermRecords.map(r => r.id);
+    const feeRecordIds = feeRecords.map(r => r.id);
 
     const { data: allPayments } =
         feeRecordIds.length > 0
@@ -987,7 +1037,7 @@ async function loadFeesSummary(studentProfileId) {
         paidByRecordId[p.student_fee_id] = (paidByRecordId[p.student_fee_id] || 0) + Number(p.amount);
     });
 
-    for (const record of currentTermRecords) {
+    for (const record of feeRecords) {
 
         totalFee += Number(record.total_fee);
         totalPaid += paidByRecordId[record.id] || 0;
@@ -1007,7 +1057,7 @@ async function loadFeesSummary(studentProfileId) {
         <div class="fees-summary-card ${isCleared ? "cleared" : "has-balance"}">
             <div class="fees-summary-top">
                 <div class="fees-summary-title">💳 My Fees</div>
-                <div class="fees-summary-term">${escapeHtml(currentTermName)}</div>
+                <div class="fees-summary-term">Term ${termNumber}</div>
             </div>
 
             <div class="fees-summary-grid">
@@ -1016,7 +1066,7 @@ async function loadFeesSummary(studentProfileId) {
                     <div class="value">K${totalFee}</div>
                 </div>
                 <div class="fees-mini-box paid">
-                    <div class="label">Paid</div>
+                    <div class="label">Paid (this term)</div>
                     <div class="value">K${totalPaid}</div>
                 </div>
                 <div class="fees-mini-box balance ${isCleared ? "cleared" : ""}">
@@ -1135,18 +1185,29 @@ async function startDashboard() {
         `${studentProfile.student_number} • ${programmeName} • ${levelName} • Status: ${status}`;
 
     await loadTermCountdown(studentProfile.id);
-    await loadFeesSummary(studentProfile.id);
+
+    // ===== Resolve the current academic_term_id ONCE, then use it to scope BOTH fees and enrollments. =====
+    const { academicTermId, termNumber } = await getCurrentAcademicTermInfo(studentProfile.id);
+
+    await loadFeesSummary(studentProfile.id, academicTermId, termNumber);
 
 
-    const { data: enrollments } =
-        await supabaseClient
-            .from("enrollments")
-            .select(`
-                id, status, final_score, final_grade,
-                courses ( id, code, name, credits, class_days )
-            `)
-            .eq("student_id", studentProfile.id)
-            .eq("status", "enrolled");
+    // Enrollments now scoped to ONLY the current term — a previous term's courses are excluded
+    // entirely, not just hidden, so every stat and list below reflects this term alone.
+    let enrollmentQuery = supabaseClient
+        .from("enrollments")
+        .select(`
+            id, status, final_score, final_grade,
+            courses ( id, code, name, credits, class_days )
+        `)
+        .eq("student_id", studentProfile.id)
+        .eq("status", "enrolled");
+
+    if (academicTermId) {
+        enrollmentQuery = enrollmentQuery.eq("academic_term_id", academicTermId);
+    }
+
+    const { data: enrollments } = await enrollmentQuery;
 
     const enrolledCourses = (enrollments || []).map(e => e.courses).filter(Boolean);
     const courseIds = enrolledCourses.map(c => c.id);
