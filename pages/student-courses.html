@@ -50,21 +50,74 @@ body { font-family: Arial, Helvetica, sans-serif; background: #f4f6f9; color: #1
 .module-block h4 { font-size: 14px; margin-bottom: 8px; color: #111827; }
 
 .lesson-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
+    display: block;
+    width: 100%;
+    text-align: left;
+    background: white;
     padding: 10px 12px;
     border: 1px solid #e5e7eb;
     border-radius: 8px;
     margin-bottom: 6px;
-    text-decoration: none;
     color: #172033;
     font-size: 13px;
+    cursor: pointer;
+    font-family: inherit;
 }
 
 .lesson-row:hover { background: #f9fafb; }
-.lesson-row .lesson-title { display: flex; align-items: center; gap: 8px; }
+.lesson-row .lesson-title { display: flex; align-items: center; gap: 8px; justify-content: space-between; }
+.lesson-row .lesson-left { display: flex; align-items: center; gap: 8px; }
 .lesson-row .check { font-size: 15px; }
+.lesson-row .toggle-arrow { color: #9ca3af; font-size: 12px; }
+
+.lesson-content-panel {
+    display: none;
+    background: #f9fafb;
+    border: 1px solid #e5e7eb;
+    border-top: none;
+    border-radius: 0 0 8px 8px;
+    padding: 16px;
+    margin: -6px 0 6px;
+    font-size: 13px;
+    line-height: 1.6;
+}
+
+.lesson-content-panel.open { display: block; }
+
+.lesson-content-panel .section-label { font-weight: bold; color: #111827; margin: 12px 0 4px; font-size: 12px; }
+.lesson-content-panel .section-label:first-child { margin-top: 0; }
+.lesson-content-panel p { margin-bottom: 8px; white-space: pre-wrap; }
+
+.lesson-video-wrap {
+    position: relative;
+    width: 100%;
+    padding-top: 56.25%;
+    margin-bottom: 12px;
+    border-radius: 8px;
+    overflow: hidden;
+    background: #111827;
+}
+
+.lesson-video-wrap iframe {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    border: none;
+}
+
+.mark-complete-button {
+    background: #166534;
+    color: white;
+    border: none;
+    padding: 10px 16px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: bold;
+    cursor: pointer;
+    margin-top: 8px;
+}
+
+.mark-complete-button:disabled { opacity: 0.6; cursor: not-allowed; background: #6b7280; }
 
 .empty-note { color: #9ca3af; text-align: center; padding: 30px 0; }
 
@@ -88,7 +141,7 @@ body { font-family: Arial, Helvetica, sans-serif; background: #f4f6f9; color: #1
 
     <section class="page-title">
         <h2>My Lessons</h2>
-        <p>Your courses for the current term only — courses from a previous term will no longer appear here once that term has ended.</p>
+        <p>Your courses for the current term only — tap any lesson to open it right here.</p>
     </section>
 
     <div id="termNoteContainer"></div>
@@ -104,6 +157,10 @@ body { font-family: Arial, Helvetica, sans-serif; background: #f4f6f9; color: #1
 
 <script>
 
+let authUserId = null;
+let completedLessonIds = new Set();
+let lessonsById = {};
+
 function escapeHtml(value) {
     return String(value ?? "")
         .replace(/&/g, "&amp;")
@@ -114,10 +171,23 @@ function escapeHtml(value) {
 }
 
 
-// ===== Same logic used across the LMS: find the student's current term_number from =====
-// student_terms (active, or most recently ended if between terms), then match it to the
-// global academic_terms row with the same term_number to get the academic_term_id that
-// enrollments are scoped by. A prior term's enrollments are never included.
+function getYouTubeEmbedUrl(url) {
+
+    if (!url) return null;
+
+    const watchMatch = url.match(/[?&]v=([^&]+)/);
+    if (watchMatch) return `https://www.youtube.com/embed/${watchMatch[1]}`;
+
+    const shortMatch = url.match(/youtu\.be\/([^?&]+)/);
+    if (shortMatch) return `https://www.youtube.com/embed/${shortMatch[1]}`;
+
+    if (url.includes("youtube.com/embed/")) return url;
+
+    return null;
+
+}
+
+
 async function getCurrentAcademicTermInfo(studentProfileId) {
 
     const { data: terms } =
@@ -172,6 +242,8 @@ async function startPage() {
         return;
     }
 
+    authUserId = user.id;
+
     const { data: studentProfile } =
         await supabaseClient.from("student_profiles").select("id").eq("user_id", user.id).single();
 
@@ -192,8 +264,6 @@ async function startPage() {
         `;
     }
 
-    // ===== THE FIX: enrollments filtered by academic_term_id, not just student_id. =====
-    // A course from a term that's no longer current simply isn't included in this query at all.
     let enrollmentQuery = supabaseClient
         .from("enrollments")
         .select("courses ( id, code, name, credits )")
@@ -226,8 +296,10 @@ async function startPage() {
 
     const { data: lessons } =
         moduleIds.length > 0
-            ? await supabaseClient.from("lessons").select("id, module_id, lesson_number, title").in("module_id", moduleIds).order("lesson_number")
+            ? await supabaseClient.from("lessons").select("*").in("module_id", moduleIds).order("lesson_number")
             : { data: [] };
+
+    (lessons || []).forEach(l => { lessonsById[l.id] = l; });
 
     const lessonIds = (lessons || []).map(l => l.id);
 
@@ -236,7 +308,7 @@ async function startPage() {
             ? await supabaseClient.from("lesson_progress").select("lesson_id, status").eq("student_id", user.id).in("lesson_id", lessonIds)
             : { data: [] };
 
-    const completedLessonIds = new Set((progressRows || []).filter(p => p.status === "completed").map(p => p.lesson_id));
+    completedLessonIds = new Set((progressRows || []).filter(p => p.status === "completed").map(p => p.lesson_id));
 
     const modulesByCourse = {};
     (modules || []).forEach(m => {
@@ -267,12 +339,16 @@ async function startPage() {
                 : moduleLessons.map(lesson => {
                     const isDone = completedLessonIds.has(lesson.id);
                     return `
-                        <a href="student-lesson.html?lesson_id=${lesson.id}" class="lesson-row">
+                        <button type="button" class="lesson-row" onclick="toggleLesson('${lesson.id}')">
                             <span class="lesson-title">
-                                <span class="check">${isDone ? "✅" : "⬜"}</span>
-                                Lesson ${lesson.lesson_number} — ${escapeHtml(lesson.title)}
+                                <span class="lesson-left">
+                                    <span class="check" id="check-${lesson.id}">${isDone ? "✅" : "⬜"}</span>
+                                    Lesson ${lesson.lesson_number} — ${escapeHtml(lesson.title)}
+                                </span>
+                                <span class="toggle-arrow" id="arrow-${lesson.id}">▼</span>
                             </span>
-                        </a>
+                        </button>
+                        <div class="lesson-content-panel" id="panel-${lesson.id}"></div>
                     `;
                 }).join("");
 
@@ -295,6 +371,98 @@ async function startPage() {
         `;
 
     }).join("");
+
+}
+
+
+function toggleLesson(lessonId) {
+
+    const panel = document.getElementById(`panel-${lessonId}`);
+    const arrow = document.getElementById(`arrow-${lessonId}`);
+    const isOpen = panel.classList.contains("open");
+
+    if (isOpen) {
+        panel.classList.remove("open");
+        arrow.textContent = "▼";
+        return;
+    }
+
+    if (!panel.dataset.rendered) {
+        renderLessonContent(lessonId, panel);
+        panel.dataset.rendered = "true";
+    }
+
+    panel.classList.add("open");
+    arrow.textContent = "▲";
+
+}
+
+
+function renderLessonContent(lessonId, panel) {
+
+    const lesson = lessonsById[lessonId];
+    if (!lesson) {
+        panel.innerHTML = `<p class="empty-note">Unable to load this lesson.</p>`;
+        return;
+    }
+
+    const embedUrl = getYouTubeEmbedUrl(lesson.video_url);
+    const isDone = completedLessonIds.has(lessonId);
+
+    let html = "";
+
+    if (embedUrl) {
+        html += `<div class="lesson-video-wrap"><iframe src="${embedUrl}" allowfullscreen></iframe></div>`;
+    } else if (lesson.video_url) {
+        html += `<p><a href="${escapeHtml(lesson.video_url)}" target="_blank" rel="noopener">▶ Open video link</a></p>`;
+    }
+
+    if (lesson.description) {
+        html += `<div class="section-label">Description</div><p>${escapeHtml(lesson.description)}</p>`;
+    }
+
+    if (lesson.learning_objectives) {
+        html += `<div class="section-label">Learning Objectives</div><p>${escapeHtml(lesson.learning_objectives)}</p>`;
+    }
+
+    if (lesson.content) {
+        html += `<div class="section-label">Lesson Content</div><p>${escapeHtml(lesson.content)}</p>`;
+    }
+
+    if (!lesson.description && !lesson.learning_objectives && !lesson.content && !embedUrl && !lesson.video_url) {
+        html += `<p class="empty-note">No content has been added to this lesson yet.</p>`;
+    }
+
+    html += `<button class="mark-complete-button" id="completeBtn-${lessonId}" onclick="markComplete('${lessonId}')" ${isDone ? "disabled" : ""}>${isDone ? "✓ Completed" : "Mark as Complete"}</button>`;
+
+    panel.innerHTML = html;
+
+}
+
+
+async function markComplete(lessonId) {
+
+    const { error } =
+        await supabaseClient
+            .from("lesson_progress")
+            .upsert({
+                student_id: authUserId,
+                lesson_id: lessonId,
+                status: "completed",
+                completed_at: new Date().toISOString()
+            }, { onConflict: "student_id,lesson_id" });
+
+    if (error) {
+        alert("Unable to mark as complete: " + error.message);
+        return;
+    }
+
+    completedLessonIds.add(lessonId);
+    document.getElementById(`check-${lessonId}`).textContent = "✅";
+
+    const btn = document.getElementById(`completeBtn-${lessonId}`);
+    btn.disabled = true;
+    btn.textContent = "✓ Completed";
 
 }
 
