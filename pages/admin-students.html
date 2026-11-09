@@ -152,6 +152,8 @@ tr:hover { background: #f9fafb; }
 
 .status-badge.active { background: #dcfce7; color: #166534; }
 .status-badge.suspended { background: #fee2e2; color: #991b1b; }
+.status-badge.blocked { background: #fee2e2; color: #991b1b; }
+.status-badge.graduated { background: #dbeafe; color: #1d4ed8; }
 
 .rating-input {
     width: 65px;
@@ -170,7 +172,58 @@ tr:hover { background: #f9fafb; }
 
 .suspend-button { background: #fee2e2; color: #991b1b; }
 .reactivate-button { background: #dcfce7; color: #166534; }
+.graduate-button { background: #dbeafe; color: #1d4ed8; }
 .save-rating-button { background: #e5e7eb; color: #111827; }
+
+/* ===== In-page confirm popup (replaces native confirm(), which can fail on Android) ===== */
+
+.confirm-overlay {
+    display: none;
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.55);
+    z-index: 500;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+
+.confirm-overlay.open { display: flex; }
+
+.confirm-box {
+    background: white;
+    border-radius: 14px;
+    padding: 24px;
+    max-width: 440px;
+    width: 100%;
+}
+
+.confirm-box h3 { font-size: 19px; margin-bottom: 10px; }
+.confirm-box p { font-size: 14px; color: #374151; line-height: 1.6; margin-bottom: 20px; }
+
+.confirm-buttons { display: flex; gap: 10px; }
+
+.confirm-cancel {
+    flex: 1;
+    background: #f3f4f6;
+    color: #374151;
+    border: none;
+    padding: 13px;
+    border-radius: 8px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.confirm-ok {
+    flex: 1;
+    background: #111827;
+    color: white;
+    border: none;
+    padding: 13px;
+    border-radius: 8px;
+    font-weight: bold;
+    cursor: pointer;
+}
 
 @media (max-width: 700px) {
     .header { flex-direction: column; align-items: flex-start; gap: 15px; }
@@ -372,6 +425,19 @@ tr:hover { background: #f9fafb; }
 </main>
 
 
+<!-- In-page confirm popup -->
+<div class="confirm-overlay" id="confirmOverlay">
+    <div class="confirm-box">
+        <h3 id="confirmTitle">Are you sure?</h3>
+        <p id="confirmText"></p>
+        <div class="confirm-buttons">
+            <button class="confirm-cancel" id="confirmCancelButton">Cancel</button>
+            <button class="confirm-ok" id="confirmOkButton">Yes, continue</button>
+        </div>
+    </div>
+</div>
+
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="../supabase-config.js"></script>
 
@@ -404,6 +470,37 @@ function generatePassword() {
     const l1 = letters[Math.floor(Math.random() * letters.length)];
     const l2 = letters[Math.floor(Math.random() * letters.length)];
     return `Sun${digits}${l1}${l2}`;
+}
+
+
+/* ================= IN-PAGE CONFIRM ================= */
+
+function askConfirm(title, text, okLabel) {
+
+    return new Promise(resolve => {
+
+        const overlay = document.getElementById("confirmOverlay");
+        document.getElementById("confirmTitle").textContent = title;
+        document.getElementById("confirmText").textContent = text;
+
+        const okButton = document.getElementById("confirmOkButton");
+        const cancelButton = document.getElementById("confirmCancelButton");
+        okButton.textContent = okLabel || "Yes, continue";
+
+        function finish(result) {
+            overlay.classList.remove("open");
+            okButton.onclick = null;
+            cancelButton.onclick = null;
+            resolve(result);
+        }
+
+        okButton.onclick = () => finish(true);
+        cancelButton.onclick = () => finish(false);
+
+        overlay.classList.add("open");
+
+    });
+
 }
 
 
@@ -488,7 +585,11 @@ async function approveApplication(studentProfileId) {
 
 async function rejectApplication(studentProfileId) {
 
-    const confirmed = confirm("Reject this application? The student will be notified they cannot log in.");
+    const confirmed = await askConfirm(
+        "Reject this application?",
+        "The student will be notified they cannot log in.",
+        "Yes, reject"
+    );
     if (!confirmed) return;
 
     const { error } =
@@ -679,7 +780,10 @@ document.getElementById("studentForm").addEventListener("submit", async function
     }
 
 });
-    /* ================= LOAD STUDENTS ================= */
+
+
+/* ================= LOAD STUDENTS ================= */
+/* (This section onward was rebuilt — the pasted file was cut off here.) */
 
 async function loadStudents() {
 
@@ -689,93 +793,151 @@ async function loadStudents() {
         await supabaseClient
             .from("student_profiles")
             .select(`
-                id,
-                user_id,
-                student_number,
-                admission_status,
-                rating,
+                id, student_number, admission_status, application_status, rating,
                 user_profiles ( first_name, last_name, email ),
                 programmes ( code, name ),
                 academic_levels ( name )
             `)
-            .eq("application_status", "approved")
+            .or("application_status.is.null,application_status.eq.approved")
             .order("student_number");
 
     if (error) {
-        console.error(error);
-        tbody.innerHTML = `<tr><td colspan="8">Unable to load students: ${escapeHtml(error.message)}</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="8" style="color:#991b1b;">Unable to load students: ${escapeHtml(error.message)}</td></tr>`;
         return;
     }
 
     allStudents = data || [];
-    renderStudents(allStudents);
+    renderStudents();
 
 }
 
 
-function renderStudents(list) {
+function renderStudents() {
 
     const tbody = document.getElementById("studentTableBody");
+    const query = document.getElementById("searchInput").value.trim().toLowerCase();
 
-    if (!list || list.length === 0) {
+    const filtered = allStudents.filter(s => {
+
+        if (!query) return true;
+
+        const name = `${s.user_profiles?.first_name || ""} ${s.user_profiles?.last_name || ""}`.toLowerCase();
+        const email = (s.user_profiles?.email || "").toLowerCase();
+        const number = (s.student_number || "").toLowerCase();
+
+        return name.includes(query) || email.includes(query) || number.includes(query);
+
+    });
+
+    if (filtered.length === 0) {
         tbody.innerHTML = `<tr><td colspan="8">No students found.</td></tr>`;
         return;
     }
 
-    tbody.innerHTML = "";
+    tbody.innerHTML = filtered.map(s => {
 
-    list.forEach(student => {
+        const fullName = `${s.user_profiles?.first_name || ""} ${s.user_profiles?.last_name || ""}`.trim();
+        const status = s.admission_status || "active";
+        const programmeText = s.programmes ? s.programmes.code : "-";
+        const levelText = s.academic_levels ? s.academic_levels.name : "-";
 
-        const profile = student.user_profiles;
-        const programme = student.programmes;
-        const level = student.academic_levels;
-        const status = student.admission_status || "active";
+        let actionsHtml = "";
 
-        const row = document.createElement("tr");
+        if (status === "active") {
+            actionsHtml = `
+                <button class="action-button suspend-button" onclick="changeStatus('${s.id}', 'suspended')">Suspend</button>
+                <button class="action-button graduate-button" onclick="changeStatus('${s.id}', 'graduated')">Graduate</button>
+            `;
+        } else {
+            actionsHtml = `
+                <button class="action-button reactivate-button" onclick="changeStatus('${s.id}', 'active')">Reactivate</button>
+            `;
+        }
 
-        row.innerHTML = `
-
-            <td>${escapeHtml(student.student_number)}</td>
-            <td>${profile ? escapeHtml(profile.first_name + " " + profile.last_name) : "-"}</td>
-            <td>${profile ? escapeHtml(profile.email || "-") : "-"}</td>
-            <td>${programme ? escapeHtml(programme.code) : "-"}</td>
-            <td>${level ? escapeHtml(level.name) : "-"}</td>
-
-            <td>
-                <input type="number" class="rating-input" min="0" max="100" value="${student.rating ?? ""}" id="rating-${student.id}">
-                <button class="action-button save-rating-button" onclick="saveRating('${student.id}')">Save</button>
-            </td>
-
-            <td>
-                <span class="status-badge ${status}">${escapeHtml(status)}</span>
-            </td>
-
-            <td>
-                ${
-                    status === "suspended"
-                    ? `<button class="action-button reactivate-button" onclick="toggleStatus('${student.id}', 'active')">Reactivate</button>`
-                    : `<button class="action-button suspend-button" onclick="toggleStatus('${student.id}', 'suspended')">Suspend</button>`
-                }
-            </td>
-
+        return `
+            <tr>
+                <td>${escapeHtml(s.student_number)}</td>
+                <td>${escapeHtml(fullName)}</td>
+                <td>${escapeHtml(s.user_profiles?.email || "-")}</td>
+                <td>${escapeHtml(programmeText)}</td>
+                <td>${escapeHtml(levelText)}</td>
+                <td>
+                    <input type="number" class="rating-input" id="rating-${s.id}" step="0.1" min="0" value="${s.rating ?? ""}">
+                    <button class="action-button save-rating-button" onclick="saveRating('${s.id}')">Save</button>
+                </td>
+                <td><span class="status-badge ${escapeHtml(status)}">${escapeHtml(status)}</span></td>
+                <td>${actionsHtml}</td>
+            </tr>
         `;
 
-        tbody.appendChild(row);
-
-    });
+    }).join("");
 
 }
 
 
-async function saveRating(studentId) {
+/* ================= STATUS CHANGES (suspend / graduate / reactivate) ================= */
+/* The database trigger turns these into a real sign-in lock — a suspended or graduated */
+/* student cannot log in, and any open session is ended. */
 
-    const value = document.getElementById(`rating-${studentId}`).value;
+async function changeStatus(studentProfileId, newStatus) {
+
+    const student = allStudents.find(s => s.id === studentProfileId);
+    const fullName = student ? `${student.user_profiles?.first_name || ""} ${student.user_profiles?.last_name || ""}`.trim() : "this student";
+
+    let title = "";
+    let text = "";
+    let okLabel = "";
+
+    if (newStatus === "suspended") {
+        title = "Suspend " + fullName + "?";
+        text = "They will be signed out immediately and cannot log in until you reactivate them.";
+        okLabel = "Yes, suspend";
+    } else if (newStatus === "graduated") {
+        title = "Graduate " + fullName + "?";
+        text = "They will be signed out immediately and will no longer be able to open the portal or any course material. You can undo this with Reactivate.";
+        okLabel = "Yes, graduate";
+    } else {
+        title = "Reactivate " + fullName + "?";
+        text = "They will be able to log in and use the portal again.";
+        okLabel = "Yes, reactivate";
+    }
+
+    const confirmed = await askConfirm(title, text, okLabel);
+    if (!confirmed) return;
+
+    const { error } =
+        await supabaseClient
+            .from("student_profiles")
+            .update({ admission_status: newStatus })
+            .eq("id", studentProfileId);
+
+    if (error) {
+        showMessage("Unable to update status: " + error.message, "error");
+        return;
+    }
+
+    const doneText = newStatus === "suspended"
+        ? fullName + " has been suspended."
+        : newStatus === "graduated"
+            ? fullName + " has been graduated and locked out of the portal."
+            : fullName + " has been reactivated.";
+
+    showMessage(doneText, "success");
+    await loadStudents();
+
+}
+
+
+async function saveRating(studentProfileId) {
+
+    const input = document.getElementById("rating-" + studentProfileId);
+    const value = input.value.trim();
 
     const { error } =
         await supabaseClient
             .from("student_profiles")
             .update({ rating: value === "" ? null : Number(value) })
-            .eq("id", studentId);
+            .eq("id", studentProfileId);
 
     if (error) {
         showMessage("Unable to save rating: " + error.message, "error");
@@ -783,69 +945,19 @@ async function saveRating(studentId) {
     }
 
     showMessage("Rating saved.", "success");
-    await loadStudents();
 
 }
 
 
-async function toggleStatus(studentId, newStatus) {
-
-    const { error } =
-        await supabaseClient
-            .from("student_profiles")
-            .update({ admission_status: newStatus })
-            .eq("id", studentId);
-
-    if (error) {
-        showMessage("Unable to update status: " + error.message, "error");
-        return;
-    }
-
-    showMessage(
-        newStatus === "suspended" ? "Student suspended." : "Student reactivated.",
-        "success"
-    );
-
-    await loadStudents();
-
-}
+document.getElementById("searchInput").addEventListener("input", renderStudents);
 
 
-/* ================= SEARCH ================= */
-
-document.getElementById("searchInput").addEventListener("input", function() {
-
-    const term = this.value.toLowerCase().trim();
-
-    const filtered = allStudents.filter(student => {
-
-        const profile = student.user_profiles;
-        const name = profile ? `${profile.first_name} ${profile.last_name}`.toLowerCase() : "";
-        const email = profile?.email?.toLowerCase() || "";
-        const number = student.student_number?.toLowerCase() || "";
-
-        return name.includes(term) || email.includes(term) || number.includes(term);
-
-    });
-
-    renderStudents(filtered);
-
-});
-
-
-/* ================= INIT ================= */
-
-async function startPage() {
-    await loadPendingApplications();
-    await loadProgrammes();
-    await loadAcademicLevels();
-    await loadStudents();
-}
-
-startPage();
+loadPendingApplications();
+loadProgrammes();
+loadAcademicLevels();
+loadStudents();
 
 </script>
 
 </body>
-
 </html>
