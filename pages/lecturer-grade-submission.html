@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Grade Submission | E-Campus Lecturer Portal</title>
+
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: Arial, Helvetica, sans-serif; background: #f4f6f9; color: #172033; }
+
+.header { background: #111827; color: white; padding: 18px 25px; display: flex; align-items: center; gap: 14px; }
+.logo { width: 55px; height: 55px; object-fit: contain; background: white; border-radius: 8px; }
+.header h1 { font-size: 22px; }
+.header p { color: #d4af37; font-size: 13px; margin-top: 3px; }
+.back-button { margin-left: auto; background: #d4af37; color: #111827; text-decoration: none; padding: 10px 16px; border-radius: 8px; font-weight: bold; font-size: 13px; }
+
+.container { max-width: 950px; margin: 25px auto; padding: 0 20px; }
+
+.page-title { margin-bottom: 20px; }
+.page-title h2 { font-size: 28px; margin-bottom: 6px; }
+.page-title p { color: #6b7280; font-size: 14px; }
+
+.card { background: white; padding: 20px; border-radius: 14px; margin-bottom: 18px; box-shadow: 0 3px 12px rgba(0,0,0,0.06); }
+
+label { font-size: 13px; font-weight: bold; display: block; margin-bottom: 6px; }
+
+select {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    font-size: 14px;
+    margin-bottom: 14px;
+}
+
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+.message { padding: 12px; border-radius: 8px; margin-bottom: 16px; display: none; font-size: 13px; }
+.message.success { display: block; background: #dcfce7; color: #166534; }
+.message.error { display: block; background: #fee2e2; color: #991b1b; }
+
+.publish-banner {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    padding: 16px;
+    border-radius: 10px;
+    margin-bottom: 16px;
+    font-size: 14px;
+    font-weight: bold;
+}
+
+.publish-banner.published { background: #dcfce7; color: #166534; }
+.publish-banner.unpublished { background: #fef3c7; color: #92400e; }
+
+.publish-toggle-button {
+    border: none;
+    padding: 10px 18px;
+    border-radius: 8px;
+    font-weight: bold;
+    cursor: pointer;
+    font-size: 13px;
+    white-space: nowrap;
+}
+
+.publish-toggle-button.to-publish { background: #166534; color: white; }
+.publish-toggle-button.to-unpublish { background: #991b1b; color: white; }
+
+.summary-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 16px; }
+.summary-box { background: #f9fafb; border-radius: 8px; padding: 12px; text-align: center; }
+.summary-box .value { font-size: 18px; font-weight: bold; }
+.summary-box .label { font-size: 10px; color: #6b7280; margin-top: 3px; }
+
+.results-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.results-table th { text-align: left; padding: 10px 8px; background: #f4f6f9; font-size: 11px; color: #6b7280; border-bottom: 2px solid #e5e7eb; white-space: nowrap; }
+.results-table td { padding: 10px 8px; border-bottom: 1px solid #f0f1f3; vertical-align: middle; }
+
+.score-input {
+    width: 80px;
+    padding: 8px;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    font-size: 13px;
+}
+
+.source-tag { font-size: 10px; padding: 3px 8px; border-radius: 10px; font-weight: bold; white-space: nowrap; }
+.source-tag.system { background: #dbeafe; color: #1d4ed8; }
+.source-tag.manual { background: #fef3c7; color: #92400e; }
+.source-tag.none { background: #f3f4f6; color: #9ca3af; }
+.source-tag.flagged { background: #fee2e2; color: #991b1b; }
+
+.save-row-button {
+    background: #111827;
+    color: white;
+    border: none;
+    padding: 8px 14px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: bold;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.save-row-button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.save-all-button {
+    background: #d4af37;
+    color: #111827;
+    border: none;
+    padding: 13px 20px;
+    border-radius: 8px;
+    font-weight: bold;
+    cursor: pointer;
+    width: 100%;
+    margin-top: 16px;
+}
+
+.empty-note { color: #9ca3af; text-align: center; padding: 30px 0; }
+
+.table-wrap { overflow-x: auto; }
+
+@media (max-width: 600px) {
+    .form-row { grid-template-columns: 1fr; }
+    .summary-row { grid-template-columns: repeat(2, 1fr); }
+}
+
+</style>
+</head>
+
+
+<body>
+
+<header class="header">
+    <img src="https://pub-b3e2d39712e84119875e84c5ec5f5c09.r2.dev/Logo/IMG-20260816-WA0050(1).jpg" alt="Sunningdale University Logo" class="logo">
+    <div>
+        <h1>E-Campus</h1>
+        <p>Lecturer Portal</p>
+    </div>
+    <a href="lecturer-dashboard.html" class="back-button">← Dashboard</a>
+</header>
+
+
+<main class="container">
+
+    <section class="page-title">
+        <h2>Grade Submission</h2>
+        <p>Select a course and an exam or quiz. Type in a score for anyone who wrote outside the system, then Publish when you're ready for students to see it.</p>
+    </section>
+
+    <div id="message" class="message"></div>
+
+    <section class="card">
+
+        <div class="form-row">
+            <div>
+                <label for="courseSelect">Course</label>
+                <select id="courseSelect" onchange="loadQuizList()">
+                    <option value="">Select a course...</option>
+                </select>
+            </div>
+            <div>
+                <label for="quizSelect">Select exam/quiz</label>
+                <select id="quizSelect" onchange="loadResultsTable()">
+                    <option value="">Select an exam or quiz above.</option>
+                </select>
+            </div>
+        </div>
+
+    </section>
+
+    <section class="card">
+        <div id="publishBannerContainer"></div>
+        <div id="summaryRow"></div>
+        <div class="table-wrap">
+            <div id="resultsContainer"><p class="empty-note">Select a course and an exam/quiz above to begin.</p></div>
+        </div>
+        <button class="save-all-button" id="saveAllButton" style="display:none;" onclick="saveAllScores()">Save All Entered Scores</button>
+    </section>
+
+</main>
+
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../supabase-config.js"></script>
+
+
+<script>
+
+let currentStudents = [];
+let currentQuizId = null;
+let currentCourseId = null;
+let currentQuizIsPublished = false;
+
+function escapeHtml(value) {
+    return String(value ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+}
+
+function showMessage(text, type) {
+    const el = document.getElementById("message");
+    el.textContent = text;
+    el.className = "message " + type;
+    setTimeout(() => { el.className = "message"; }, 4000);
+}
+
+
+function quizLabelFor(quiz) {
+    if (quiz.is_final_exam) return `${quiz.title} (End-of-Term)`;
+    if (quiz.ca_number) return `${quiz.title} (CA${quiz.ca_number})`;
+    return quiz.title;
+}
+
+
+async function startPage() {
+
+    const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
+
+    if (authError || !user) {
+        window.location.href = "lecturer-login.html";
+        return;
+    }
+
+    const { data: lecturerProfile } =
+        await supabaseClient.from("lecturer_profiles").select("id").eq("user_id", user.id).single();
+
+    if (!lecturerProfile) {
+        document.getElementById("resultsContainer").innerHTML = `<p class="empty-note">Unable to load your lecturer profile.</p>`;
+        return;
+    }
+
+    const { data: assignments } =
+        await supabaseClient
+            .from("course_lecturers")
+            .select("courses ( id, code, name )")
+            .eq("lecturer_id", lecturerProfile.id);
+
+    const courses = (assignments || []).map(a => a.courses).filter(Boolean);
+
+    const select = document.getElementById("courseSelect");
+    courses.forEach(c => {
+        const opt = document.createElement("option");
+        opt.value = c.id;
+        opt.textContent = `${c.code} — ${c.name}`;
+        select.appendChild(opt);
+    });
+
+}
+
+
+async function loadQuizList() {
+
+    const courseId = document.getElementById("courseSelect").value;
+    const quizSelect = document.getElementById("quizSelect");
+    const container = document.getElementById("resultsContainer");
+    const saveAllButton = document.getElementById("saveAllButton");
+
+    quizSelect.innerHTML = `<option value="">Select an exam or quiz...</option>`;
+    container.innerHTML = `<p class="empty-note">Select an exam/quiz above.</p>`;
+    saveAllButton.style.display = "none";
+    document.getElementById("summaryRow").innerHTML = "";
+    document.getElementById("publishBannerContainer").innerHTML = "";
+
+    if (!courseId) return;
+
+    currentCourseId = courseId;
+
+    const { data: quizzes } =
+        await supabaseClient
+            .from("quizzes")
+            .select("id, title, is_final_exam, ca_number, is_published")
+            .eq("course_id", courseId)
+            .order("ca_number", { ascending: true });
+
+    (quizzes || []).forEach(q => {
+        const opt = document.createElement("option");
+        opt.value = q.id;
+        opt.textContent = quizLabelFor(q);
+        quizSelect.appendChild(opt);
+    });
+
+    if (!quizzes || quizzes.length === 0) {
+        quizSelect.innerHTML = `<option value="">No exams/quizzes exist for this course yet</option>`;
+    }
+
+}
+
+
+async function loadResultsTable() {
+
+    const quizId = document.getElementById("quizSelect").value;
+    const courseId = document.getElementById("courseSelect").value;
+    const container = document.getElementById("resultsContainer");
+    const saveAllButton = document.getElementById("saveAllButton");
+    const summaryRow = document.getElementById("summaryRow");
+    const publishBannerContainer = document.getElementById("publishBannerContainer");
+
+    if (!quizId) {
+        container.innerHTML = `<p class="empty-note">Select an exam/quiz above.</p>`;
+        saveAllButton.style.display = "none";
+        summaryRow.innerHTML = "";
+        publishBannerContainer.innerHTML = "";
+        return;
+    }
+
+    currentQuizId = quizId;
+    container.innerHTML = `<p class="empty-note">Loading...</p>`;
+    saveAllButton.style.display = "none";
+
+    const { data: quizRow } =
+        await supabaseClient.from("quizzes").select("is_published").eq("id", quizId).single();
+
+    currentQuizIsPublished = !!(quizRow && quizRow.is_published);
+    renderPublishBanner();
+
+    const { data: enrollments } =
+        await supabaseClient
+            .from("enrollments")
+            .select("student_id, student_profiles ( id, student_number, user_profiles ( first_name, last_name ) )")
+            .eq("course_id", courseId)
+            .eq("status", "enrolled");
+
+    currentStudents = (enrollments || []).map(e => e.student_profiles).filter(Boolean);
+
+    if (currentStudents.length === 0) {
+        container.innerHTML = `<p class="empty-note">No students are enrolled in this course.</p>`;
+        summaryRow.innerHTML = "";
+        return;
+    }
+
+    const studentProfileIds = currentStudents.map(s => s.id);
+
+    const { data: profileToAuth } =
+        await supabaseClient
+            .from("student_profiles")
+            .select("id, user_id")
+            .in("id", studentProfileIds);
+
+    const authIdByProfileId = {};
+    (profileToAuth || []).forEach(p => { authIdByProfileId[p.id] = p.user_id; });
+
+    const authIds = Object.values(authIdByProfileId);
+
+    const { data: attempts } =
+        await supabaseClient
+            .from("quiz_attempts")
+            .select("student_id, score, violation_flag, cleared_by_lecturer, entry_source")
+            .eq("quiz_id", quizId)
+            .in("student_id", authIds);
+
+    const attemptByAuthId = {};
+    (attempts || []).forEach(a => { attemptByAuthId[a.student_id] = a; });
+
+    let recordedCount = 0;
+    let notRecordedCount = 0;
+    const scoresForAverage = [];
+
+    let html = `
+        <table class="results-table">
+            <thead>
+                <tr>
+                    <th>Student No.</th>
+                    <th>Name</th>
+                    <th>Current Score</th>
+                    <th>Enter/Update Score</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+    `;
+
+    currentStudents.forEach(student => {
+
+        const name = student.user_profiles ? `${student.user_profiles.first_name} ${student.user_profiles.last_name}` : "Unknown";
+        const authId = authIdByProfileId[student.id];
+        const existing = attemptByAuthId[authId];
+
+        let sourceTag = `<span class="source-tag none">Not recorded</span>`;
+        let currentScoreDisplay = "—";
+
+        if (existing) {
+
+            if (existing.violation_flag && !existing.cleared_by_lecturer) {
+
+                sourceTag = `<span class="source-tag flagged">Flagged — unresolved</span>`;
+
+            } else if (existing.score !== null) {
+
+                currentScoreDisplay = existing.score + "%";
+                scoresForAverage.push(existing.score);
+
+                if (existing.entry_source === "manual") {
+                    sourceTag = `<span class="source-tag manual">Manually entered</span>`;
+                } else {
+                    sourceTag = `<span class="source-tag system">Wrote online</span>`;
+                }
+                recordedCount++;
+
+            }
+
+        } else {
+            notRecordedCount++;
+        }
+
+        html += `
+            <tr>
+                <td>${escapeHtml(student.student_number)}</td>
+                <td>${escapeHtml(name)}</td>
+                <td>${currentScoreDisplay}<br>${sourceTag}</td>
+                <td>
+                    <input type="number" class="score-input" id="score-${student.id}" min="0" max="100" placeholder="0-100" data-auth-id="${authId || ""}" data-student-profile-id="${student.id}">
+                </td>
+                <td>
+                    <button class="save-row-button" onclick="saveOneScore('${student.id}')" ${authId ? "" : "disabled"}>Save</button>
+                </td>
+            </tr>
+        `;
+
+    });
+
+    html += `</tbody></table>`;
+
+    const classAverage = scoresForAverage.length > 0
+        ? Math.round(scoresForAverage.reduce((a, b) => a + b, 0) / scoresForAverage.length)
+        : 0;
+
+    summaryRow.innerHTML = `
+        <div class="summary-row">
+            <div class="summary-box"><div class="value">${currentStudents.length}</div><div class="label">Enrolled</div></div>
+            <div class="summary-box"><div class="value">${recordedCount}</div><div class="label">Scores Recorded</div></div>
+            <div class="summary-box"><div class="value">${notRecordedCount}</div><div class="label">Missing</div></div>
+            <div class="summary-box"><div class="value">${classAverage}%</div><div class="label">Class Average</div></div>
+        </div>
+    `;
+
+    container.innerHTML = html;
+    saveAllButton.style.display = "block";
+
+}
+
+
+function renderPublishBanner() {
+
+    const container = document.getElementById("publishBannerContainer");
+
+    container.innerHTML = currentQuizIsPublished
+        ? `
+            <div class="publish-banner published">
+                <span>✓ Published — students can currently see this score.</span>
+                <button class="publish-toggle-button to-unpublish" onclick="togglePublish(false)">Unpublish</button>
+            </div>
+        `
+        : `
+            <div class="publish-banner unpublished">
+                <span>🔒 Not published — students cannot see this score yet, even where one is already recorded.</span>
+                <button class="publish-toggle-button to-publish" onclick="togglePublish(true)">Publish Results</button>
+            </div>
+        `;
+
+}
+
+
+async function togglePublish(publishState) {
+
+    if (!currentQuizId) return;
+
+    const { error } =
+        await supabaseClient.from("quizzes").update({ is_published: publishState }).eq("id", currentQuizId);
+
+    if (error) {
+        showMessage("Unable to update: " + error.message, "error");
+        return;
+    }
+
+    currentQuizIsPublished = publishState;
+    renderPublishBanner();
+
+    showMessage(publishState ? "Published. Students can now see this score." : "Unpublished. Students can no longer see this score.", "success");
+
+}
+
+
+async function saveOneScore(studentProfileId) {
+
+    const input = document.getElementById(`score-${studentProfileId}`);
+    const value = input.value.trim();
+
+    if (value === "") {
+        showMessage("Enter a score first.", "error");
+        return;
+    }
+
+    const scoreNum = Number(value);
+
+    if (isNaN(scoreNum) || scoreNum < 0 || scoreNum > 100) {
+        showMessage("Score must be a number between 0 and 100.", "error");
+        return;
+    }
+
+    const authId = input.dataset.authId;
+
+    if (!authId) {
+        showMessage("Unable to find this student's account — cannot save.", "error");
+        return;
+    }
+
+    const { data: existingAttempts } =
+        await supabaseClient
+            .from("quiz_attempts")
+            .select("id")
+            .eq("quiz_id", currentQuizId)
+            .eq("student_id", authId);
+
+    const oldIds = (existingAttempts || []).map(a => a.id);
+
+    if (oldIds.length > 0) {
+        await supabaseClient.from("quiz_attempts").delete().in("id", oldIds);
+    }
+
+    const { error } =
+        await supabaseClient.from("quiz_attempts").insert({
+            quiz_id: currentQuizId,
+            student_id: authId,
+            started_at: new Date().toISOString(),
+            submitted_at: new Date().toISOString(),
+            answers: {},
+            score: scoreNum,
+            entry_source: "manual"
+        });
+
+    if (error) {
+        showMessage("Unable to save: " + error.message, "error");
+        return;
+    }
+
+    showMessage(currentQuizIsPublished ? "Score saved — already published, so visible now." : "Score saved (not yet published — students still won't see it until you publish).", "success");
+    await loadResultsTable();
+
+}
+
+
+async function saveAllScores() {
+
+    const inputs = document.querySelectorAll(".score-input");
+    let savedCount = 0;
+    let errorCount = 0;
+
+    for (const input of inputs) {
+
+        const value = input.value.trim();
+        if (value === "") continue;
+
+        const scoreNum = Number(value);
+        if (isNaN(scoreNum) || scoreNum < 0 || scoreNum > 100) {
+            errorCount++;
+            continue;
+        }
+
+        const authId = input.dataset.authId;
+        if (!authId) { errorCount++; continue; }
+
+        const { data: existingAttempts } =
+            await supabaseClient
+                .from("quiz_attempts")
+                .select("id")
+                .eq("quiz_id", currentQuizId)
+                .eq("student_id", authId);
+
+        const oldIds = (existingAttempts || []).map(a => a.id);
+
+        if (oldIds.length > 0) {
+            await supabaseClient.from("quiz_attempts").delete().in("id", oldIds);
+        }
+
+        const { error } =
+            await supabaseClient.from("quiz_attempts").insert({
+                quiz_id: currentQuizId,
+                student_id: authId,
+                started_at: new Date().toISOString(),
+                submitted_at: new Date().toISOString(),
+                answers: {},
+                score: scoreNum,
+                entry_source: "manual"
+            });
+
+        if (error) errorCount++;
+        else savedCount++;
+
+    }
+
+    if (savedCount > 0) {
+        showMessage(`Saved ${savedCount} score(s)${errorCount > 0 ? `, ${errorCount} failed` : ""}.${currentQuizIsPublished ? "" : " Remember to Publish when ready."}`, errorCount > 0 ? "error" : "success");
+    } else {
+        showMessage("No scores were entered to save.", "error");
+    }
+
+    await loadResultsTable();
+
+}
+
+
+startPage();
+
+</script>
+
+</body>
+</html>
