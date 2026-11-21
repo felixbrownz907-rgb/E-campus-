@@ -569,9 +569,10 @@ body {
             <span class="item-left">📋 My Exemption Status <span class="badge-soon">Coming Soon</span></span>
         </div>
 
-        <div class="menu-item disabled">
-            <span class="item-left">🔄 Apply For Programme Change <span class="badge-soon">Coming Soon</span></span>
-        </div>
+        <a href="student-programme-change.html" class="menu-item">
+            <span class="item-left">🔄 Apply For Programme Change</span>
+            <span class="arrow">›</span>
+        </a>
 
         <a href="student-timetable.html" class="menu-item">
             <span class="item-left">📅 My Lecture Timetable</span>
@@ -990,7 +991,7 @@ async function loadTermCountdown(studentProfileId) {
 }
 
 
-// ===== Fees: now scoped to ONLY the current academic_term_id — a prior term's fee record =====
+// ===== Fees: scoped to ONLY the current academic_term_id — a prior term's fee record =====
 // (and whatever was paid against it) never appears here once that term is no longer current.
 async function loadFeesSummary(studentProfileId, academicTermId, termNumber) {
 
@@ -1192,7 +1193,7 @@ async function startDashboard() {
     await loadFeesSummary(studentProfile.id, academicTermId, termNumber);
 
 
-    // Enrollments now scoped to ONLY the current term — a previous term's courses are excluded
+    // Enrollments scoped to ONLY the current term — a previous term's courses are excluded
     // entirely, not just hidden, so every stat and list below reflects this term alone.
     let enrollmentQuery = supabaseClient
         .from("enrollments")
