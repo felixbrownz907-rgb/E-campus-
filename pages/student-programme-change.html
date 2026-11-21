@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Programme Change | E-Campus</title>
+
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: Arial, Helvetica, sans-serif; background: #f4f6f9; color: #172033; }
+
+.header { background: #111827; color: white; padding: 18px 25px; display: flex; align-items: center; gap: 14px; }
+.logo { width: 55px; height: 55px; object-fit: contain; background: white; border-radius: 8px; }
+.header h1 { font-size: 22px; }
+.header p { color: #d4af37; font-size: 13px; margin-top: 3px; }
+.back-button { margin-left: auto; background: #d4af37; color: #111827; text-decoration: none; padding: 10px 16px; border-radius: 8px; font-weight: bold; font-size: 13px; }
+
+.container { max-width: 700px; margin: 25px auto; padding: 0 20px; }
+
+.page-title { margin-bottom: 20px; }
+.page-title h2 { font-size: 26px; margin-bottom: 6px; }
+.page-title p { color: #6b7280; font-size: 14px; line-height: 1.5; }
+
+.message { padding: 12px; border-radius: 8px; margin-bottom: 16px; display: none; font-size: 13px; }
+.message.success { display: block; background: #dcfce7; color: #166534; }
+.message.error { display: block; background: #fee2e2; color: #991b1b; }
+
+.card { background: white; padding: 20px; border-radius: 14px; margin-bottom: 18px; box-shadow: 0 3px 12px rgba(0,0,0,0.06); }
+.card h3 { font-size: 17px; margin-bottom: 14px; }
+
+.current-programme { background: #f9fafb; border-radius: 10px; padding: 14px; font-size: 14px; }
+.current-programme .label { font-size: 11px; color: #6b7280; font-weight: bold; margin-bottom: 4px; }
+.current-programme .value { font-weight: bold; font-size: 15px; }
+
+label { font-size: 13px; font-weight: bold; display: block; margin-bottom: 6px; }
+
+select, textarea {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    font-size: 14px;
+    margin-bottom: 14px;
+    font-family: inherit;
+}
+
+textarea { min-height: 100px; resize: vertical; }
+
+.notice {
+    background: #eff6ff;
+    border: 1px solid #bfdbfe;
+    color: #1d4ed8;
+    padding: 12px;
+    border-radius: 8px;
+    font-size: 13px;
+    line-height: 1.5;
+    margin-bottom: 14px;
+}
+
+.pending-box {
+    background: #fef3c7;
+    border: 1px solid #fde68a;
+    color: #92400e;
+    padding: 14px;
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: bold;
+    line-height: 1.5;
+}
+
+.submit-button {
+    background: #111827;
+    color: white;
+    border: none;
+    padding: 14px;
+    border-radius: 8px;
+    font-weight: bold;
+    font-size: 14px;
+    cursor: pointer;
+    width: 100%;
+}
+
+.submit-button:disabled { opacity: 0.6; cursor: not-allowed; }
+
+.request-item { border: 1px solid #e5e7eb; border-radius: 10px; padding: 14px; margin-bottom: 10px; font-size: 13px; }
+.request-top { display: flex; justify-content: space-between; align-items: start; gap: 10px; flex-wrap: wrap; margin-bottom: 8px; }
+.request-title { font-weight: bold; font-size: 14px; }
+.request-date { color: #9ca3af; font-size: 11px; margin-top: 3px; }
+.request-reason { color: #374151; line-height: 1.5; margin-bottom: 6px; }
+.admin-note { background: #f9fafb; border-radius: 8px; padding: 10px; color: #374151; line-height: 1.5; }
+
+.status-badge { padding: 4px 12px; border-radius: 20px; font-size: 11px; font-weight: bold; white-space: nowrap; }
+.status-badge.pending { background: #fef3c7; color: #92400e; }
+.status-badge.approved { background: #dcfce7; color: #166534; }
+.status-badge.rejected { background: #fee2e2; color: #991b1b; }
+
+.empty-note { color: #9ca3af; text-align: center; padding: 20px 0; font-size: 13px; }
+
+</style>
+</head>
+
+
+<body>
+
+<header class="header">
+    <img src="https://pub-b3e2d39712e84119875e84c5ec5f5c09.r2.dev/Logo/IMG-20260816-WA0050(1).jpg" alt="Sunningdale University Logo" class="logo">
+    <div>
+        <h1>E-Campus</h1>
+        <p>Sunningdale University</p>
+    </div>
+    <a href="student-dashboard.html" class="back-button">← Dashboard</a>
+</header>
+
+
+<main class="container">
+
+    <section class="page-title">
+        <h2>Apply For Programme Change</h2>
+        <p>Request a move to a different programme. Admin will review your request and you'll see the decision on this page.</p>
+    </section>
+
+    <div id="message" class="message"></div>
+
+    <section class="card">
+        <h3>Your Current Programme</h3>
+        <div class="current-programme" id="currentProgrammeBox">Loading...</div>
+    </section>
+
+    <section class="card" id="requestCard">
+        <h3>New Request</h3>
+        <div id="requestCardBody"><p class="empty-note">Loading...</p></div>
+    </section>
+
+    <section class="card">
+        <h3>My Requests</h3>
+        <div id="requestsList"><p class="empty-note">Loading...</p></div>
+    </section>
+
+</main>
+
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../supabase-config.js"></script>
+
+
+<script>
+
+let studentProfile = null;
+let programmeById = {};
+let allProgrammes = [];
+
+function escapeHtml(value) {
+    return String(value ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+}
+
+function showMessage(text, type) {
+    const el = document.getElementById("message");
+    el.textContent = text;
+    el.className = "message " + type;
+    setTimeout(() => { el.className = "message"; }, 5000);
+}
+
+function programmeLabel(id) {
+    const p = programmeById[id];
+    return p ? `${p.code} — ${p.name}` : "Not set";
+}
+
+
+async function startPage() {
+
+    const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
+
+    if (authError || !user) {
+        window.location.href = "student-login.html";
+        return;
+    }
+
+    const { data: sp, error: profileError } =
+        await supabaseClient
+            .from("student_profiles")
+            .select("id, programme_id, student_number")
+            .eq("user_id", user.id)
+            .single();
+
+    if (profileError || !sp) {
+        document.getElementById("currentProgrammeBox").textContent = "Unable to load your student profile.";
+        document.getElementById("requestCardBody").innerHTML = "";
+        document.getElementById("requestsList").innerHTML = "";
+        return;
+    }
+
+    studentProfile = sp;
+
+    const { data: programmes } =
+        await supabaseClient.from("programmes").select("id, code, name").order("name");
+
+    allProgrammes = programmes || [];
+    allProgrammes.forEach(p => { programmeById[p.id] = p; });
+
+    document.getElementById("currentProgrammeBox").innerHTML = `
+        <div class="label">${escapeHtml(sp.student_number || "")}</div>
+        <div class="value">${escapeHtml(programmeLabel(sp.programme_id))}</div>
+    `;
+
+    await loadRequests();
+
+}
+
+
+async function loadRequests() {
+
+    const { data: requests, error } =
+        await supabaseClient
+            .from("programme_change_requests")
+            .select("*")
+            .eq("student_id", studentProfile.id)
+            .order("created_at", { ascending: false });
+
+    if (error) {
+        document.getElementById("requestsList").innerHTML = `<p class="empty-note">Unable to load your requests: ${escapeHtml(error.message)}</p>`;
+        return;
+    }
+
+    const list = requests || [];
+    const pending = list.find(r => r.status === "pending");
+
+    renderRequestCard(pending);
+    renderRequestsList(list);
+
+}
+
+
+function renderRequestCard(pending) {
+
+    const body = document.getElementById("requestCardBody");
+
+    if (pending) {
+        body.innerHTML = `
+            <div class="pending-box">
+                ⏳ You already have a request waiting for admin: ${escapeHtml(programmeLabel(pending.current_programme_id))} → ${escapeHtml(programmeLabel(pending.requested_programme_id))}.
+                You can send a new one once this is decided.
+            </div>
+        `;
+        return;
+    }
+
+    const options = allProgrammes
+        .filter(p => p.id !== studentProfile.programme_id)
+        .map(p => `<option value="${p.id}">${escapeHtml(p.code)} — ${escapeHtml(p.name)}</option>`)
+        .join("");
+
+    body.innerHTML = `
+        <div class="notice">
+            Approval only changes your programme. Your current courses and fees are not changed automatically, so admin will advise you on those after the change.
+        </div>
+
+        <label for="newProgramme">Programme you want to move to</label>
+        <select id="newProgramme">
+            <option value="">Select a programme...</option>
+            ${options}
+        </select>
+
+        <label for="reasonBox">Reason for the change</label>
+        <textarea id="reasonBox" placeholder="Explain why you want to change programme..."></textarea>
+
+        <button class="submit-button" id="submitButton" onclick="submitRequest()">Submit Request</button>
+    `;
+
+}
+
+
+function renderRequestsList(list) {
+
+    const container = document.getElementById("requestsList");
+
+    if (list.length === 0) {
+        container.innerHTML = `<p class="empty-note">You haven't made any programme change requests yet.</p>`;
+        return;
+    }
+
+    container.innerHTML = list.map(r => {
+
+        const statusLabel = r.status.charAt(0).toUpperCase() + r.status.slice(1);
+
+        return `
+            <div class="request-item">
+                <div class="request-top">
+                    <div>
+                        <div class="request-title">${escapeHtml(programmeLabel(r.current_programme_id))} → ${escapeHtml(programmeLabel(r.requested_programme_id))}</div>
+                        <div class="request-date">Sent ${new Date(r.created_at).toLocaleDateString()}</div>
+                    </div>
+                    <span class="status-badge ${escapeHtml(r.status)}">${escapeHtml(statusLabel)}</span>
+                </div>
+                ${r.reason ? `<div class="request-reason"><strong>Your reason:</strong> ${escapeHtml(r.reason)}</div>` : ""}
+                ${r.admin_note ? `<div class="admin-note"><strong>Admin note:</strong> ${escapeHtml(r.admin_note)}</div>` : ""}
+            </div>
+        `;
+
+    }).join("");
+
+}
+
+
+async function submitRequest() {
+
+    const newProgrammeId = document.getElementById("newProgramme").value;
+    const reason = document.getElementById("reasonBox").value.trim();
+    const button = document.getElementById("submitButton");
+
+    if (!newProgrammeId) {
+        showMessage("Please choose the programme you want to move to.", "error");
+        return;
+    }
+
+    if (reason.length < 10) {
+        showMessage("Please give a reason for the change (at least a short sentence).", "error");
+        return;
+    }
+
+    button.disabled = true;
+    button.textContent = "Submitting...";
+
+    const { error } =
+        await supabaseClient.from("programme_change_requests").insert({
+            student_id: studentProfile.id,
+            current_programme_id: studentProfile.programme_id,
+            requested_programme_id: newProgrammeId,
+            reason: reason,
+            status: "pending"
+        });
+
+    if (error) {
+        button.disabled = false;
+        button.textContent = "Submit Request";
+        showMessage(error.code === "23505"
+            ? "You already have a request waiting for admin."
+            : "Unable to submit: " + error.message, "error");
+        return;
+    }
+
+    showMessage("Request submitted. Admin will review it and the decision will show on this page.", "success");
+    await loadRequests();
+
+}
+
+
+startPage();
+
+</script>
+
+</body>
+</html>
