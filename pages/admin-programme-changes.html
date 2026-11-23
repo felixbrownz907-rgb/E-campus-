@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Programme Changes | E-Campus Admin</title>
+
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: Arial, Helvetica, sans-serif; background: #f4f6f9; color: #172033; }
+
+.header { background: #111827; color: white; padding: 18px 25px; display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.brand { display: flex; align-items: center; gap: 14px; }
+.logo { width: 55px; height: 55px; object-fit: contain; background: white; border-radius: 8px; }
+.brand h1 { font-size: 22px; }
+.brand p { color: #d4af37; margin-top: 3px; font-size: 13px; }
+.back-button { background: #d4af37; color: #111827; text-decoration: none; padding: 10px 16px; border-radius: 8px; font-weight: bold; font-size: 13px; }
+
+.container { max-width: 800px; margin: 25px auto; padding: 0 20px; }
+
+.page-title { margin-bottom: 18px; }
+.page-title h2 { font-size: 26px; margin-bottom: 6px; }
+.page-title p { color: #6b7280; font-size: 14px; line-height: 1.5; }
+
+.toast {
+    display: none;
+    position: fixed;
+    top: 16px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 1000;
+    padding: 14px 20px;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: bold;
+    max-width: 92%;
+    text-align: center;
+    line-height: 1.5;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.25);
+}
+.toast.success { display: block; background: #166534; color: white; }
+.toast.error { display: block; background: #991b1b; color: white; }
+
+.tabs { display: flex; gap: 8px; margin-bottom: 18px; flex-wrap: wrap; }
+.tab-button {
+    background: white;
+    border: 1px solid #d1d5db;
+    color: #374151;
+    padding: 10px 14px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: bold;
+    cursor: pointer;
+}
+.tab-button.active { background: #111827; color: white; border-color: #111827; }
+
+.request-card { background: white; border-radius: 14px; padding: 18px; margin-bottom: 14px; box-shadow: 0 3px 12px rgba(0,0,0,0.06); }
+.request-top { display: flex; justify-content: space-between; align-items: start; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; }
+.student-name { font-weight: bold; font-size: 16px; }
+.student-number { color: #6b7280; font-size: 12px; margin-top: 3px; }
+
+.change-line { background: #f9fafb; border-radius: 10px; padding: 12px; font-size: 14px; line-height: 1.6; margin-bottom: 10px; }
+.change-line .from { color: #6b7280; }
+.change-line .to { font-weight: bold; color: #111827; }
+
+.reason-box { font-size: 13px; color: #374151; line-height: 1.5; margin-bottom: 10px; }
+.reason-box strong { color: #111827; }
+
+.warning-box { background: #fef3c7; border: 1px solid #fde68a; color: #92400e; border-radius: 8px; padding: 10px; font-size: 12px; font-weight: bold; line-height: 1.5; margin-bottom: 10px; }
+
+.decision-note { background: #f9fafb; border-radius: 8px; padding: 10px; font-size: 13px; line-height: 1.5; color: #374151; margin-top: 6px; }
+
+textarea {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    font-size: 14px;
+    min-height: 70px;
+    resize: vertical;
+    font-family: inherit;
+    margin-bottom: 10px;
+}
+
+.action-row { display: flex; gap: 10px; }
+.approve-button, .reject-button { flex: 1; border: none; padding: 13px; border-radius: 8px; font-weight: bold; font-size: 14px; cursor: pointer; }
+.approve-button { background: #166534; color: white; }
+.reject-button { background: #fee2e2; color: #991b1b; }
+.approve-button:disabled, .reject-button:disabled { opacity: 0.6; cursor: not-allowed; }
+
+.status-badge { padding: 4px 12px; border-radius: 20px; font-size: 11px; font-weight: bold; white-space: nowrap; }
+.status-badge.pending { background: #fef3c7; color: #92400e; }
+.status-badge.approved { background: #dcfce7; color: #166534; }
+.status-badge.rejected { background: #fee2e2; color: #991b1b; }
+
+.empty-note { color: #9ca3af; text-align: center; padding: 30px 0; font-size: 14px; }
+
+.confirm-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.55); z-index: 900; align-items: center; justify-content: center; padding: 20px; }
+.confirm-overlay.open { display: flex; }
+.confirm-box { background: white; border-radius: 14px; padding: 24px; max-width: 440px; width: 100%; }
+.confirm-box h3 { font-size: 18px; margin-bottom: 10px; }
+.confirm-box p { font-size: 14px; color: #374151; line-height: 1.6; margin-bottom: 20px; }
+.confirm-buttons { display: flex; gap: 10px; }
+.confirm-cancel { flex: 1; background: #f3f4f6; color: #374151; border: none; padding: 13px; border-radius: 8px; font-weight: bold; cursor: pointer; }
+.confirm-ok { flex: 1; background: #111827; color: white; border: none; padding: 13px; border-radius: 8px; font-weight: bold; cursor: pointer; }
+
+</style>
+</head>
+
+
+<body>
+
+<header class="header">
+    <div class="brand">
+        <img src="https://pub-b3e2d39712e84119875e84c5ec5f5c09.r2.dev/Logo/IMG-20260816-WA0050(1).jpg" alt="Sunningdale University Logo" class="logo">
+        <div>
+            <h1>E-Campus Administration</h1>
+            <p>Sunningdale University</p>
+        </div>
+    </div>
+    <a href="admin-dashboard.html" class="back-button">← Admin Dashboard</a>
+</header>
+
+
+<main class="container">
+
+    <section class="page-title">
+        <h2>Programme Change Requests</h2>
+        <p>Approving a request changes the student's programme immediately. Their current courses and fees are not touched, so adjust those yourself afterwards.</p>
+    </section>
+
+    <div class="tabs" id="tabs"></div>
+
+    <div id="requestsContainer"><p class="empty-note">Loading...</p></div>
+
+</main>
+
+
+<div id="toast" class="toast"></div>
+
+<div class="confirm-overlay" id="confirmOverlay">
+    <div class="confirm-box">
+        <h3 id="confirmTitle">Are you sure?</h3>
+        <p id="confirmText"></p>
+        <div class="confirm-buttons">
+            <button class="confirm-cancel" id="confirmCancelButton">Cancel</button>
+            <button class="confirm-ok" id="confirmOkButton">Yes, continue</button>
+        </div>
+    </div>
+</div>
+
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../supabase-config.js"></script>
+
+
+<script>
+
+let allRequests = [];
+let programmeById = {};
+let currentTab = "pending";
+let reviewerId = null;
+let toastTimeout = null;
+
+function escapeHtml(value) {
+    return String(value ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+}
+
+function showToast(text, type) {
+    const el = document.getElementById("toast");
+    el.textContent = text;
+    el.className = "toast " + type;
+    if (toastTimeout) clearTimeout(toastTimeout);
+    toastTimeout = setTimeout(() => { el.className = "toast"; }, 7000);
+}
+
+function programmeLabel(id) {
+    const p = programmeById[id];
+    return p ? `${p.code} — ${p.name}` : "Not set";
+}
+
+function askConfirm(title, text, okLabel) {
+
+    return new Promise(resolve => {
+
+        const overlay = document.getElementById("confirmOverlay");
+        document.getElementById("confirmTitle").textContent = title;
+        document.getElementById("confirmText").textContent = text;
+
+        const okButton = document.getElementById("confirmOkButton");
+        const cancelButton = document.getElementById("confirmCancelButton");
+        okButton.textContent = okLabel || "Yes, continue";
+
+        function finish(result) {
+            overlay.classList.remove("open");
+            okButton.onclick = null;
+            cancelButton.onclick = null;
+            resolve(result);
+        }
+
+        okButton.onclick = () => finish(true);
+        cancelButton.onclick = () => finish(false);
+
+        overlay.classList.add("open");
+
+    });
+
+}
+
+
+async function startPage() {
+
+    const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
+
+    if (authError || !user) {
+        window.location.href = "../index.html";
+        return;
+    }
+
+    reviewerId = user.id;
+
+    const { data: programmes } =
+        await supabaseClient.from("programmes").select("id, code, name");
+
+    (programmes || []).forEach(p => { programmeById[p.id] = p; });
+
+    await loadRequests();
+
+}
+
+
+async function loadRequests() {
+
+    const { data, error } =
+        await supabaseClient
+            .from("programme_change_requests")
+            .select(`
+                id, student_id, current_programme_id, requested_programme_id,
+                reason, status, admin_note, reviewed_at, created_at,
+                student_profiles ( student_number, programme_id, user_profiles ( first_name, last_name ) )
+            `)
+            .order("created_at", { ascending: false });
+
+    if (error) {
+        document.getElementById("requestsContainer").innerHTML =
+            `<p class="empty-note">Unable to load requests: ${escapeHtml(error.message)}<br><br>If this says the table does not exist, the programme_change_requests SQL has not been run yet.</p>`;
+        return;
+    }
+
+    allRequests = data || [];
+    renderTabs();
+    renderRequests();
+
+}
+
+
+function renderTabs() {
+
+    const counts = { pending: 0, approved: 0, rejected: 0, all: allRequests.length };
+    allRequests.forEach(r => { if (counts[r.status] !== undefined) counts[r.status]++; });
+
+    const defs = [
+        { key: "pending", label: "Pending" },
+        { key: "approved", label: "Approved" },
+        { key: "rejected", label: "Rejected" },
+        { key: "all", label: "All" }
+    ];
+
+    document.getElementById("tabs").innerHTML = defs.map(d => `
+        <button class="tab-button ${currentTab === d.key ? "active" : ""}" onclick="switchTab('${d.key}')">${d.label} (${counts[d.key]})</button>
+    `).join("");
+
+}
+
+
+function switchTab(tab) {
+    currentTab = tab;
+    renderTabs();
+    renderRequests();
+}
+
+
+function renderRequests() {
+
+    const container = document.getElementById("requestsContainer");
+
+    const list = currentTab === "all" ? allRequests : allRequests.filter(r => r.status === currentTab);
+
+    if (list.length === 0) {
+        container.innerHTML = `<p class="empty-note">${currentTab === "pending" ? "No requests waiting for a decision." : "Nothing to show here."}</p>`;
+        return;
+    }
+
+    container.innerHTML = list.map(r => {
+
+        const sp = r.student_profiles;
+        const name = sp && sp.user_profiles ? `${sp.user_profiles.first_name} ${sp.user_profiles.last_name}` : "Unknown student";
+        const statusLabel = r.status.charAt(0).toUpperCase() + r.status.slice(1);
+
+        const programmeChangedSince = r.status === "pending" && sp && sp.programme_id !== r.current_programme_id;
+
+        let bottomHtml = "";
+
+        if (r.status === "pending") {
+
+            bottomHtml = `
+                ${programmeChangedSince ? `<div class="warning-box">⚠️ This student's programme has changed since they sent this request. They are now on ${escapeHtml(programmeLabel(sp.programme_id))}. Check before approving.</div>` : ""}
+                <textarea id="note-${r.id}" placeholder="Note to the student (required if you reject, optional if you approve)"></textarea>
+                <div class="action-row">
+                    <button class="approve-button" onclick="decide('${r.id}', 'approved')">Approve</button>
+                    <button class="reject-button" onclick="decide('${r.id}', 'rejected')">Reject</button>
+                </div>
+            `;
+
+        } else {
+
+            bottomHtml = `
+                ${r.admin_note ? `<div class="decision-note"><strong>Your note:</strong> ${escapeHtml(r.admin_note)}</div>` : ""}
+                ${r.reviewed_at ? `<div class="decision-note" style="margin-top:6px;">Decided on ${new Date(r.reviewed_at).toLocaleDateString()}</div>` : ""}
+            `;
+
+        }
+
+        return `
+            <div class="request-card">
+                <div class="request-top">
+                    <div>
+                        <div class="student-name">${escapeHtml(name)}</div>
+                        <div class="student-number">${escapeHtml(sp ? sp.student_number : "")} • Sent ${new Date(r.created_at).toLocaleDateString()}</div>
+                    </div>
+                    <span class="status-badge ${escapeHtml(r.status)}">${escapeHtml(statusLabel)}</span>
+                </div>
+
+                <div class="change-line">
+                    <div class="from">From: ${escapeHtml(programmeLabel(r.current_programme_id))}</div>
+                    <div class="to">To: ${escapeHtml(programmeLabel(r.requested_programme_id))}</div>
+                </div>
+
+                ${r.reason ? `<div class="reason-box"><strong>Student's reason:</strong> ${escapeHtml(r.reason)}</div>` : ""}
+
+                ${bottomHtml}
+            </div>
+        `;
+
+    }).join("");
+
+}
+
+
+async function decide(requestId, decision) {
+
+    const req = allRequests.find(r => r.id === requestId);
+    if (!req) return;
+
+    const noteEl = document.getElementById("note-" + requestId);
+    const note = noteEl ? noteEl.value.trim() : "";
+
+    if (decision === "rejected" && note.length < 5) {
+        showToast("Please write a short reason in the note box so the student knows why it was rejected.", "error");
+        return;
+    }
+
+    const sp = req.student_profiles;
+    const name = sp && sp.user_profiles ? `${sp.user_profiles.first_name} ${sp.user_profiles.last_name}` : "this student";
+
+    const confirmed = await askConfirm(
+        decision === "approved" ? `Approve change for ${name}?` : `Reject request from ${name}?`,
+        decision === "approved"
+            ? `Their programme will change to ${programmeLabel(req.requested_programme_id)} right away. Their courses and fees will not be changed.`
+            : "The student will see your note on their Programme Change page.",
+        decision === "approved" ? "Yes, approve" : "Yes, reject"
+    );
+
+    if (!confirmed) return;
+
+    // Step 1: mark the request decided — only if it is still pending, so a double tap can't decide it twice.
+    const { data: updated, error: requestError } =
+        await supabaseClient
+            .from("programme_change_requests")
+            .update({
+                status: decision,
+                admin_note: note || null,
+                reviewed_by: reviewerId,
+                reviewed_at: new Date().toISOString()
+            })
+            .eq("id", requestId)
+            .eq("status", "pending")
+            .select("id");
+
+    if (requestError) {
+        showToast("Unable to save the decision: " + requestError.message, "error");
+        return;
+    }
+
+    if (!updated || updated.length === 0) {
+        showToast("This request has already been decided or could not be updated.", "error");
+        await loadRequests();
+        return;
+    }
+
+    // Step 2: on approval, actually change the student's programme. If that fails, put the request back to pending.
+    if (decision === "approved") {
+
+        const { data: profileUpdated, error: profileError } =
+            await supabaseClient
+                .from("student_profiles")
+                .update({ programme_id: req.requested_programme_id })
+                .eq("id", req.student_id)
+                .select("id");
+
+        if (profileError || !profileUpdated || profileUpdated.length === 0) {
+
+            const { error: revertError } =
+                await supabaseClient
+                    .from("programme_change_requests")
+                    .update({ status: "pending", admin_note: null, reviewed_by: null, reviewed_at: null })
+                    .eq("id", requestId);
+
+            const reason = profileError ? profileError.message : "no permission to change the student record";
+
+            showToast(
+                revertError
+                    ? `The programme was NOT changed (${reason}), and the request could not be reset. Check this request carefully.`
+                    : `The programme was NOT changed (${reason}). The request was left pending.`,
+                "error"
+            );
+
+            await loadRequests();
+            return;
+
+        }
+
+    }
+
+    showToast(
+        decision === "approved"
+            ? `${name} is now on ${programmeLabel(req.requested_programme_id)}. Remember to adjust their courses and fees.`
+            : `Request rejected. ${name} will see your note.`,
+        "success"
+    );
+
+    await loadRequests();
+
+}
+
+
+startPage();
+
+</script>
+
+</body>
+</html>
