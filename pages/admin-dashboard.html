@@ -187,6 +187,15 @@
             background: #c29d24;
         }
 
+        .management-card a.danger-link {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .management-card a.danger-link:hover {
+            background: #fecaca;
+        }
+
         @media (max-width: 900px) {
 
             .stats {
@@ -382,6 +391,28 @@
 
                 <a href="admin-programmes.html">
                     Manage Programmes
+                </a>
+
+            </div>
+
+
+            <div class="management-card">
+
+                <div class="icon">
+                    🗑️
+                </div>
+
+                <h3>
+                    Delete Programmes
+                </h3>
+
+                <p>
+                    Permanently remove a programme
+                    that has no students on it.
+                </p>
+
+                <a href="admin-delete-programme.html" class="danger-link">
+                    Delete Programmes
                 </a>
 
             </div>
