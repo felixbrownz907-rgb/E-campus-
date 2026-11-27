@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Delete Programmes | E-Campus Admin</title>
+
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: Arial, Helvetica, sans-serif; background: #f4f6f9; color: #172033; }
+
+.header { background: #111827; color: white; padding: 18px 25px; display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.brand { display: flex; align-items: center; gap: 14px; }
+.logo { width: 55px; height: 55px; object-fit: contain; background: white; border-radius: 8px; }
+.brand h1 { font-size: 22px; }
+.brand p { color: #d4af37; margin-top: 3px; font-size: 13px; }
+.back-button { background: #d4af37; color: #111827; text-decoration: none; padding: 10px 16px; border-radius: 8px; font-weight: bold; font-size: 13px; }
+
+.container { max-width: 800px; margin: 25px auto; padding: 0 20px; }
+
+.page-title { margin-bottom: 18px; }
+.page-title h2 { font-size: 26px; margin-bottom: 6px; }
+.page-title p { color: #6b7280; font-size: 14px; line-height: 1.5; }
+
+.toast {
+    display: none;
+    position: fixed;
+    top: 16px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 1000;
+    padding: 14px 20px;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: bold;
+    max-width: 92%;
+    text-align: center;
+    line-height: 1.5;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.25);
+}
+.toast.success { display: block; background: #166534; color: white; }
+.toast.error { display: block; background: #991b1b; color: white; }
+
+.programme-card { background: white; border-radius: 14px; padding: 16px; margin-bottom: 12px; box-shadow: 0 3px 12px rgba(0,0,0,0.06); }
+.programme-top { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+.programme-name { font-weight: bold; font-size: 15px; }
+.programme-code { color: #6b7280; font-size: 12px; margin-top: 3px; }
+
+.chips { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+.chip { background: #f3f4f6; color: #374151; font-size: 11px; font-weight: bold; padding: 4px 10px; border-radius: 20px; }
+.chip.warn { background: #fef3c7; color: #92400e; }
+
+.blocked-note { background: #fef3c7; color: #92400e; border-radius: 8px; padding: 10px; font-size: 12px; font-weight: bold; line-height: 1.5; margin-top: 10px; }
+
+.delete-button { background: #991b1b; color: white; border: none; padding: 10px 16px; border-radius: 8px; font-weight: bold; font-size: 13px; cursor: pointer; }
+.delete-button:disabled { opacity: 0.6; cursor: not-allowed; }
+
+.empty-note { color: #9ca3af; text-align: center; padding: 30px 0; font-size: 14px; }
+
+.confirm-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.55); z-index: 900; align-items: center; justify-content: center; padding: 20px; }
+.confirm-overlay.open { display: flex; }
+.confirm-box { background: white; border-radius: 14px; padding: 24px; max-width: 440px; width: 100%; }
+.confirm-box h3 { font-size: 18px; margin-bottom: 10px; }
+.confirm-box p { font-size: 14px; color: #374151; line-height: 1.6; margin-bottom: 20px; }
+.confirm-buttons { display: flex; gap: 10px; }
+.confirm-cancel { flex: 1; background: #f3f4f6; color: #374151; border: none; padding: 13px; border-radius: 8px; font-weight: bold; cursor: pointer; }
+.confirm-ok { flex: 1; background: #991b1b; color: white; border: none; padding: 13px; border-radius: 8px; font-weight: bold; cursor: pointer; }
+
+</style>
+</head>
+
+
+<body>
+
+<header class="header">
+    <div class="brand">
+        <img src="https://pub-b3e2d39712e84119875e84c5ec5f5c09.r2.dev/Logo/IMG-20260816-WA0050(1).jpg" alt="Sunningdale University Logo" class="logo">
+        <div>
+            <h1>E-Campus Administration</h1>
+            <p>Sunningdale University</p>
+        </div>
+    </div>
+    <a href="admin-dashboard.html" class="back-button">← Admin Dashboard</a>
+</header>
+
+
+<main class="container">
+
+    <section class="page-title">
+        <h2>Delete Programmes</h2>
+        <p>Deleting is permanent. A programme that still has students on it cannot be deleted — move those students to another programme first.</p>
+    </section>
+
+    <div id="programmesContainer"><p class="empty-note">Loading...</p></div>
+
+</main>
+
+
+<div id="toast" class="toast"></div>
+
+<div class="confirm-overlay" id="confirmOverlay">
+    <div class="confirm-box">
+        <h3 id="confirmTitle">Are you sure?</h3>
+        <p id="confirmText"></p>
+        <div class="confirm-buttons">
+            <button class="confirm-cancel" id="confirmCancelButton">Cancel</button>
+            <button class="confirm-ok" id="confirmOkButton">Yes, delete</button>
+        </div>
+    </div>
+</div>
+
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../supabase-config.js"></script>
+
+
+<script>
+
+let programmes = [];
+let studentCounts = {};
+let courseCounts = {};
+let toastTimeout = null;
+
+function escapeHtml(value) {
+    return String(value ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+}
+
+function showToast(text, type) {
+    const el = document.getElementById("toast");
+    el.textContent = text;
+    el.className = "toast " + type;
+    if (toastTimeout) clearTimeout(toastTimeout);
+    toastTimeout = setTimeout(() => { el.className = "toast"; }, 8000);
+}
+
+function askConfirm(title, text) {
+
+    return new Promise(resolve => {
+
+        const overlay = document.getElementById("confirmOverlay");
+        document.getElementById("confirmTitle").textContent = title;
+        document.getElementById("confirmText").textContent = text;
+
+        const okButton = document.getElementById("confirmOkButton");
+        const cancelButton = document.getElementById("confirmCancelButton");
+
+        function finish(result) {
+            overlay.classList.remove("open");
+            okButton.onclick = null;
+            cancelButton.onclick = null;
+            resolve(result);
+        }
+
+        okButton.onclick = () => finish(true);
+        cancelButton.onclick = () => finish(false);
+
+        overlay.classList.add("open");
+
+    });
+
+}
+
+
+async function startPage() {
+
+    const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
+
+    if (authError || !user) {
+        window.location.href = "../index.html";
+        return;
+    }
+
+    await loadProgrammes();
+
+}
+
+
+async function loadProgrammes() {
+
+    const container = document.getElementById("programmesContainer");
+
+    const { data, error } =
+        await supabaseClient.from("programmes").select("id, code, name").order("name");
+
+    if (error) {
+        container.innerHTML = `<p class="empty-note">Unable to load programmes: ${escapeHtml(error.message)}</p>`;
+        return;
+    }
+
+    programmes = data || [];
+
+    const { data: students } =
+        await supabaseClient.from("student_profiles").select("programme_id");
+
+    studentCounts = {};
+    (students || []).forEach(s => {
+        if (s.programme_id) studentCounts[s.programme_id] = (studentCounts[s.programme_id] || 0) + 1;
+    });
+
+    const { data: links } =
+        await supabaseClient.from("programme_courses").select("programme_id");
+
+    courseCounts = {};
+    (links || []).forEach(l => {
+        if (l.programme_id) courseCounts[l.programme_id] = (courseCounts[l.programme_id] || 0) + 1;
+    });
+
+    renderProgrammes();
+
+}
+
+
+function renderProgrammes() {
+
+    const container = document.getElementById("programmesContainer");
+
+    if (programmes.length === 0) {
+        container.innerHTML = `<p class="empty-note">There are no programmes to show.</p>`;
+        return;
+    }
+
+    container.innerHTML = programmes.map(p => {
+
+        const students = studentCounts[p.id] || 0;
+        const courses = courseCounts[p.id] || 0;
+
+        const action = students > 0
+            ? `<div class="blocked-note">🔒 ${students} student${students === 1 ? " is" : "s are"} still on this programme. Move ${students === 1 ? "them" : "them"} to another programme before you can delete it.</div>`
+            : `<button class="delete-button" onclick="deleteProgramme('${p.id}')">Delete</button>`;
+
+        return `
+            <div class="programme-card">
+                <div class="programme-top">
+                    <div>
+                        <div class="programme-name">${escapeHtml(p.name)}</div>
+                        <div class="programme-code">${escapeHtml(p.code)}</div>
+                    </div>
+                    ${students > 0 ? "" : action}
+                </div>
+                <div class="chips">
+                    <span class="chip ${students > 0 ? "warn" : ""}">${students} student${students === 1 ? "" : "s"}</span>
+                    <span class="chip">${courses} course link${courses === 1 ? "" : "s"}</span>
+                </div>
+                ${students > 0 ? action : ""}
+            </div>
+        `;
+
+    }).join("");
+
+}
+
+
+async function deleteProgramme(programmeId) {
+
+    const p = programmes.find(x => x.id === programmeId);
+    if (!p) return;
+
+    // Re-check student count right now, in case someone was added since the page loaded.
+    const { count, error: countError } =
+        await supabaseClient
+            .from("student_profiles")
+            .select("id", { count: "exact", head: true })
+            .eq("programme_id", programmeId);
+
+    if (countError) {
+        showToast("Could not check whether students are on this programme, so nothing was deleted: " + countError.message, "error");
+        return;
+    }
+
+    if ((count || 0) > 0) {
+        showToast(`${count} student(s) are on this programme, so it cannot be deleted. Move them first.`, "error");
+        await loadProgrammes();
+        return;
+    }
+
+    const links = courseCounts[programmeId] || 0;
+
+    const confirmed = await askConfirm(
+        `Delete ${p.name}?`,
+        `This is permanent and cannot be undone.${links > 0 ? ` It has ${links} course link${links === 1 ? "" : "s"} attached.` : ""}`
+    );
+
+    if (!confirmed) return;
+
+    const { data: deleted, error } =
+        await supabaseClient.from("programmes").delete().eq("id", programmeId).select("id");
+
+    if (error) {
+
+        if (error.code === "23503") {
+            showToast("Cannot delete: this programme is still used by other records, such as attached courses, year levels or change requests. Remove those first. Details: " + error.message, "error");
+        } else {
+            showToast("Unable to delete: " + error.message, "error");
+        }
+
+        return;
+
+    }
+
+    if (!deleted || deleted.length === 0) {
+        showToast("Nothing was deleted. Your account may not have permission to delete programmes.", "error");
+        return;
+    }
+
+    showToast(`${p.name} has been deleted.`, "success");
+    await loadProgrammes();
+
+}
+
+
+startPage();
+
+</script>
+
+</body>
+</html>
